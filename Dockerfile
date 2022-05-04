@@ -1,7 +1,4 @@
-FROM tootsuite/mastodon:v3.4.6
-
-COPY --chown=991:991 ./chewy /opt/mastodon/app/chewy
-#COPY --chown=991:991 ./media_cli.rb /opt/mastodon/lib/mastodon/media_cli.rb
+FROM tootsuite/mastodon:v3.5.2
 
 RUN echo "修改字数上限" \
   && sed -i "s|MAX_CHARS = 500|MAX_CHARS = 20000|" /opt/mastodon/app/validators/status_length_validator.rb \
@@ -27,7 +24,17 @@ RUN echo "修改字数上限" \
   && echo "隐藏摘要规则" \
   && sed -i "s|unless @rules\.empty|if @contents\.blank|" /opt/mastodon/app/views/about/more.html.haml \
   && echo "允许站长查看私信" \
-  && sed -i "s|@statuses = @account\.statuses\.where(visibility: \[:public, :unlisted\])|if @current_account.username == 'fghrsh'\n        @statuses = @account\.statuses\n      else\n        @statuses = @account\.statuses\.where(visibility: \[:public, :unlisted\])\n      end|" /opt/mastodon/app/controllers/admin/statuses_controller.rb \
+  && sed -i "s|@account, filter_params|@account, filter_params, current_account\.username|" /opt/mastodon/app/controllers/admin/statuses_controller.rb \
+  && sed -i "s|account, params|account, params, current_username = ''|" /opt/mastodon/app/models/admin/status_filter.rb \
+  && sed -i "s|@params  = params|@params  = params\n    @current_username  = current_username|" /opt/mastodon/app/models/admin/status_filter.rb \
+  && sed -i "s|scope = @account\.statuses\.where(visibility: \[:public, :unlisted\])|scope = @current_username == 'fghrsh' ? @account\.statuses : @account\.statuses\.where(visibility: \[:public, :unlisted\])|" /opt/mastodon/app/models/admin/status_filter.rb \
+  && echo "全文搜索中文优化" \
+  && sed -i "s|whitespace|ik_max_word|" /opt/mastodon/app/chewy/accounts_index.rb \
+  && sed -i "s|analyzer: {|char_filter: {\n      tsconvert: {\n        type: 'stconvert',\n        keep_both: false,\n        delimiter: '#',\n        convert_type: 't2s',\n      },\n    },\n    analyzer: {|" /opt/mastodon/app/chewy/statuses_index.rb \
+  && sed -i "s|uax_url_email|ik_max_word|" /opt/mastodon/app/chewy/statuses_index.rb \
+  && sed -i "s|        ),|        ),\n        char_filter: %w(tsconvert),|" /opt/mastodon/app/chewy/statuses_index.rb \
+  && sed -i "s|analysis: {|analysis: {\n    char_filter: {\n      tsconvert: {\n        type: 'stconvert',\n        keep_both: false,\n        delimiter: '#',\n        convert_type: 't2s',\n      },\n    },|" /opt/mastodon/app/chewy/tags_index.rb \
+  && sed -i "s|keyword',|ik_max_word',\n        char_filter: %w(tsconvert),|" /opt/mastodon/app/chewy/tags_index.rb \
   && echo "修改版本项目地址" \
   && sed -i "/def suffix/{n;s|''|'~wxw'|}" /opt/mastodon/lib/mastodon/version.rb \
   && sed -i "s|mastodon/mastodon|wxwmoe/mastodon|" /opt/mastodon/lib/mastodon/version.rb \
