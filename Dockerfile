@@ -1,4 +1,4 @@
-FROM tootsuite/mastodon:v3.5.2
+FROM tootsuite/mastodon:v3.5.3
 
 RUN echo "修改字数上限" \
   && sed -i "s|MAX_CHARS = 500|MAX_CHARS = 20000|" /opt/mastodon/app/validators/status_length_validator.rb \
