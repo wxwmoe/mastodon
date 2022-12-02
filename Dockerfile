@@ -1,4 +1,4 @@
-FROM tootsuite/mastodon:v3.5.3
+FROM tootsuite/mastodon:v3.5.5
 
 RUN echo "修改字数上限" \
   && sed -i "s|MAX_CHARS = 500|MAX_CHARS = 20000|" /opt/mastodon/app/validators/status_length_validator.rb \
@@ -23,11 +23,14 @@ RUN echo "修改字数上限" \
   && sed -i "1i\- if !@account\.discoverable && \!user_signed_in?\n  - content_for :page_title do\n    = 'Access denied'\n\n  - content_for :header_tags do\n    - if @account\.user&\.setting_noindex\n      %meta{ name: 'robots', content: 'noindex, noarchive' }/\n\n    %link{ rel: 'alternate', type: 'application/json+oembed', href: api_oembed_url(url: short_account_status_url(@account, @status), format: 'json') }/\n    %link{ rel: 'alternate', type: 'application/activity+json', href: ActivityPub::TagManager\.instance\.uri_for(@status) }/\n\n  \.grid\n    \.column-0\n      \.activity-stream\.h-entry\n        \.entry\.entry-center\n          \.detailed-status\.detailed-status--flex\n            \.status__content\.emojify\n              \.e-content\n                = 'Access denied'\n            \.detailed-status__meta\n              = 'For wxw\.moe members only, you need login to view it\.'\n    \.column-1\n      = render 'application/sidebar'\n\n- else" /opt/mastodon/app/views/statuses/show.html.haml \
   && echo "隐藏摘要规则" \
   && sed -i "s|unless @rules\.empty|if @contents\.blank|" /opt/mastodon/app/views/about/more.html.haml \
-  && echo "允许站长查看私信" \
-  && sed -i "s|@account, filter_params|@account, filter_params, current_account\.username|" /opt/mastodon/app/controllers/admin/statuses_controller.rb \
-  && sed -i "s|account, params|account, params, current_username = ''|" /opt/mastodon/app/models/admin/status_filter.rb \
-  && sed -i "s|@params  = params|@params  = params\n    @current_username  = current_username|" /opt/mastodon/app/models/admin/status_filter.rb \
-  && sed -i "s|scope = @account\.statuses\.where(visibility: \[:public, :unlisted\])|scope = @current_username == 'fghrsh' ? @account\.statuses : @account\.statuses\.where(visibility: \[:public, :unlisted\])|" /opt/mastodon/app/models/admin/status_filter.rb \
+# && echo "允许站长查看私信" \
+# && sed -i "s|@account, filter_params|@account, filter_params, current_account\.username|" /opt/mastodon/app/controllers/admin/statuses_controller.rb \
+# && sed -i "s|account, params|account, params, current_username = ''|" /opt/mastodon/app/models/admin/status_filter.rb \
+# && sed -i "s|@params  = params|@params  = params\n    @current_username  = current_username|" /opt/mastodon/app/models/admin/status_filter.rb \
+# && sed -i "s|scope = @account\.statuses\.where(visibility: \[:public, :unlisted\])|scope = @current_username == 'example_user_edit_here' ? @account\.statuses : @account\.statuses\.where(visibility: \[:public, :unlisted\])|" /opt/mastodon/app/models/admin/status_filter.rb \
+  && echo "打开嘟文编辑功能" \
+  && sed -i "s|// menu|menu|" /opt/mastodon/app/javascript/mastodon/components/status_action_bar.js \
+  && sed -i "s|// menu|menu|" /opt/mastodon/app/javascript/mastodon/features/status/components/action_bar.js \
   && echo "全文搜索中文优化" \
   && sed -i "s|whitespace|ik_max_word|" /opt/mastodon/app/chewy/accounts_index.rb \
   && sed -i "s|analyzer: {|char_filter: {\n      tsconvert: {\n        type: 'stconvert',\n        keep_both: false,\n        delimiter: '#',\n        convert_type: 't2s',\n      },\n    },\n    analyzer: {|" /opt/mastodon/app/chewy/statuses_index.rb \
