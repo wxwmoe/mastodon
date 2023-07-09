@@ -15,6 +15,13 @@ RUN echo "修改字数上限" \
   && echo "修改投票上限" \
   && sed -i "s|options.size >= 4|options.size >= 16|" /opt/mastodon/app/javascript/mastodon/features/compose/components/poll_form.js \
   && sed -i "s|MAX_OPTIONS      = 4|MAX_OPTIONS      = 16|" /opt/mastodon/app/validators/poll_validator.rb \
+  && echo "加入 No-More-Sidebar-in-Mastodon-4.0 样式" \
+  && mkdir /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar \
+  && wget -nv https://raw.githubusercontent.com/AkazaRenn/No-More-Sidebar-in-Mastodon-4.0/main/css/bottombar.css -O /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar/bottombar.scss \
+  && echo -e "@import 'application';\n@import 'mastodon-no-more-sidebar/bottombar';" > /opt/mastodon/app/javascript/styles/mastodon-dark.scss \
+  && echo -e "@import 'mastodon-no-more-sidebar/bottombar';" >> /opt/mastodon/app/javascript/styles/contrast.scss \
+  && echo -e "@import 'mastodon-no-more-sidebar/bottombar';" >> /opt/mastodon/app/javascript/styles/mastodon-light.scss \
+  && sed -i "s|application|mastodon-dark|" /opt/mastodon/config/themes.yml \
   && echo "全文搜索中文优化" \
   && sed -i "s|whitespace|ik_max_word|" /opt/mastodon/app/chewy/accounts_index.rb \
   && sed -i "s|analyzer: {|char_filter: {\n      tsconvert: {\n        type: 'stconvert',\n        keep_both: false,\n        delimiter: '#',\n        convert_type: 't2s',\n      },\n    },\n    analyzer: {|" /opt/mastodon/app/chewy/statuses_index.rb \
