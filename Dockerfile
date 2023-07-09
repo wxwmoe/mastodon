@@ -22,6 +22,25 @@ RUN echo "修改字数上限" \
   && echo -e "@import 'mastodon-no-more-sidebar/bottombar';" >> /opt/mastodon/app/javascript/styles/contrast.scss \
   && echo -e "@import 'mastodon-no-more-sidebar/bottombar';" >> /opt/mastodon/app/javascript/styles/mastodon-light.scss \
   && sed -i "s|application|mastodon-dark|" /opt/mastodon/config/themes.yml \
+  && echo "加入 Mastodon (Sakura) 主题" \
+  && sed -i "s|#6364FF|#f596aa|" /opt/mastodon/app/views/layouts/application.html.haml \
+  && sed -i "s|#191b22|#fedfe1|" /opt/mastodon/app/views/layouts/application.html.haml \
+  && mkdir /opt/mastodon/app/javascript/styles/mastodon-sakura \
+  && cp /opt/mastodon/app/javascript/styles/mastodon-light/diff.scss /opt/mastodon/app/javascript/styles/mastodon-sakura/diff.scss \
+  && cp /opt/mastodon/app/javascript/styles/mastodon-light/variables.scss /opt/mastodon/app/javascript/styles/mastodon-sakura/variables.scss \
+  && sed -i "s|#9baec8|#b5495b|" /opt/mastodon/app/javascript/styles/mastodon-sakura/variables.scss \
+  && sed -i "s|#d9e1e8|#fedfe1|" /opt/mastodon/app/javascript/styles/mastodon-sakura/variables.scss \
+  && sed -i "s|#6364ff|#f596aa|" /opt/mastodon/app/javascript/styles/mastodon-sakura/variables.scss \
+  && sed -i "s|#858afa|#eb7a77|" /opt/mastodon/app/javascript/styles/mastodon-sakura/variables.scss \
+  && sed -i "s|#b0c0cf|#feeeed|" /opt/mastodon/app/javascript/styles/mastodon-sakura/variables.scss \
+  && sed -i "s|#9bcbed|#f8c3cd|" /opt/mastodon/app/javascript/styles/mastodon-sakura/variables.scss \
+  && cp /opt/mastodon/app/javascript/styles/mastodon-light.scss /opt/mastodon/app/javascript/styles/mastodon-sakura.scss \
+  && sed -i "s|light|sakura|" /opt/mastodon/app/javascript/styles/mastodon-sakura.scss \
+  && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon (Sakura)' /opt/mastodon/config/locales/en.yml \
+  && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜' /opt/mastodon/config/locales/zh-CN.yml \
+  && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜' /opt/mastodon/config/locales/zh-TW.yml \
+  && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜' /opt/mastodon/config/locales/zh-HK.yml \
+  && echo -e "mastodon-sakura: styles/mastodon-sakura.scss" >> /opt/mastodon/config/themes.yml \
   && echo "全文搜索中文优化" \
   && sed -i "s|whitespace|ik_max_word|" /opt/mastodon/app/chewy/accounts_index.rb \
   && sed -i "s|analyzer: {|char_filter: {\n      tsconvert: {\n        type: 'stconvert',\n        keep_both: false,\n        delimiter: '#',\n        convert_type: 't2s',\n      },\n    },\n    analyzer: {|" /opt/mastodon/app/chewy/statuses_index.rb \
