@@ -57,6 +57,32 @@ RUN echo "修改字数上限" \
   && sed -i '/mastodon-light/a\    mastodon-bird-ui-dark: Mastodon Bird UI（暗色主题）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高对比度）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色主题）' /opt/mastodon/config/locales/zh-CN.yml \
   && sed -i '/mastodon-light/a\    mastodon-bird-ui-dark: Mastodon Bird UI（深色）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色）' /opt/mastodon/config/locales/zh-TW.yml \
   && sed -i '/mastodon-light/a\    mastodon-bird-ui-dark: Mastodon Bird UI\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色主題）' /opt/mastodon/config/locales/zh-HK.yml \
+  && echo "加入 Mastodon Bird UI (Sakura) 主题" \
+  && mkdir /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura \
+  && cp /opt/mastodon/app/javascript/styles/mastodon-bird-ui/layout-single-column.scss /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-single-column.scss \
+  && cp /opt/mastodon/app/javascript/styles/mastodon-bird-ui/layout-multiple-columns.scss /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-multiple-columns.scss \
+  && sed -i "s/light/sakura/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-single-column.scss \
+  && sed -i "s/light/sakura/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-multiple-columns.scss \
+  && sed -i "s/595aff/f596aa/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-single-column.scss \
+  && sed -i "s/9388a6/828282/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-single-column.scss \
+  && sed -i "s/8c8dff/f4a7b9/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-single-column.scss \
+  && sed -i "s/e5e1ed/f7e6e7/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-single-column.scss \
+  && sed -i "s/17bf63/86C166/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-single-column.scss \
+  && sed -i "s/9588a6/0b1013/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-single-column.scss \
+  && sed -i "s/e6e1ed/fedfe1/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-single-column.scss \
+  && sed -i "s/595aff/f596aa/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-multiple-columns.scss \
+  && sed -i "s/9388a6/828282/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-multiple-columns.scss \
+  && sed -i "s/8c8dff/f4a7b9/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-multiple-columns.scss \
+  && sed -i "s/e5e1ed/f7e6e7/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-multiple-columns.scss \
+  && sed -i "s/17bf63/86C166/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-multiple-columns.scss \
+  && sed -i "s/9588a6/0b1013/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-multiple-columns.scss \
+  && sed -i "s/e6e1ed/fedfe1/g" /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-multiple-columns.scss \
+  && echo -e "@import 'mastodon-sakura/variables';\n@import 'application';\n@import 'mastodon-sakura/diff';\n@import 'mastodon-bird-ui-sakura/layout-single-column.scss';\n@import 'mastodon-bird-ui-sakura/layout-multiple-columns.scss';" > /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura.scss \
+  && sed -i '/mastodon-sakura/a\    mastodon-bird-ui-sakura: Mastodon Bird UI (Sakura)' /opt/mastodon/config/locales/en.yml \
+  && sed -i '/mastodon-sakura/a\    mastodon-bird-ui-sakura: Mastodon Bird UI · 桜' /opt/mastodon/config/locales/zh-CN.yml \
+  && sed -i '/mastodon-sakura/a\    mastodon-bird-ui-sakura: Mastodon Bird UI · 桜' /opt/mastodon/config/locales/zh-TW.yml \
+  && sed -i '/mastodon-sakura/a\    mastodon-bird-ui-sakura: Mastodon Bird UI · 桜' /opt/mastodon/config/locales/zh-HK.yml \
+  && echo -e "mastodon-bird-ui-sakura: styles/mastodon-bird-ui-sakura.scss" >> /opt/mastodon/config/themes.yml \
   && echo "全文搜索中文优化" \
   && sed -i "s|whitespace|ik_max_word|" /opt/mastodon/app/chewy/accounts_index.rb \
   && sed -i "s|analyzer: {|char_filter: {\n      tsconvert: {\n        type: 'stconvert',\n        keep_both: false,\n        delimiter: '#',\n        convert_type: 't2s',\n      },\n    },\n    analyzer: {|" /opt/mastodon/app/chewy/statuses_index.rb \
