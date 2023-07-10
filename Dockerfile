@@ -24,7 +24,8 @@ RUN echo "修改字数上限" \
   && sed -i "s|application|mastodon-dark|" /opt/mastodon/config/themes.yml \
   && echo "加入 Mastodon (Sakura) 主题" \
   && sed -i "s|#6364FF|#f596aa|" /opt/mastodon/app/views/layouts/application.html.haml \
-  && sed -i "s|#191b22|#fedfe1|" /opt/mastodon/app/views/layouts/application.html.haml \
+#  && sed -i "s|#191b22|#fedfe1|" /opt/mastodon/app/views/layouts/application.html.haml \
+  && sed -i '/theme-color/d' /opt/mastodon/app/views/layouts/application.html.haml \
   && mkdir /opt/mastodon/app/javascript/styles/mastodon-sakura \
   && cp /opt/mastodon/app/javascript/styles/mastodon-light/diff.scss /opt/mastodon/app/javascript/styles/mastodon-sakura/diff.scss \
   && cp /opt/mastodon/app/javascript/styles/mastodon-light/variables.scss /opt/mastodon/app/javascript/styles/mastodon-sakura/variables.scss \
