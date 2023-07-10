@@ -39,6 +39,7 @@ RUN echo "修改字数上限" \
   && sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（顶栏暗色主题）\n    mastodon-dark-bottombar: Mastodon（底栏暗色主题）\n    contrast-topbar: Mastodon（顶栏高对比度）\n    contrast-bottombar: Mastodon（底栏高对比度）\n    mastodon-light-topbar: Mastodon（顶栏亮色主题）\n    mastodon-light-bottombar: Mastodon（底栏亮色主题）' /opt/mastodon/config/locales/zh-CN.yml \
   && sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（頂欄深色）\n    mastodon-dark-bottombar: Mastodon（底欄深色）\n    contrast-topbar: Mastodon（頂欄高對比）\n    contrast-bottombar: Mastodon（底欄高對比）\n    mastodon-light-topbar: Mastodon（頂欄亮色）\n    mastodon-light-bottombar: Mastodon（底欄亮色）' /opt/mastodon/config/locales/zh-TW.yml \
   && sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（頂欄）\n    mastodon-dark-bottombar: Mastodon（底欄）\n    contrast-topbar: Mastodon（頂欄高對比）\n    contrast-bottombar: Mastodon（底欄高對比）\n    mastodon-light-topbar: Mastodon（頂欄亮色主題）\n    mastodon-light-bottombar: Mastodon（底欄亮色主題）' /opt/mastodon/config/locales/zh-HK.yml \
+  && sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon (トップバーダーク)\n    mastodon-dark-bottombar: Mastodon (ボトムバーダーク)\n    contrast-topbar: Mastodon (トップバーハイコントラスト)\n    contrast-bottombar: Mastodon (ボトムバーハイコントラスト)\n    mastodon-light-topbar: Mastodon (トップバーライト)\n    mastodon-light-bottombar: Mastodon (ボトムバーライト)' /opt/mastodon/config/locales/ja.yml \
   && echo "加入 Mastodon (Sakura) 主题" \
   && sed -i "s|#6364FF|#f596aa|" /opt/mastodon/app/views/layouts/application.html.haml \
 #  && sed -i "s|#191b22|#fedfe1|" /opt/mastodon/app/views/layouts/application.html.haml \
@@ -62,6 +63,7 @@ RUN echo "修改字数上限" \
   && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜（顶栏）\n    mastodon-sakura-bottombar: Mastodon · 桜（底栏）' /opt/mastodon/config/locales/zh-CN.yml \
   && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜（頂欄）\n    mastodon-sakura-bottombar: Mastodon · 桜（底欄）' /opt/mastodon/config/locales/zh-TW.yml \
   && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜（頂欄）\n    mastodon-sakura-bottombar: Mastodon · 桜（底欄）' /opt/mastodon/config/locales/zh-HK.yml \
+  && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜 (トップバー)\n    mastodon-sakura-bottombar: Mastodon · 桜 (ボトムバー)' /opt/mastodon/config/locales/ja.yml \
   && echo -e "mastodon-sakura: styles/mastodon-sakura.scss" >> /opt/mastodon/config/themes.yml \
   && echo -e "mastodon-sakura-topbar: styles/mastodon-sakura-topbar.scss" >> /opt/mastodon/config/themes.yml \
   && echo -e "mastodon-sakura-bottombar: styles/mastodon-sakura-bottombar.scss" >> /opt/mastodon/config/themes.yml \
@@ -81,6 +83,7 @@ RUN echo "修改字数上限" \
   && sed -i '/mastodon-light/a\    mastodon-bird-ui-dark: Mastodon Bird UI（暗色主题）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高对比度）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色主题）' /opt/mastodon/config/locales/zh-CN.yml \
   && sed -i '/mastodon-light/a\    mastodon-bird-ui-dark: Mastodon Bird UI（深色）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色）' /opt/mastodon/config/locales/zh-TW.yml \
   && sed -i '/mastodon-light/a\    mastodon-bird-ui-dark: Mastodon Bird UI\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色主題）' /opt/mastodon/config/locales/zh-HK.yml \
+  && sed -i '/mastodon-light/a\    mastodon-bird-ui-dark: Mastodon Bird UI (ダーク)\n    mastodon-bird-ui-contrast: Mastodon Bird UI (ハイコントラスト)\n    mastodon-bird-ui-light: Mastodon Bird UI (ライト)' /opt/mastodon/config/locales/ja.yml \
   && echo "加入 Mastodon Bird UI (Sakura) 主题" \
   && mkdir /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura \
   && cp /opt/mastodon/app/javascript/styles/mastodon-bird-ui/layout-single-column.scss /opt/mastodon/app/javascript/styles/mastodon-bird-ui-sakura/layout-single-column.scss \
@@ -108,6 +111,7 @@ RUN echo "修改字数上限" \
   && sed -i '/mastodon-sakura/a\    mastodon-bird-ui-sakura: Mastodon Bird UI · 桜' /opt/mastodon/config/locales/zh-CN.yml \
   && sed -i '/mastodon-sakura/a\    mastodon-bird-ui-sakura: Mastodon Bird UI · 桜' /opt/mastodon/config/locales/zh-TW.yml \
   && sed -i '/mastodon-sakura/a\    mastodon-bird-ui-sakura: Mastodon Bird UI · 桜' /opt/mastodon/config/locales/zh-HK.yml \
+  && sed -i '/mastodon-sakura/a\    mastodon-bird-ui-sakura: Mastodon Bird UI · 桜' /opt/mastodon/config/locales/ja.yml \
   && echo -e "mastodon-bird-ui-sakura: styles/mastodon-bird-ui-sakura.scss" >> /opt/mastodon/config/themes.yml \
   && echo "全文搜索中文优化" \
   && sed -i "s|whitespace|ik_max_word|" /opt/mastodon/app/chewy/accounts_index.rb \
