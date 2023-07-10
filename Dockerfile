@@ -53,12 +53,18 @@ RUN echo "修改字数上限" \
   && sed -i "s|#b0c0cf|#feeeed|" /opt/mastodon/app/javascript/styles/mastodon-sakura/variables.scss \
   && sed -i "s|#9bcbed|#f8c3cd|" /opt/mastodon/app/javascript/styles/mastodon-sakura/variables.scss \
   && cp /opt/mastodon/app/javascript/styles/mastodon-light.scss /opt/mastodon/app/javascript/styles/mastodon-sakura.scss \
+  && cp /opt/mastodon/app/javascript/styles/mastodon-light-topbar.scss /opt/mastodon/app/javascript/styles/mastodon-sakura-topbar.scss \
+  && cp /opt/mastodon/app/javascript/styles/mastodon-light-bottombar.scss /opt/mastodon/app/javascript/styles/mastodon-sakura-bottombar.scss \
   && sed -i "s|light|sakura|" /opt/mastodon/app/javascript/styles/mastodon-sakura.scss \
-  && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon (Sakura)' /opt/mastodon/config/locales/en.yml \
-  && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜' /opt/mastodon/config/locales/zh-CN.yml \
-  && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜' /opt/mastodon/config/locales/zh-TW.yml \
-  && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜' /opt/mastodon/config/locales/zh-HK.yml \
+  && sed -i "s|light|sakura|" /opt/mastodon/app/javascript/styles/mastodon-sakura-topbar.scss \
+  && sed -i "s|light|sakura|" /opt/mastodon/app/javascript/styles/mastodon-sakura-bottombar.scss \
+  && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon (Sakura)\n    mastodon-sakura-topbar: Mastodon (Sakura Topbar)\n    mastodon-sakura-bottombar: Mastodon (SakuraBottombar)' /opt/mastodon/config/locales/en.yml \
+  && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜（顶栏）\n    mastodon-sakura-bottombar: Mastodon · 桜（底栏）' /opt/mastodon/config/locales/zh-CN.yml \
+  && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜（頂欄）\n    mastodon-sakura-bottombar: Mastodon · 桜（底欄）' /opt/mastodon/config/locales/zh-TW.yml \
+  && sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜（頂欄）\n    mastodon-sakura-bottombar: Mastodon · 桜（底欄）' /opt/mastodon/config/locales/zh-HK.yml \
   && echo -e "mastodon-sakura: styles/mastodon-sakura.scss" >> /opt/mastodon/config/themes.yml \
+  && echo -e "mastodon-sakura-topbar: styles/mastodon-sakura-topbar.scss" >> /opt/mastodon/config/themes.yml \
+  && echo -e "mastodon-sakura-bottombar: styles/mastodon-sakura-bottombar.scss" >> /opt/mastodon/config/themes.yml \
   && echo "加入 Mastodon Bird UI 主题" \
   && mkdir /opt/mastodon/app/javascript/styles/mastodon-bird-ui \
   && wget -nv https://raw.githubusercontent.com/ronilaukkarinen/mastodon-bird-ui/mastodon-4.1.2-stable/layout-single-column.css -O /opt/mastodon/app/javascript/styles/mastodon-bird-ui/layout-single-column.scss \
