@@ -15,13 +15,30 @@ RUN echo "修改字数上限" \
   && echo "修改投票上限" \
   && sed -i "s|options.size >= 4|options.size >= 16|" /opt/mastodon/app/javascript/mastodon/features/compose/components/poll_form.js \
   && sed -i "s|MAX_OPTIONS      = 4|MAX_OPTIONS      = 16|" /opt/mastodon/app/validators/poll_validator.rb \
-  && echo "加入 No-More-Sidebar-in-Mastodon-4.0 样式" \
+  && echo "加入 No-More-Sidebar-in-Mastodon-4.0 主题" \
   && mkdir /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar \
+  && wget -nv https://raw.githubusercontent.com/AkazaRenn/No-More-Sidebar-in-Mastodon-4.0/main/css/topbar.css -O /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar/topbar.scss \
   && wget -nv https://raw.githubusercontent.com/AkazaRenn/No-More-Sidebar-in-Mastodon-4.0/main/css/bottombar.css -O /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar/bottombar.scss \
-  && echo -e "@import 'application';\n@import 'mastodon-no-more-sidebar/bottombar';" > /opt/mastodon/app/javascript/styles/mastodon-dark.scss \
-  && echo -e "@import 'mastodon-no-more-sidebar/bottombar';" >> /opt/mastodon/app/javascript/styles/contrast.scss \
-  && echo -e "@import 'mastodon-no-more-sidebar/bottombar';" >> /opt/mastodon/app/javascript/styles/mastodon-light.scss \
-  && sed -i "s|application|mastodon-dark|" /opt/mastodon/config/themes.yml \
+  && cp /opt/mastodon/app/javascript/styles/contrast.scss /opt/mastodon/app/javascript/styles/contrast-topbar.scss \
+  && cp /opt/mastodon/app/javascript/styles/contrast.scss /opt/mastodon/app/javascript/styles/contrast-bottombar.scss \
+  && cp /opt/mastodon/app/javascript/styles/mastodon-light.scss /opt/mastodon/app/javascript/styles/mastodon-light-topbar.scss \
+  && cp /opt/mastodon/app/javascript/styles/mastodon-light.scss /opt/mastodon/app/javascript/styles/mastodon-light-bottombar.scss \
+  && echo -e "@import 'application';\n@import 'mastodon-no-more-sidebar/topbar';" > /opt/mastodon/app/javascript/styles/mastodon-dark-topbar.scss \
+  && echo -e "@import 'application';\n@import 'mastodon-no-more-sidebar/bottombar';" > /opt/mastodon/app/javascript/styles/mastodon-dark-bottombar.scss \
+  && echo -e "@import 'mastodon-no-more-sidebar/topbar';" >> /opt/mastodon/app/javascript/styles/contrast-topbar.scss \
+  && echo -e "@import 'mastodon-no-more-sidebar/bottombar';" >> /opt/mastodon/app/javascript/styles/contrast-bottombar.scss \
+  && echo -e "@import 'mastodon-no-more-sidebar/topbar';" >> /opt/mastodon/app/javascript/styles/mastodon-light-topbar.scss \
+  && echo -e "@import 'mastodon-no-more-sidebar/bottombar';" >> /opt/mastodon/app/javascript/styles/mastodon-light-bottombar.scss \
+  && echo -e "mastodon-dark-topbar: styles/mastodon-dark-topbar.scss" >> /opt/mastodon/config/themes.yml \
+  && echo -e "mastodon-dark-bottombar: styles/mastodon-dark-bottombar.scss" >> /opt/mastodon/config/themes.yml \
+  && echo -e "contrast-topbar: styles/contrast-topbar.scss" >> /opt/mastodon/config/themes.yml \
+  && echo -e "contrast-bottombar: styles/contrast-bottombar.scss" >> /opt/mastodon/config/themes.yml \
+  && echo -e "mastodon-light-topbar: styles/mastodon-light-topbar.scss" >> /opt/mastodon/config/themes.yml \
+  && echo -e "mastodon-light-bottombar: styles/mastodon-light-bottombar.scss" >> /opt/mastodon/config/themes.yml \
+  && sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon (Dark Topbar)\n    mastodon-dark-bottombar: Mastodon (Dark Bottombar)\n    mastodon-contrast-topbar: Mastodon (High contrast Topbar)\n    mastodon-contrast-bottombar: Mastodon (High contrast Bottombar)\n    mastodon-light-topbar: Mastodon (Light Topbar)\n    mastodon-light-bottombar: Mastodon (Light Bottombar)' /opt/mastodon/config/locales/en.yml \
+  && sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（顶栏暗色主题）\n    mastodon-dark-bottombar: Mastodon（底栏暗色主题）\n    mastodon-contrast-topbar: Mastodon（顶栏高对比度）\n    mastodon-contrast-bottombar: Mastodon（底栏高对比度）\n    mastodon-light-topbar: Mastodon（顶栏亮色主题）\n    mastodon-light-bottombar: Mastodon（底栏亮色主题）' /opt/mastodon/config/locales/zh-CN.yml \
+  && sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（頂欄深色）\n    mastodon-dark-bottombar: Mastodon（底欄深色）\n    mastodon-contrast-topbar: Mastodon（頂欄高對比）\n    mastodon-contrast-bottombar: Mastodon（底欄高對比）\n    mastodon-light-topbar: Mastodon（頂欄亮色）\n    mastodon-light-bottombar: Mastodon（底欄亮色）' /opt/mastodon/config/locales/zh-TW.yml \
+  && sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（頂欄）\n    mastodon-dark-bottombar: Mastodon（底欄）\n    mastodon-contrast-topbar: Mastodon（頂欄高對比）\n    mastodon-contrast-bottombar: Mastodon（底欄高對比）\n    mastodon-light-topbar: Mastodon（頂欄亮色主題）\n    mastodon-light-bottombar: Mastodon（底欄亮色主題）' /opt/mastodon/config/locales/zh-HK.yml \
   && echo "加入 Mastodon (Sakura) 主题" \
   && sed -i "s|#6364FF|#f596aa|" /opt/mastodon/app/views/layouts/application.html.haml \
 #  && sed -i "s|#191b22|#fedfe1|" /opt/mastodon/app/views/layouts/application.html.haml \
