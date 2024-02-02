@@ -1,5 +1,6 @@
-FROM tootsuite/mastodon:v4.2.1
-# version suffix was removed in version 4.2.0, use ENV to add build meta instead
+FROM tootsuite/mastodon:v4.2.5
+
+ENV GITHUB_REPOSITORY wxwmoe/mastodon
 ENV MASTODON_VERSION_METADATA wxw
 
 COPY --chown=991:991 ./icons /opt/mastodon/app/javascript/icons
@@ -70,8 +71,8 @@ RUN echo "修改字数上限" \
   && echo -e "mastodon-sakura-bottombar: styles/mastodon-sakura-bottombar.scss" >> /opt/mastodon/config/themes.yml \
   && echo "加入 Mastodon Bird UI 主题" \
   && mkdir /opt/mastodon/app/javascript/styles/mastodon-bird-ui \
-  && wget -nv https://raw.githubusercontent.com/ronilaukkarinen/mastodon-bird-ui/mastodon-4.1.2-stable/layout-single-column.css -O /opt/mastodon/app/javascript/styles/mastodon-bird-ui/layout-single-column.scss \
-  && wget -nv https://raw.githubusercontent.com/ronilaukkarinen/mastodon-bird-ui/mastodon-4.1.2-stable/layout-multiple-columns.css -O /opt/mastodon/app/javascript/styles/mastodon-bird-ui/layout-multiple-columns.scss \
+  && wget -nv https://raw.githubusercontent.com/ronilaukkarinen/mastodon-bird-ui/1.8.3/layout-single-column.css -O /opt/mastodon/app/javascript/styles/mastodon-bird-ui/layout-single-column.scss \
+  && wget -nv https://raw.githubusercontent.com/ronilaukkarinen/mastodon-bird-ui/1.8.3/layout-multiple-columns.css -O /opt/mastodon/app/javascript/styles/mastodon-bird-ui/layout-multiple-columns.scss \
   && sed -i 's/theme-contrast/theme-mastodon-bird-ui-contrast/g' /opt/mastodon/app/javascript/styles/mastodon-bird-ui/layout-single-column.scss \
   && sed -i 's/theme-mastodon-light/theme-mastodon-bird-ui-light/g' /opt/mastodon/app/javascript/styles/mastodon-bird-ui/layout-single-column.scss \
   && sed -i 's/theme-contrast/theme-mastodon-bird-ui-contrast/g' /opt/mastodon/app/javascript/styles/mastodon-bird-ui/layout-multiple-columns.scss \
@@ -115,14 +116,13 @@ RUN echo "修改字数上限" \
   && sed -i '/mastodon-sakura/a\    mastodon-bird-ui-sakura: Mastodon Bird UI · 桜' /opt/mastodon/config/locales/ja.yml \
   && echo -e "mastodon-bird-ui-sakura: styles/mastodon-bird-ui-sakura.scss" >> /opt/mastodon/config/themes.yml \
   && echo "全文搜索中文优化" \
-  && sed -i "s|whitespace|ik_max_word|" /opt/mastodon/app/chewy/accounts_index.rb \
-  && sed -i "s|analyzer: {|char_filter: {\n      tsconvert: {\n        type: 'stconvert',\n        keep_both: false,\n        delimiter: '#',\n        convert_type: 't2s',\n      },\n    },\n    analyzer: {|" /opt/mastodon/app/chewy/statuses_index.rb \
-  && sed -i "s|uax_url_email|ik_max_word|" /opt/mastodon/app/chewy/statuses_index.rb \
-  && sed -i "s|        ),|        ),\n        char_filter: %w(tsconvert),|" /opt/mastodon/app/chewy/statuses_index.rb \
-  && sed -i "s|analysis: {|analysis: {\n    char_filter: {\n      tsconvert: {\n        type: 'stconvert',\n        keep_both: false,\n        delimiter: '#',\n        convert_type: 't2s',\n      },\n    },|" /opt/mastodon/app/chewy/tags_index.rb \
-  && sed -i "s|keyword',|ik_max_word',\n        char_filter: %w(tsconvert),|" /opt/mastodon/app/chewy/tags_index.rb \
-  && echo "修改版本项目地址" \
-  && sed -i "s|mastodon/mastodon|wxwmoe/mastodon|" /opt/mastodon/lib/mastodon/version.rb \
+  && sed -i "/verbatim/,/}/{s|standard|ik_max_word|}" /opt/mastodon/app/chewy/accounts_index.rb \
+  && sed -i "s|analyzer: {|char_filter: {\n      tsconvert: {\n        type: 'stconvert',\n        keep_both: false,\n        delimiter: '#',\n        convert_type: 't2s',\n      },\n    },\n\n    analyzer: {|" /opt/mastodon/app/chewy/statuses_index.rb \
+  && sed -i "/content/,/}/{s|standard'|ik_max_word',\n        char_filter: %w(tsconvert)|}" /opt/mastodon/app/chewy/statuses_index.rb \
+  && sed -i "s|analysis: {|analysis: {\n    char_filter: {\n      tsconvert: {\n        type: 'stconvert',\n        keep_both: false,\n        delimiter: '#',\n        convert_type: 't2s',\n      },\n    },\n|" /opt/mastodon/app/chewy/tags_index.rb \
+  && sed -i "s|keyword'|ik_max_word',\n        char_filter: %w(tsconvert)|" /opt/mastodon/app/chewy/tags_index.rb \
+  && echo "修改版本输出样式" \
+  && sed -i "/to_s/,/repository/{s|+|~|}" /opt/mastodon/lib/mastodon/version.rb \
   && echo "重新编译资源文件" \
   && OTP_SECRET=precompile_placeholder SECRET_KEY_BASE=precompile_placeholder rails assets:precompile \
   && yarn cache clean
