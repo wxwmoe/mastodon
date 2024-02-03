@@ -19,9 +19,9 @@ RUN echo "修改字数上限" \
   && sed -i "s|MAX_OPTIONS      = 4|MAX_OPTIONS      = 16|" /opt/mastodon/app/validators/poll_validator.rb \
   && echo "加入 No-More-Sidebar-in-Mastodon-4.0 主题" \
   && mkdir /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar \
-  && wget -nv https://raw.githubusercontent.com/AkazaRenn/No-More-Sidebar-in-Mastodon-4.0/47c4a45713f0a492ddd94d28a1ffd6cf229db7a8/css/topbar.css -O /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar/topbar.scss \
-  && wget -nv https://raw.githubusercontent.com/AkazaRenn/No-More-Sidebar-in-Mastodon-4.0/47c4a45713f0a492ddd94d28a1ffd6cf229db7a8/css/bottombar.css -O /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar/bottombar.scss \
-  && sed -i "s|107|150|;s|publish\"] {|search\"],\n    .ui__header__links .button[href=\"/publish\"] {|" /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar/topbar.scss /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar/bottombar.scss \
+  && wget -nv https://raw.githubusercontent.com/AkazaRenn/No-More-Sidebar-in-Mastodon-4.0/0bebe70e967ee5796cc24a4ecb0faeef24995468/css/topbar.css -O /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar/topbar.scss \
+  && wget -nv https://raw.githubusercontent.com/AkazaRenn/No-More-Sidebar-in-Mastodon-4.0/0bebe70e967ee5796cc24a4ecb0faeef24995468/css/bottombar.css -O /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar/bottombar.scss \
+  && sed -i "s|#D9E1E8|\$ui-secondary-color|;s|#393F4F|lighten(\$ui-base-color, 8%)|" /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar/topbar.scss /opt/mastodon/app/javascript/styles/mastodon-no-more-sidebar/bottombar.scss \
   && cp /opt/mastodon/app/javascript/styles/contrast.scss /opt/mastodon/app/javascript/styles/contrast-topbar.scss \
   && cp /opt/mastodon/app/javascript/styles/contrast.scss /opt/mastodon/app/javascript/styles/contrast-bottombar.scss \
   && cp /opt/mastodon/app/javascript/styles/mastodon-light.scss /opt/mastodon/app/javascript/styles/mastodon-light-topbar.scss \
