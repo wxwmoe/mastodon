@@ -1,4 +1,4 @@
-FROM tootsuite/mastodon:v4.2.5
+FROM tootsuite/mastodon:v4.2.6
 
 ENV GITHUB_REPOSITORY wxwmoe/mastodon
 ENV MASTODON_VERSION_METADATA wxw
