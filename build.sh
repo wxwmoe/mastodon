@@ -29,16 +29,16 @@ cp src/app/javascript/styles/mastodon-light.scss src/app/javascript/styles/masto
 cp src/app/javascript/styles/mastodon-light.scss src/app/javascript/styles/mastodon-light-bottombar.scss
 echo -e "@import 'application';\n@import 'mastodon-no-more-sidebar/topbar';" > src/app/javascript/styles/mastodon-dark-topbar.scss
 echo -e "@import 'application';\n@import 'mastodon-no-more-sidebar/bottombar';" > src/app/javascript/styles/mastodon-dark-bottombar.scss
-echo -e "@import 'mastodon-no-more-sidebar/topbar';" >> src/app/javascript/styles/contrast-topbar.scss
-echo -e "@import 'mastodon-no-more-sidebar/bottombar';" >> src/app/javascript/styles/contrast-bottombar.scss
-echo -e "@import 'mastodon-no-more-sidebar/topbar';" >> src/app/javascript/styles/mastodon-light-topbar.scss
-echo -e "@import 'mastodon-no-more-sidebar/bottombar';" >> src/app/javascript/styles/mastodon-light-bottombar.scss
-echo -e "mastodon-dark-topbar: styles/mastodon-dark-topbar.scss" >> src/config/themes.yml
-echo -e "mastodon-dark-bottombar: styles/mastodon-dark-bottombar.scss" >> src/config/themes.yml
-echo -e "contrast-topbar: styles/contrast-topbar.scss" >> src/config/themes.yml
-echo -e "contrast-bottombar: styles/contrast-bottombar.scss" >> src/config/themes.yml
-echo -e "mastodon-light-topbar: styles/mastodon-light-topbar.scss" >> src/config/themes.yml
-echo -e "mastodon-light-bottombar: styles/mastodon-light-bottombar.scss" >> src/config/themes.yml
+echo "@import 'mastodon-no-more-sidebar/topbar';" >> src/app/javascript/styles/contrast-topbar.scss
+echo "@import 'mastodon-no-more-sidebar/bottombar';" >> src/app/javascript/styles/contrast-bottombar.scss
+echo "@import 'mastodon-no-more-sidebar/topbar';" >> src/app/javascript/styles/mastodon-light-topbar.scss
+echo "@import 'mastodon-no-more-sidebar/bottombar';" >> src/app/javascript/styles/mastodon-light-bottombar.scss
+echo "mastodon-dark-topbar: styles/mastodon-dark-topbar.scss
+mastodon-dark-bottombar: styles/mastodon-dark-bottombar.scss
+contrast-topbar: styles/contrast-topbar.scss
+contrast-bottombar: styles/contrast-bottombar.scss
+mastodon-light-topbar: styles/mastodon-light-topbar.scss
+mastodon-light-bottombar: styles/mastodon-light-bottombar.scss" >> src/config/themes.yml
 sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon (Dark Topbar)\n    mastodon-dark-bottombar: Mastodon (Dark Bottombar)\n    contrast-topbar: Mastodon (High contrast Topbar)\n    contrast-bottombar: Mastodon (High contrast Bottombar)\n    mastodon-light-topbar: Mastodon (Light Topbar)\n    mastodon-light-bottombar: Mastodon (Light Bottombar)' src/config/locales/en.yml
 sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（顶栏暗色主题）\n    mastodon-dark-bottombar: Mastodon（底栏暗色主题）\n    contrast-topbar: Mastodon（顶栏高对比度）\n    contrast-bottombar: Mastodon（底栏高对比度）\n    mastodon-light-topbar: Mastodon（顶栏亮色主题）\n    mastodon-light-bottombar: Mastodon（底栏亮色主题）' src/config/locales/zh-CN.yml
 sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（頂欄深色）\n    mastodon-dark-bottombar: Mastodon（底欄深色）\n    contrast-topbar: Mastodon（頂欄高對比）\n    contrast-bottombar: Mastodon（底欄高對比）\n    mastodon-light-topbar: Mastodon（頂欄亮色）\n    mastodon-light-bottombar: Mastodon（底欄亮色）' src/config/locales/zh-TW.yml
@@ -56,14 +56,14 @@ cp src/app/javascript/styles/mastodon-light.scss src/app/javascript/styles/masto
 cp src/app/javascript/styles/mastodon-light-topbar.scss src/app/javascript/styles/mastodon-sakura-topbar.scss
 cp src/app/javascript/styles/mastodon-light-bottombar.scss src/app/javascript/styles/mastodon-sakura-bottombar.scss
 sed -i "s|light|sakura|" src/app/javascript/styles/mastodon-sakura.scss src/app/javascript/styles/mastodon-sakura-{topbar,bottombar}.scss
-sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon (Sakura)\n    mastodon-sakura-topbar: Mastodon (Sakura Topbar)\n    mastodon-sakura-bottombar: Mastodon (SakuraBottombar)' src/config/locales/en.yml
-sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜（顶栏）\n    mastodon-sakura-bottombar: Mastodon · 桜（底栏）' src/config/locales/zh-CN.yml
-sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜（頂欄）\n    mastodon-sakura-bottombar: Mastodon · 桜（底欄）' src/config/locales/zh-TW.yml
-sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜（頂欄）\n    mastodon-sakura-bottombar: Mastodon · 桜（底欄）' src/config/locales/zh-HK.yml
-sed -i '/mastodon-light/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜 (トップバー)\n    mastodon-sakura-bottombar: Mastodon · 桜 (ボトムバー)' src/config/locales/ja.yml
-echo -e "mastodon-sakura: styles/mastodon-sakura.scss" >> src/config/themes.yml
-echo -e "mastodon-sakura-topbar: styles/mastodon-sakura-topbar.scss" >> src/config/themes.yml
-echo -e "mastodon-sakura-bottombar: styles/mastodon-sakura-bottombar.scss" >> src/config/themes.yml
+sed -i '/mastodon-light-bottombar/a\    mastodon-sakura: Mastodon (Sakura)\n    mastodon-sakura-topbar: Mastodon (Sakura Topbar)\n    mastodon-sakura-bottombar: Mastodon (Sakura Bottombar)' src/config/locales/en.yml
+sed -i '/mastodon-light-bottombar/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜（顶栏）\n    mastodon-sakura-bottombar: Mastodon · 桜（底栏）' src/config/locales/zh-CN.yml
+sed -i '/mastodon-light-bottombar/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜（頂欄）\n    mastodon-sakura-bottombar: Mastodon · 桜（底欄）' src/config/locales/zh-TW.yml
+sed -i '/mastodon-light-bottombar/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜（頂欄）\n    mastodon-sakura-bottombar: Mastodon · 桜（底欄）' src/config/locales/zh-HK.yml
+sed -i '/mastodon-light-bottombar/a\    mastodon-sakura: Mastodon · 桜\n    mastodon-sakura-topbar: Mastodon · 桜 (トップバー)\n    mastodon-sakura-bottombar: Mastodon · 桜 (ボトムバー)' src/config/locales/ja.yml
+echo "mastodon-sakura: styles/mastodon-sakura.scss
+mastodon-sakura-topbar: styles/mastodon-sakura-topbar.scss
+mastodon-sakura-bottombar: styles/mastodon-sakura-bottombar.scss" >> src/config/themes.yml
 
 # 加入 Mastodon Bird UI 主题
 mkdir src/app/javascript/styles/mastodon-bird-ui
@@ -77,11 +77,11 @@ echo -e "@import 'application';\n@import 'mastodon-bird-ui/layout-single-column.
 echo -e "@import 'mastodon-light/variables';\n@import 'application';\n@import 'mastodon-light/diff';\n@import 'mastodon-bird-ui/layout-single-column.scss';\n@import 'mastodon-bird-ui/layout-multiple-columns.scss';" > src/app/javascript/styles/mastodon-bird-ui-light.scss
 echo -e "@import 'contrast/variables';\n@import 'application';\n@import 'contrast/diff';\n@import 'mastodon-bird-ui/layout-single-column.scss';\n@import 'mastodon-bird-ui/layout-multiple-columns.scss';" > src/app/javascript/styles/mastodon-bird-ui-contrast.scss
 echo -e "mastodon-bird-ui-dark: styles/mastodon-bird-ui-dark.scss\nmastodon-bird-ui-contrast: styles/mastodon-bird-ui-contrast.scss\nmastodon-bird-ui-light: styles/mastodon-bird-ui-light.scss" >> src/config/themes.yml
-sed -i '/mastodon-light/a\    mastodon-bird-ui-dark: Mastodon Bird UI (Dark)\n    mastodon-bird-ui-contrast: Mastodon Bird UI (High contrast)\n    mastodon-bird-ui-light: Mastodon Bird UI (Light)' src/config/locales/en.yml
-sed -i '/mastodon-light/a\    mastodon-bird-ui-dark: Mastodon Bird UI（暗色主题）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高对比度）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色主题）' src/config/locales/zh-CN.yml
-sed -i '/mastodon-light/a\    mastodon-bird-ui-dark: Mastodon Bird UI（深色）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色）' src/config/locales/zh-TW.yml
-sed -i '/mastodon-light/a\    mastodon-bird-ui-dark: Mastodon Bird UI\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色主題）' src/config/locales/zh-HK.yml
-sed -i '/mastodon-light/a\    mastodon-bird-ui-dark: Mastodon Bird UI (ダーク)\n    mastodon-bird-ui-contrast: Mastodon Bird UI (ハイコントラスト)\n    mastodon-bird-ui-light: Mastodon Bird UI (ライト)' src/config/locales/ja.yml
+sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI (Dark)\n    mastodon-bird-ui-contrast: Mastodon Bird UI (High contrast)\n    mastodon-bird-ui-light: Mastodon Bird UI (Light)' src/config/locales/en.yml
+sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI（暗色主题）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高对比度）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色主题）' src/config/locales/zh-CN.yml
+sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI（深色）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色）' src/config/locales/zh-TW.yml
+sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色主題）' src/config/locales/zh-HK.yml
+sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI (ダーク)\n    mastodon-bird-ui-contrast: Mastodon Bird UI (ハイコントラスト)\n    mastodon-bird-ui-light: Mastodon Bird UI (ライト)' src/config/locales/ja.yml
 
 # 加入 Mastodon Bird UI (Sakura) 主题
 mkdir src/app/javascript/styles/mastodon-bird-ui-sakura
@@ -92,9 +92,21 @@ sed -i "/logo: url/a\  --logo: url\('data:image/png;base64,iVBORw0KGgoAAAANSUhEU
 sed -i "/logo: url('data:image\/svg/d" src/app/javascript/styles/mastodon-bird-ui-sakura/layout-multiple-columns.scss
 sed -i "s/6364ff/f7abba/g;s/858afa/f598ad/g;s/595aff/f7a9b9/g;s/9388a6/1f1b23/g;s/8c8dff/f596aa/g;s/e5e1ed/fafafa/g;s/17bf63/86C166/g;s/9588a6/0b1013/g;s/e6e1ed/feeeed/g;s/6a5b83/555555/g;s/8899a6/303339/g;s/99, 100, 255/244, 169, 185/g;s/140, 141, 255/245, 150, 170/g;s/147 136 166/200 200 200/g;s/99, 100, 255/245, 152, 173/g" src/app/javascript/styles/mastodon-bird-ui-sakura/layout-{single-column,multiple-columns}.scss
 echo -e "@import 'mastodon-sakura/variables';\n@import 'application';\n@import 'mastodon-sakura/diff';\n@import 'mastodon-bird-ui-sakura/layout-single-column.scss';\n@import 'mastodon-bird-ui-sakura/layout-multiple-columns.scss';" > src/app/javascript/styles/mastodon-bird-ui-sakura.scss
-sed -i '/mastodon-sakura/a\    mastodon-bird-ui-sakura: Mastodon Bird UI (Sakura)' src/config/locales/en.yml
-sed -i '/mastodon-sakura/a\    mastodon-bird-ui-sakura: Mastodon Bird UI · 桜' src/config/locales/{zh-CN,zh-TW,zh-HK,ja}.yml
-echo -e "mastodon-bird-ui-sakura: styles/mastodon-bird-ui-sakura.scss" >> src/config/themes.yml
+sed -i '/mastodon-bird-ui-light/a\    mastodon-bird-ui-sakura: Mastodon Bird UI (Sakura)' src/config/locales/en.yml
+sed -i '/mastodon-bird-ui-light/a\    mastodon-bird-ui-sakura: Mastodon Bird UI · 桜' src/config/locales/{zh-CN,zh-TW,zh-HK,ja}.yml
+echo "mastodon-bird-ui-sakura: styles/mastodon-bird-ui-sakura.scss" >> src/config/themes.yml
+
+# 加入 Tangerine UI 主题
+rm -rf tmp && git clone -b v2.3 --single-branch --depth=1 https://github.com/nileane/TangerineUI-for-Mastodon.git tmp
+cp -r tmp/mastodon/app/javascript/styles/* src/app/javascript/styles && rm -rf tmp
+echo "tangerineui: styles/tangerineui.scss
+tangerineui-purple: styles/tangerineui-purple.scss
+tangerineui-cherry: styles/tangerineui-cherry.scss
+tangerineui-lagoon: styles/tangerineui-lagoon.scss" >> src/config/themes.yml
+sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI\n    tangerineui-purple: Tangerine UI (Purple)\n    tangerineui-cherry: Tangerine UI (Cherry)\n    tangerineui-lagoon: Tangerine UI (Lagoon)' src/config/locales/en.yml
+sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI\n    tangerineui-purple: Tangerine UI（紫色）\n    tangerineui-cherry: Tangerine UI（樱桃）\n    tangerineui-lagoon: Tangerine UI（潟湖）' src/config/locales/zh-CN.yml
+sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI\n    tangerineui-purple: Tangerine UI（紫色）\n    tangerineui-cherry: Tangerine UI（櫻桃）\n    tangerineui-lagoon: Tangerine UI（潟湖）' src/config/locales/zh-{TW,HK}.yml
+sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI\n    tangerineui-purple: Tangerine UI (紫)\n    tangerineui-cherry: Tangerine UI (チェリー)\n    tangerineui-lagoon: Tangerine UI (ラグーン)' src/config/locales/ja.yml
 
 # 全文搜索中文优化
 sed -i "/verbatim/,/}/{s|standard|ik_max_word|}" src/app/chewy/accounts_index.rb
