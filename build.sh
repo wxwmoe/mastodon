@@ -42,7 +42,7 @@ mastodon-light-bottombar: styles/mastodon-light-bottombar.scss" >> src/config/th
 sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon (Dark Topbar)\n    mastodon-dark-bottombar: Mastodon (Dark Bottombar)\n    contrast-topbar: Mastodon (High contrast Topbar)\n    contrast-bottombar: Mastodon (High contrast Bottombar)\n    mastodon-light-topbar: Mastodon (Light Topbar)\n    mastodon-light-bottombar: Mastodon (Light Bottombar)' src/config/locales/en.yml
 sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（顶栏暗色主题）\n    mastodon-dark-bottombar: Mastodon（底栏暗色主题）\n    contrast-topbar: Mastodon（顶栏高对比度）\n    contrast-bottombar: Mastodon（底栏高对比度）\n    mastodon-light-topbar: Mastodon（顶栏亮色主题）\n    mastodon-light-bottombar: Mastodon（底栏亮色主题）' src/config/locales/zh-CN.yml
 sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（頂欄深色）\n    mastodon-dark-bottombar: Mastodon（底欄深色）\n    contrast-topbar: Mastodon（頂欄高對比）\n    contrast-bottombar: Mastodon（底欄高對比）\n    mastodon-light-topbar: Mastodon（頂欄亮色）\n    mastodon-light-bottombar: Mastodon（底欄亮色）' src/config/locales/zh-TW.yml
-sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（頂欄）\n    mastodon-dark-bottombar: Mastodon（底欄）\n    contrast-topbar: Mastodon（頂欄高對比）\n    contrast-bottombar: Mastodon（底欄高對比）\n    mastodon-light-topbar: Mastodon（頂欄亮色主題）\n    mastodon-light-bottombar: Mastodon（底欄亮色主題）' src/config/locales/zh-HK.yml
+sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（頂欄深色主題）\n    mastodon-dark-bottombar: Mastodon（底欄深色主題）\n    contrast-topbar: Mastodon（頂欄高對比）\n    contrast-bottombar: Mastodon（底欄高對比）\n    mastodon-light-topbar: Mastodon（頂欄亮色主題）\n    mastodon-light-bottombar: Mastodon（底欄亮色主題）' src/config/locales/zh-HK.yml
 sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon (トップバーダーク)\n    mastodon-dark-bottombar: Mastodon (ボトムバーダーク)\n    contrast-topbar: Mastodon (トップバーハイコントラスト)\n    contrast-bottombar: Mastodon (ボトムバーハイコントラスト)\n    mastodon-light-topbar: Mastodon (トップバーライト)\n    mastodon-light-bottombar: Mastodon (ボトムバーライト)' src/config/locales/ja.yml
 
 # 加入 Mastodon (Sakura) 主题
@@ -80,7 +80,7 @@ echo -e "mastodon-bird-ui-dark: styles/mastodon-bird-ui-dark.scss\nmastodon-bird
 sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI (Dark)\n    mastodon-bird-ui-contrast: Mastodon Bird UI (High contrast)\n    mastodon-bird-ui-light: Mastodon Bird UI (Light)' src/config/locales/en.yml
 sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI（暗色主题）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高对比度）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色主题）' src/config/locales/zh-CN.yml
 sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI（深色）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色）' src/config/locales/zh-TW.yml
-sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色主題）' src/config/locales/zh-HK.yml
+sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI（深色主題）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色主題）' src/config/locales/zh-HK.yml
 sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI (ダーク)\n    mastodon-bird-ui-contrast: Mastodon Bird UI (ハイコントラスト)\n    mastodon-bird-ui-light: Mastodon Bird UI (ライト)' src/config/locales/ja.yml
 
 # 加入 Mastodon Bird UI (Sakura) 主题
@@ -106,7 +106,7 @@ tangerineui-lagoon: styles/tangerineui-lagoon.scss" >> src/config/themes.yml
 sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI\n    tangerineui-purple: Tangerine UI (Purple)\n    tangerineui-cherry: Tangerine UI (Cherry)\n    tangerineui-lagoon: Tangerine UI (Lagoon)' src/config/locales/en.yml
 sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI\n    tangerineui-purple: Tangerine UI（紫色）\n    tangerineui-cherry: Tangerine UI（樱桃）\n    tangerineui-lagoon: Tangerine UI（潟湖）' src/config/locales/zh-CN.yml
 sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI\n    tangerineui-purple: Tangerine UI（紫色）\n    tangerineui-cherry: Tangerine UI（櫻桃）\n    tangerineui-lagoon: Tangerine UI（潟湖）' src/config/locales/zh-{TW,HK}.yml
-sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI\n    tangerineui-purple: Tangerine UI (紫)\n    tangerineui-cherry: Tangerine UI (チェリー)\n    tangerineui-lagoon: Tangerine UI (ラグーン)' src/config/locales/ja.yml
+sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI\n    tangerineui-purple: Tangerine UI (パープル)\n    tangerineui-cherry: Tangerine UI (チェリー)\n    tangerineui-lagoon: Tangerine UI (ラグーン)' src/config/locales/ja.yml
 
 # 全文搜索中文优化
 sed -i "/verbatim/,/}/{s|standard|ik_max_word|}" src/app/chewy/accounts_index.rb
@@ -122,8 +122,8 @@ sed -i 's|ARG MASTODON_VERSION_METADATA=""|ARG MASTODON_VERSION_METADATA="wxw"|'
 sed -i '/ARG MASTODON_VERSION_METADATA/a\ENV GITHUB_REPOSITORY="wxwmoe/mastodon"' src/Dockerfile
 
 # 编译 Mastodon 镜像
-cd src && docker build -t wxwmoe/mastodon . && cd ..
+cd src && docker build --no-cache -t wxwmoe/mastodon -t wxwmoe/mastodon:v${MASTODON_VERSION} . && cd ..
 
 # 编译 Mastodon Streaming 镜像
-rm -rf src && mkdir src && echo "FROM ghcr.io/mastodon/mastodon-streaming:v${MASTODON_VERSION}" > src/Dockerfile
-cd src && docker build -t wxwmoe/mastodon-streaming . && cd ..
+echo "FROM ghcr.io/mastodon/mastodon-streaming:v${MASTODON_VERSION}" > src/streaming/Dockerfile
+cd src/streaming && docker build -t wxwmoe/mastodon-streaming -t wxwmoe/mastodon-streaming:v${MASTODON_VERSION} . && cd ../..
