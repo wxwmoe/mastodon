@@ -40,9 +40,8 @@ contrast-bottombar: styles/contrast-bottombar.scss
 mastodon-light-topbar: styles/mastodon-light-topbar.scss
 mastodon-light-bottombar: styles/mastodon-light-bottombar.scss" >> src/config/themes.yml
 sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon (Dark Topbar)\n    mastodon-dark-bottombar: Mastodon (Dark Bottombar)\n    contrast-topbar: Mastodon (High contrast Topbar)\n    contrast-bottombar: Mastodon (High contrast Bottombar)\n    mastodon-light-topbar: Mastodon (Light Topbar)\n    mastodon-light-bottombar: Mastodon (Light Bottombar)' src/config/locales/en.yml
-sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（顶栏暗色主题）\n    mastodon-dark-bottombar: Mastodon（底栏暗色主题）\n    contrast-topbar: Mastodon（顶栏高对比度）\n    contrast-bottombar: Mastodon（底栏高对比度）\n    mastodon-light-topbar: Mastodon（顶栏亮色主题）\n    mastodon-light-bottombar: Mastodon（底栏亮色主题）' src/config/locales/zh-CN.yml
-sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（頂欄深色）\n    mastodon-dark-bottombar: Mastodon（底欄深色）\n    contrast-topbar: Mastodon（頂欄高對比）\n    contrast-bottombar: Mastodon（底欄高對比）\n    mastodon-light-topbar: Mastodon（頂欄亮色）\n    mastodon-light-bottombar: Mastodon（底欄亮色）' src/config/locales/zh-TW.yml
-sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（頂欄深色主題）\n    mastodon-dark-bottombar: Mastodon（底欄深色主題）\n    contrast-topbar: Mastodon（頂欄高對比）\n    contrast-bottombar: Mastodon（底欄高對比）\n    mastodon-light-topbar: Mastodon（頂欄亮色主題）\n    mastodon-light-bottombar: Mastodon（底欄亮色主題）' src/config/locales/zh-HK.yml
+sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（顶栏暗色）\n    mastodon-dark-bottombar: Mastodon（底栏暗色）\n    contrast-topbar: Mastodon（顶栏高对比度）\n    contrast-bottombar: Mastodon（底栏高对比度）\n    mastodon-light-topbar: Mastodon（顶栏亮色）\n    mastodon-light-bottombar: Mastodon（底栏亮色）' src/config/locales/zh-CN.yml
+sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon（頂欄深色）\n    mastodon-dark-bottombar: Mastodon（底欄深色）\n    contrast-topbar: Mastodon（頂欄高對比）\n    contrast-bottombar: Mastodon（底欄高對比）\n    mastodon-light-topbar: Mastodon（頂欄亮色）\n    mastodon-light-bottombar: Mastodon（底欄亮色）' src/config/locales/zh-{TW,HK}.yml
 sed -i '/mastodon-light/a\    mastodon-dark-topbar: Mastodon (トップバーダーク)\n    mastodon-dark-bottombar: Mastodon (ボトムバーダーク)\n    contrast-topbar: Mastodon (トップバーハイコントラスト)\n    contrast-bottombar: Mastodon (ボトムバーハイコントラスト)\n    mastodon-light-topbar: Mastodon (トップバーライト)\n    mastodon-light-bottombar: Mastodon (ボトムバーライト)' src/config/locales/ja.yml
 
 # 加入 Mastodon (Sakura) 主题
@@ -78,9 +77,8 @@ echo -e "@import 'mastodon-light/variables';\n@import 'application';\n@import 'm
 echo -e "@import 'contrast/variables';\n@import 'application';\n@import 'contrast/diff';\n@import 'mastodon-bird-ui/layout-single-column.scss';\n@import 'mastodon-bird-ui/layout-multiple-columns.scss';" > src/app/javascript/styles/mastodon-bird-ui-contrast.scss
 echo -e "mastodon-bird-ui-dark: styles/mastodon-bird-ui-dark.scss\nmastodon-bird-ui-contrast: styles/mastodon-bird-ui-contrast.scss\nmastodon-bird-ui-light: styles/mastodon-bird-ui-light.scss" >> src/config/themes.yml
 sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI (Dark)\n    mastodon-bird-ui-contrast: Mastodon Bird UI (High contrast)\n    mastodon-bird-ui-light: Mastodon Bird UI (Light)' src/config/locales/en.yml
-sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI（暗色主题）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高对比度）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色主题）' src/config/locales/zh-CN.yml
-sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI（深色）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色）' src/config/locales/zh-TW.yml
-sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI（深色主題）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色主題）' src/config/locales/zh-HK.yml
+sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI（暗色）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高对比度）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色）' src/config/locales/zh-CN.yml
+sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI（深色）\n    mastodon-bird-ui-contrast: Mastodon Bird UI（高對比）\n    mastodon-bird-ui-light: Mastodon Bird UI（亮色）' src/config/locales/zh-{TW,HK}.yml
 sed -i '/mastodon-sakura-bottombar/a\    mastodon-bird-ui-dark: Mastodon Bird UI (ダーク)\n    mastodon-bird-ui-contrast: Mastodon Bird UI (ハイコントラスト)\n    mastodon-bird-ui-light: Mastodon Bird UI (ライト)' src/config/locales/ja.yml
 
 # 加入 Mastodon Bird UI (Sakura) 主题
@@ -103,10 +101,44 @@ echo "tangerineui: styles/tangerineui.scss
 tangerineui-purple: styles/tangerineui-purple.scss
 tangerineui-cherry: styles/tangerineui-cherry.scss
 tangerineui-lagoon: styles/tangerineui-lagoon.scss" >> src/config/themes.yml
-sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI\n    tangerineui-purple: Tangerine UI (Purple)\n    tangerineui-cherry: Tangerine UI (Cherry)\n    tangerineui-lagoon: Tangerine UI (Lagoon)' src/config/locales/en.yml
-sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI\n    tangerineui-purple: Tangerine UI（紫色）\n    tangerineui-cherry: Tangerine UI（樱桃）\n    tangerineui-lagoon: Tangerine UI（潟湖）' src/config/locales/zh-CN.yml
-sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI\n    tangerineui-purple: Tangerine UI（紫色）\n    tangerineui-cherry: Tangerine UI（櫻桃）\n    tangerineui-lagoon: Tangerine UI（潟湖）' src/config/locales/zh-{TW,HK}.yml
-sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI\n    tangerineui-purple: Tangerine UI (パープル)\n    tangerineui-cherry: Tangerine UI (チェリー)\n    tangerineui-lagoon: Tangerine UI (ラグーン)' src/config/locales/ja.yml
+sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI (Auto)\n    tangerineui-purple: Tangerine UI (Purple)\n    tangerineui-cherry: Tangerine UI (Cherry)\n    tangerineui-lagoon: Tangerine UI (Lagoon)' src/config/locales/en.yml
+sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI（自动）\n    tangerineui-purple: Tangerine UI（紫色）\n    tangerineui-cherry: Tangerine UI（樱桃）\n    tangerineui-lagoon: Tangerine UI（潟湖）' src/config/locales/zh-CN.yml
+sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI（自動）\n    tangerineui-purple: Tangerine UI（紫色）\n    tangerineui-cherry: Tangerine UI（櫻桃）\n    tangerineui-lagoon: Tangerine UI（潟湖）' src/config/locales/zh-{TW,HK}.yml
+sed -i '/mastodon-bird-ui-sakura/a\    tangerineui: Tangerine UI (自動)\n    tangerineui-purple: Tangerine UI (パープル)\n    tangerineui-cherry: Tangerine UI (チェリー)\n    tangerineui-lagoon: Tangerine UI (ラグーン)' src/config/locales/ja.yml
+
+# 拆分 Tangerine UI 暗色、亮色主题
+cd src/app/javascript/styles
+sed -n '/^@media (prefers-color-scheme: dark)/,/^}/p' tangerineui/tangerineui.scss > tangerineui/tangerineui-dark.scss
+sed -n '/^@media (prefers-color-scheme: dark)/,/^}/p' tangerineui-purple/tangerineui-purple.scss > tangerineui-purple/tangerineui-purple-dark.scss
+sed -n '/^@media (prefers-color-scheme: dark)/,/^}/p' tangerineui-cherry/tangerineui-cherry.scss > tangerineui-cherry/tangerineui-cherry-dark.scss
+sed -n '/^@media (prefers-color-scheme: dark)/,/^}/p' tangerineui-lagoon/tangerineui-lagoon.scss > tangerineui-lagoon/tangerineui-lagoon-dark.scss
+sed -i '/^@media (prefers-color-scheme: dark)/d;/^}/d;s/^    //' tangerineui{/tangerineui,-purple/tangerineui-purple,-cherry/tangerineui-cherry,-lagoon/tangerineui-lagoon}-dark.scss
+echo ':root {
+    color-scheme: only dark;
+}' | tee -a tangerineui{/tangerineui,-purple/tangerineui-purple,-cherry/tangerineui-cherry,-lagoon/tangerineui-lagoon}-dark.scss > /dev/null
+echo ':root {
+    color-scheme: only light;
+}' | tee tangerineui{/tangerineui,-purple/tangerineui-purple,-cherry/tangerineui-cherry,-lagoon/tangerineui-lagoon}-light.scss > /dev/null
+cat tangerineui.scss | tee tangerineui-{dark,light}.scss > /dev/null
+cat tangerineui-purple.scss | tee tangerineui-purple-{dark,light}.scss > /dev/null
+cat tangerineui-cherry.scss | tee tangerineui-cherry-{dark,light}.scss > /dev/null
+cat tangerineui-lagoon.scss | tee tangerineui-lagoon-{dark,light}.scss > /dev/null
+sed -i '2{p;}' tangerineui-{dark,light}.scss tangerineui-{purple,cherry,lagoon}-{dark,light}.scss
+sed -i '3s/\./-dark./' tangerineui-dark.scss tangerineui-{purple,cherry,lagoon}-dark.scss
+sed -i '3s/\./-light./' tangerineui-light.scss tangerineui-{purple,cherry,lagoon}-light.scss
+cd ../../../..
+echo "tangerineui-dark: styles/tangerineui-dark.scss
+tangerineui-purple-dark: styles/tangerineui-purple-dark.scss
+tangerineui-cherry-dark: styles/tangerineui-cherry-dark.scss
+tangerineui-lagoon-dark: styles/tangerineui-lagoon-dark.scss
+tangerineui-light: styles/tangerineui-light.scss
+tangerineui-purple-light: styles/tangerineui-purple-light.scss
+tangerineui-cherry-light: styles/tangerineui-cherry-light.scss
+tangerineui-lagoon-light: styles/tangerineui-lagoon-light.scss" >> src/config/themes.yml
+sed -i '/tangerineui-lagoon/a\    tangerineui-dark: Tangerine UI (Dark)\n    tangerineui-purple-dark: Tangerine UI (Purple Dark)\n    tangerineui-cherry-dark: Tangerine UI (Cherry Dark)\n    tangerineui-lagoon-dark: Tangerine UI (Lagoon Dark)\n    tangerineui-light: Tangerine UI (Light)\n    tangerineui-purple-light: Tangerine UI (Purple Light)\n    tangerineui-cherry-light: Tangerine UI (Cherry Light)\n    tangerineui-lagoon-light: Tangerine UI (Lagoon Light)' src/config/locales/en.yml
+sed -i '/tangerineui-lagoon/a\    tangerineui-dark: Tangerine UI（暗色）\n    tangerineui-purple-dark: Tangerine UI（紫色暗色）\n    tangerineui-cherry-dark: Tangerine UI（樱桃暗色）\n    tangerineui-lagoon-dark: Tangerine UI（潟湖暗色）\n    tangerineui-light: Tangerine UI（亮色）\n    tangerineui-purple-light: Tangerine UI（紫色亮色）\n    tangerineui-cherry-light: Tangerine UI（樱桃亮色）\n    tangerineui-lagoon-light: Tangerine UI（潟湖亮色）' src/config/locales/zh-CN.yml
+sed -i '/tangerineui-lagoon/a\    tangerineui-dark: Tangerine UI（深色）\n    tangerineui-purple-dark: Tangerine UI（紫色深色）\n    tangerineui-cherry-dark: Tangerine UI（櫻桃深色）\n    tangerineui-lagoon-dark: Tangerine UI（潟湖深色）\n    tangerineui-light: Tangerine UI（亮色）\n    tangerineui-purple-light: Tangerine UI（紫色亮色）\n    tangerineui-cherry-light: Tangerine UI（櫻桃亮色）\n    tangerineui-lagoon-light: Tangerine UI（潟湖亮色）' src/config/locales/zh-{TW,HK}.yml
+sed -i '/tangerineui-lagoon/a\    tangerineui-dark: Tangerine UI (ダーク)\n    tangerineui-purple-dark: Tangerine UI (パープルダーク)\n    tangerineui-cherry-dark: Tangerine UI (チェリーダーク)\n    tangerineui-lagoon-dark: Tangerine UI (ラグーンダーク)\n    tangerineui-light: Tangerine UI (ライト)\n    tangerineui-purple-light: Tangerine UI (パープルライト)\n    tangerineui-cherry-light: Tangerine UI (チェリーライト)\n    tangerineui-lagoon-light: Tangerine UI (ラグーンライト)' src/config/locales/ja.yml
 
 # 全文搜索中文优化
 sed -i "/verbatim/,/}/{s|standard|ik_max_word|}" src/app/chewy/accounts_index.rb
