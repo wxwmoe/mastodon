@@ -1,5 +1,5 @@
 #!/bin/bash
-MASTODON_VERSION="4.3.3"
+MASTODON_VERSION="4.3.6"
 
 # 拉取源代码
 rm -rf src && git clone -b v${MASTODON_VERSION} --single-branch --depth=1 https://github.com/mastodon/mastodon.git src
@@ -16,7 +16,7 @@ sed -i "s|pixels: 8_294_400|pixels: 9_999_999|" src/app/models/media_attachment.
 sed -i "s|IMAGE_LIMIT = 16|IMAGE_LIMIT = 99|" src/app/models/media_attachment.rb
 
 # 修改投票上限
-sed -i "s|MAX_OPTIONS      = 4|MAX_OPTIONS      = 16|" src/app/validators/poll_validator.rb
+sed -i "s|MAX_OPTIONS      = 4|MAX_OPTIONS      = 16|" src/app/validators/poll_options_validator.rb
 
 # 加入 No-More-Sidebar-in-Mastodon-4.0 主题
 mkdir src/app/javascript/styles/mastodon-no-more-sidebar
