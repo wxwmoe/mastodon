@@ -1,5 +1,5 @@
 #!/bin/bash
-MASTODON_VERSION="4.3.6"
+MASTODON_VERSION="4.3.8"
 
 # 拉取源代码
 rm -rf src && git clone -b v${MASTODON_VERSION} --single-branch --depth=1 https://github.com/mastodon/mastodon.git src
