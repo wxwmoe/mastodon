@@ -18,6 +18,13 @@ sed -i "s|IMAGE_LIMIT = 16|IMAGE_LIMIT = 99|" src/app/models/media_attachment.rb
 # 修改投票上限
 sed -i "s|MAX_OPTIONS      = 4|MAX_OPTIONS      = 16|" src/app/validators/poll_options_validator.rb
 
+# 允许图片投票
+sed -z -i 's/[^}]*if[^}]*uploadErrorPoll[^return]*[^}]*}//g' src/app/javascript/mastodon/actions/compose.js
+sed -i '/uploadErrorPoll/d' src/app/javascript/mastodon/actions/compose.js
+sed -i 's/[^)]*media_attachments[^size]*[^)]*)//' src/app/javascript/mastodon/features/compose/containers/poll_button_container.js
+sed -i 's/isPoll\s\+[|]\+\s\+//' src/app/javascript/mastodon/features/compose/containers/upload_button_container.js
+sed -i 's/\s\+[|]\+\s\+@options[^poll]\+[^?]\+?//' src/app/services/post_status_service.rb src/app/services/update_status_service.rb
+
 # 加入 No-More-Sidebar-in-Mastodon-4.0 主题
 mkdir src/app/javascript/styles/mastodon-no-more-sidebar
 wget -nv https://raw.githubusercontent.com/AkazaRenn/No-More-Sidebar-in-Mastodon-4.0/25ca4df7c8452557c4acd7b40ade0572ac1877cf/css/topbar.css -O src/app/javascript/styles/mastodon-no-more-sidebar/topbar.scss
