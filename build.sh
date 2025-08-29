@@ -23,7 +23,7 @@ sed -z -i 's/[^}]*if[^}]*uploadErrorPoll[^return]*[^}]*}//g' src/app/javascript/
 sed -i '/uploadErrorPoll/d' src/app/javascript/mastodon/actions/compose.js
 sed -i 's/[^)]*media_attachments[^size]*[^)]*)//' src/app/javascript/mastodon/features/compose/containers/poll_button_container.js
 sed -i 's/isPoll\s\+[|]\+\s\+//' src/app/javascript/mastodon/features/compose/containers/upload_button_container.js
-sed -i 's/\s\+[|]\+\s\+@options[^poll]\+[^?]\+?//' src/app/services/post_status_service.rb src/app/services/update_status_service.rb
+sed -i 's/\s\+[|]\+\s\+@options\[:poll\][^?]\+[?]\+//' src/app/services/post_status_service.rb src/app/services/update_status_service.rb
 
 # 加入 No-More-Sidebar-in-Mastodon-4.0 主题
 mkdir src/app/javascript/styles/mastodon-no-more-sidebar
