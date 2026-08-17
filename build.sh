@@ -26,7 +26,7 @@ bash theme.sh || exit 1
 # 替换媒体资源网址
 grep -qx "initializeLogLevel(process.env, environment);" src/streaming/index.js
 grep -qx "      output(event, encodedPayload);" src/streaming/index.js
-sed -i -e '/^initializeLogLevel(process.env, environment);$/a\const streamingMediaHosts = process.env.STREAMING_MEDIA_HOSTS?.trim() ? JSON.parse(process.env.STREAMING_MEDIA_HOSTS) : null;\nconst rewriteMediaHost = (payload, req) => {\n  const host = streamingMediaHosts?.hosts?.[req.headers.host?.replace(/:[0-9]+$/, "").toLowerCase()];\n  return host \&\& streamingMediaHosts.source ? payload.replaceAll(streamingMediaHosts.source, host) : payload;\n};' -e 's|^      output(event, encodedPayload);$|      output(event, rewriteMediaHost(encodedPayload, req));|' src/streaming/index.js
+sed -i -e '/^initializeLogLevel(process.env, environment);$/a\const streamingMediaHosts = process.env.STREAMING_MEDIA_HOSTS?.trim() ? JSON.parse(process.env.STREAMING_MEDIA_HOSTS) : null;\nconst rewriteMediaHost = (payload, req) => {\n  const host = streamingMediaHosts?.hosts?.[req.headers.host?.replace(/:[0-9]+$/, "").toLowerCase()];\n  return host \&\& Array.isArray(streamingMediaHosts.source) ? streamingMediaHosts.source.filter(Boolean).reduce((rewritten, source) => rewritten.replaceAll(source, host), payload) : payload;\n};' -e 's|^      output(event, encodedPayload);$|      output(event, rewriteMediaHost(encodedPayload, req));|' src/streaming/index.js
 
 # 调整媒体请求阈值
 grep -qx "  throttle('throttle_media_proxy', limit: 30, period: 10.minutes) do |req|" src/config/initializers/rack_attack.rb
