@@ -23,6 +23,7 @@ sed -i "s|MAX_OPTIONS      = 4|MAX_OPTIONS      = 16|" src/app/validators/poll_o
 
 # 安装站点主题
 bash theme.sh || exit 1
+bash emoji.sh || exit 1
 
 # 替换媒体资源网址
 grep -qx "initializeLogLevel(process.env, environment);" src/streaming/index.js
