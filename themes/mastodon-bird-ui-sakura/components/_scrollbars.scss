@@ -95,12 +95,3 @@
     background-color: var(--color-dark);
   }
 }
-
-// Modal content is the only interactive layer; hide the inert deck scrollbars.
-html.has-modal .layout-multiple-columns .column > .scrollable {
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
