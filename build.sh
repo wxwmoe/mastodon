@@ -7,8 +7,9 @@ rm -rf src && wget --progress=dot:giga "https://github.com/mastodon/mastodon/arc
 mkdir src && tar -xzf source.tar.gz --strip-components=1 -C src && rm -rf source.tar.gz
 
 # 替换图标文件
-cp icons/* src/app/javascript/icons
+cp icons/*.png src/app/javascript/icons
 cp images/* src/app/javascript/images
+cp icons/paw.svg src/app/javascript/material-icons/400-24px
 
 # 修改字数上限
 sed -i "s|MAX_CHARS = 500|MAX_CHARS = 20000|" src/app/validators/status_length_validator.rb
@@ -27,6 +28,11 @@ bash theme.sh || exit 1
 grep -qx "initializeLogLevel(process.env, environment);" src/streaming/index.js
 grep -qx "      output(event, encodedPayload);" src/streaming/index.js
 sed -i -e '/^initializeLogLevel(process.env, environment);$/a\const streamingMediaHosts = process.env.STREAMING_MEDIA_HOSTS?.trim() ? JSON.parse(process.env.STREAMING_MEDIA_HOSTS) : null;\nconst rewriteMediaHost = (payload, req) => {\n  const host = streamingMediaHosts?.hosts?.[req.headers.host?.replace(/:[0-9]+$/, "").toLowerCase()];\n  return host \&\& Array.isArray(streamingMediaHosts.source) ? streamingMediaHosts.source.filter(Boolean).reduce((rewritten, source) => rewritten.replaceAll(source, host), payload) : payload;\n};' -e 's|^      output(event, encodedPayload);$|      output(event, rewriteMediaHost(encodedPayload, req));|' src/streaming/index.js
+
+# 替换当前热门入口
+grep -qx "import SearchIcon from '@/material-icons/400-24px/search.svg?react';" src/app/javascript/mastodon/features/ui/components/navigation_bar.tsx
+grep -qx "              to='/explore'" src/app/javascript/mastodon/features/ui/components/navigation_bar.tsx
+sed -i -e "s|^import SearchIcon from '@/material-icons/400-24px/search.svg?react';$|import PawIcon from '@/material-icons/400-24px/paw.svg?react';|" -e "s|^  menu: { id: 'tabs_bar.menu', defaultMessage: 'Menu' },$|&\n  firehose: { id: 'column.firehose', defaultMessage: 'Live feeds' },|" -e "s|^              title={intl.formatMessage(messages.search)}$|              title={intl.formatMessage(messages.firehose)}|" -e "s|^              to='/explore'$|              to='/public/local'|" -e "s|^              icon={<Icon id='' icon={SearchIcon} />}$|              icon={<Icon id='' icon={PawIcon} />}|" src/app/javascript/mastodon/features/ui/components/navigation_bar.tsx
 
 # 调整媒体请求阈值
 grep -qx "  throttle('throttle_media_proxy', limit: 30, period: 10.minutes) do |req|" src/config/initializers/rack_attack.rb
