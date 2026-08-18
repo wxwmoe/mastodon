@@ -104,15 +104,3 @@ html:is([data-color-scheme="dark"], :not([data-color-scheme]))[data-contrast="hi
 .button.button-secondary.button--destructive:not(:disabled):not(.disabled):is(:active, :focus, :hover) {
   background-color: var(--color-bg-error-softest);
 }
-
-.layout-single-column .announcements__root {
-  flex-direction: column-reverse;
-}
-
-.layout-single-column .announcements__root .announcements {
-  width: 100%;
-}
-
-.layout-single-column .announcements__root .announcements__mastodon {
-  align-self: flex-start;
-}

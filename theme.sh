@@ -24,6 +24,14 @@ tangerine_tmp="$source_tmp/tangerine"
 mkdir -p "$tangerine_tmp"
 wget --progress=dot:giga "https://github.com/mattbirchler/Tangerine-Neue-for-Mastodon/archive/34cd010bec276d9e180cb2b830eeff9372b161d9.tar.gz" -O "$tangerine_tmp/source.tar.gz"
 tar -xzf "$tangerine_tmp/source.tar.gz" --strip-components=1 -C "$tangerine_tmp"
+# Show only the active announcement slide.
+tangerine_theme_files=("$tangerine_tmp/mastodon/app/javascript/styles"/tangerineui*/tangerineui*.scss)
+test "${#tangerine_theme_files[@]}" -eq 5
+for tangerine_theme_file in "${tangerine_theme_files[@]}"; do
+  awk 'p == ".app-body .announcements {" && $0 == "    overflow: visible;" { found++ } { p = $0 } END { exit found == 1 ? 0 : 1 }' "$tangerine_theme_file"
+  sed -i '/^\.app-body \.announcements {$/ { N; s/\n    overflow: visible;$/\n    overflow: hidden;/; }' "$tangerine_theme_file"
+  awk 'p == ".app-body .announcements {" && $0 == "    overflow: hidden;" { found++ } { p = $0 } END { exit found == 1 ? 0 : 1 }' "$tangerine_theme_file"
+done
 cp -R "$tangerine_tmp/mastodon/app/javascript/styles/." "$styles_dir/"
 cp "$tangerine_tmp/mastodon/config/locales/tangerineui.yml" src/config/locales/tangerineui.yml
 
@@ -41,6 +49,8 @@ sed -i '/^    max-height: 50vh;$/ { N; N; s/\n    flex-direction: column;$/\n   
 awk 'p3 == "    max-height: 50vh;" && p2 == "    overflow: hidden;" && p1 == "    display: flex;" && $0 == "    flex-direction: column;" { found++ } { p3 = p2; p2 = p1; p1 = $0 } END { exit found == 1 ? 0 : 1 }' "$announcements_styles"
 awk 'p4 == "    > div {" && p3 == "      display: flex;" && p2 == "      flex-direction: column;" && p1 == "      min-height: 0;" && $0 == "    }" { found++ } { p4 = p3; p3 = p2; p2 = p1; p1 = $0 } END { exit found == 1 ? 0 : 1 }' "$announcements_styles"
 printf '%s\n' '' '.reactions-bar__item__emoji {' '  overflow: hidden;' '}' >> "$announcements_styles"
+printf '%s\n' '' '.announcements__root {' '  flex-direction: column-reverse;' '}' '' '.announcements {' '  width: 100%;' '}' '' '.announcements__mastodon {' '  align-self: flex-start;' '}' >> "$announcements_styles"
+printf '%s\n' '' 'html.has-modal:has(> body.layout-multiple-columns),' 'html.has-modal > body.layout-multiple-columns {' '  scrollbar-gutter: auto;' '}' '' '.media-modal__closer > .zoomable-image {' '  overflow: hidden;' '}' >> "$announcements_styles"
 
 # patch theme helper
 grep -qx "  def theme_color_tags(color_scheme)" src/app/helpers/theme_helper.rb

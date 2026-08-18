@@ -1,18 +1,6 @@
 // Announcements
 .layout-single-column,
 .layout-multiple-columns {
-  .announcements__root {
-    flex-direction: column-reverse;
-  }
-
-  .announcements {
-    width: 100%;
-  }
-
-  .announcements__mastodon {
-    align-self: flex-start;
-  }
-
   .announcements__pagination .icon,
   .announcements__pagination {
     color: var(--color-dim);

@@ -168,10 +168,6 @@
     position: relative;
   }
 
-  .detailed-status__button .icon-button.star-icon::after {
-    transform: translateX(3px);
-  }
-
   .status__action-bar .icon-button.icon-button--with-counter::after {
     transform: translateX(0) translateY(0);
   }

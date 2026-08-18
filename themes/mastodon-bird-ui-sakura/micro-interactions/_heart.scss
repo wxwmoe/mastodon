@@ -3,7 +3,7 @@
 
 // Size constraint must apply in both motion modes so the action-bar counter
 // sits flush against the icon when reduce-motion is enabled.
-.icon-button.star-icon {
+.status__action-bar .icon-button.star-icon {
   max-height: 23px;
   max-width: 42.22px;
   min-height: 23px;
