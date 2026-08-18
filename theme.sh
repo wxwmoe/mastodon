@@ -34,6 +34,14 @@ cp "$tangerine_tmp/mastodon/config/locales/tangerineui.yml" src/config/locales/t
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 cp -R themes/. "$styles_dir/"
 
+# patch components
+announcements_styles="$styles_dir/mastodon/components.scss"
+awk 'p2 == "    max-height: 50vh;" && p1 == "    overflow: hidden;" && $0 == "    flex-direction: column;" { found++ } { p2 = p1; p1 = $0 } END { exit found == 1 ? 0 : 1 }' "$announcements_styles"
+sed -i '/^    max-height: 50vh;$/ { N; N; s/\n    flex-direction: column;$/\n    display: flex;\n    flex-direction: column;\n\n    > div {\n      display: flex;\n      flex-direction: column;\n      min-height: 0;\n    }/; }' "$announcements_styles"
+awk 'p3 == "    max-height: 50vh;" && p2 == "    overflow: hidden;" && p1 == "    display: flex;" && $0 == "    flex-direction: column;" { found++ } { p3 = p2; p2 = p1; p1 = $0 } END { exit found == 1 ? 0 : 1 }' "$announcements_styles"
+awk 'p4 == "    > div {" && p3 == "      display: flex;" && p2 == "      flex-direction: column;" && p1 == "      min-height: 0;" && $0 == "    }" { found++ } { p4 = p3; p3 = p2; p2 = p1; p1 = $0 } END { exit found == 1 ? 0 : 1 }' "$announcements_styles"
+printf '%s\n' '' '.reactions-bar__item__emoji {' '  overflow: hidden;' '}' >> "$announcements_styles"
+
 # patch theme helper
 grep -qx "  def theme_color_tags(color_scheme)" src/app/helpers/theme_helper.rb
 grep -q "content: Themes::THEME_COLORS" src/app/helpers/theme_helper.rb
