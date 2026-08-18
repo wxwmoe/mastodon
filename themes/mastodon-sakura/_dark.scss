@@ -1,0 +1,162 @@
+@use 'utils';
+
+@mixin tokens {
+  --color-green-50: var(--color-blue-50);
+  --color-green-100: var(--color-blue-100);
+  --color-green-200: var(--color-blue-200);
+  --color-green-300: var(--color-blue-300);
+  --color-green-400: var(--color-blue-400);
+  --color-green-500: var(--color-blue-500);
+  --color-green-600: var(--color-blue-600);
+  --color-green-700: var(--color-blue-700);
+  --color-green-800: var(--color-blue-800);
+  --color-green-900: var(--color-blue-900);
+  --color-green-950: var(--color-blue-950);
+  --color-text-primary: var(--color-blue-50);
+  --color-text-secondary: var(--color-blue-400);
+  --color-text-tertiary: var(--color-blue-400);
+  --sakura-placeholder: var(--color-blue-300);
+  --sakura-selection-bg: var(--color-blue-800);
+  --sakura-selection-text: var(--color-blue-50);
+  --sakura-radio-dot: var(--color-blue-400);
+  --sakura-poll-track: var(--color-blue-600);
+  --sakura-poll-leading: var(--color-blue-200);
+  --sakura-poll-checkmark: var(--color-blue-400);
+  --sakura-verified-start: var(--color-blue-200);
+  --sakura-verified-end: var(--color-blue-400);
+  --color-text-inverted: var(--color-blue-950);
+  --color-text-brand: var(--color-blue-200);
+  --color-text-brand-soft: color-mix(in oklab, var(--color-blue-400), var(--color-blue-200));
+  --color-text-on-brand-base: var(--color-blue-950);
+  --color-text-brand-on-inverted: var(--color-blue-800);
+  --color-text-error: var(--color-red-300);
+  --color-text-on-error-base: #080808; // KURO
+  --color-text-warning: var(--color-yellow-200);
+  --color-text-on-warning-base: var(--color-blue-950);
+  --color-text-success: var(--color-blue-400);
+  --color-text-on-success-base: var(--color-blue-950);
+  --color-text-disabled: var(--color-blue-800);
+  --color-text-on-disabled: var(--color-blue-200);
+  --color-text-bookmark-highlight: var(--color-text-error);
+  --color-text-favourite-highlight: var(--color-text-warning);
+  --color-text-on-media: var(--color-white);
+  --color-text-status-links: var(--color-blue-400);
+  --color-bg-primary: var(--color-blue-950);
+  --overlay-strength-secondary: 4%;
+  --color-bg-secondary: color-mix(in srgb, var(--color-blue-900) 50%, var(--color-blue-950));
+  --color-bg-tertiary: var(--color-blue-800);
+  --color-bg-inverted: var(--color-blue-50);
+  --color-bg-overlay-base: #{utils.css-alpha(var(--color-blue-950), 60%)};
+  --color-bg-overlay-highlight: #{utils.css-alpha(var(--color-blue-200), 8%)};
+  --color-bg-overlay: var(--color-blue-950);
+  --color-bg-media-base: var(--color-blue-950);
+  --color-bg-media: #{utils.css-alpha(var(--color-bg-media-base), 65%)};
+  --color-bg-disabled: var(--color-blue-800);
+  --color-bg-brand-base: var(--color-blue-200);
+  --color-bg-brand-base-hover: var(--color-blue-400);
+  --color-bg-brand-soft: var(--color-blue-800);
+  --color-bg-brand-softest: var(--color-blue-900);
+  --color-bg-error-base: var(--color-red-400);
+  --color-bg-error-base-hover: var(--color-red-300);
+  --color-bg-error-soft: color-mix(in srgb, var(--color-red-400) 18%, var(--color-blue-950));
+  --color-bg-error-softest: color-mix(in srgb, var(--color-red-400) 10%, var(--color-blue-950));
+  --color-bg-warning-base: var(--color-yellow-200);
+  --color-bg-warning-soft: color-mix(in srgb, var(--color-yellow-200) 18%, var(--color-blue-950));
+  --color-bg-warning-softest: color-mix(in srgb, var(--color-yellow-200) 10%, var(--color-blue-950));
+  --color-bg-success-base: var(--color-green-200);
+  --color-bg-success-soft: color-mix(in srgb, var(--color-green-200) 18%, var(--color-blue-950));
+  --color-bg-success-softest: color-mix(in srgb, var(--color-green-200) 10%, var(--color-blue-950));
+  --color-border-primary: var(--color-blue-800);
+  --color-border-brand: var(--color-blue-200);
+  --color-border-brand-soft: var(--color-blue-700);
+  --color-border-error: var(--color-red-300);
+  --color-border-media: #{utils.css-alpha(var(--color-blue-50), 15%)};
+  --color-border-error-soft: #{utils.css-alpha(var(--color-border-error), 50%)};
+  --color-border-warning-soft: #{utils.css-alpha(var(--color-text-warning), 50%)};
+  --color-border-success-soft: var(--color-blue-200);
+  --shadow-strength-primary: 80%;
+  --color-shadow-primary: #{utils.css-alpha(var(--color-blue-950), var(--shadow-strength-primary))};
+  --dropdown-shadow: 0 20px 25px -5px var(--color-shadow-primary), 0 8px 10px -6px var(--color-shadow-primary);
+  --overlay-icon-shadow: drop-shadow(0 0 8px var(--color-shadow-primary));
+  --color-graph-primary-stroke: var(--color-text-brand);
+  --color-graph-primary-fill: var(--color-bg-brand-softest);
+  --color-graph-warning-stroke: var(--color-text-warning);
+  --color-graph-warning-fill: var(--color-bg-warning-softest);
+  --color-graph-disabled-stroke: var(--color-text-disabled);
+  --color-graph-disabled-fill: var(--color-bg-disabled);
+  --rich-text-container-color: var(--color-blue-800);
+  --rich-text-text-color: var(--color-blue-100);
+  --rich-text-decorations-color: var(--color-blue-400);
+  :is(.search__input, .autosuggest-textarea__textarea, .spoiler-input__input)::placeholder {
+    color: var(--sakura-placeholder);
+    opacity: 1;
+  }
+
+  .poll__option:not(.dialog-option):not(.disabled):not(:has(> input:disabled)) > .poll__input:not(.disabled) {
+    border: 1px solid var(--color-border-brand);
+    background: var(--color-bg-primary);
+    box-shadow: none;
+  }
+  .poll__option:not(.dialog-option):not(.disabled):not(:has(> input:disabled)) > .poll__input:not(.disabled):is(:active, :focus, :hover) {
+    border-color: var(--color-border-brand);
+    border-width: 1px;
+  }
+  .poll__option:not(.dialog-option):not(.disabled):not(:has(> input:disabled)) > .poll__input:not(.disabled).active:not(.checkbox) {
+    background: var(--sakura-radio-dot);
+    box-shadow: inset 0 0 0 4px var(--color-bg-primary);
+  }
+  .poll__option:not(.dialog-option):not(.disabled):not(:has(> input:disabled)) > .poll__input:not(.disabled).checkbox.active {
+    color: var(--sakura-poll-checkmark);
+    background: var(--color-bg-primary);
+    box-shadow: none;
+  }
+  .poll__option:not(.dialog-option):not(.disabled):not(:has(> input:disabled)) > .poll__input:not(.disabled).checkbox.active::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 10px;
+    height: 8px;
+    border: 0;
+    background: currentColor;
+    mask: var(--sakura-checkmark) center / 100% no-repeat;
+  }
+  .logo--wordmark {
+    color: var(--color-white);
+  }
+}
+
+@mixin contrast-overrides {
+  --color-text-primary: var(--color-white);
+  --color-text-secondary: var(--color-blue-50);
+  --color-text-tertiary: var(--color-blue-200);
+  --sakura-placeholder: var(--color-blue-50);
+  --sakura-selection-bg: var(--color-blue-200);
+  --sakura-selection-text: var(--color-blue-950);
+  --sakura-radio-dot: var(--color-blue-50);
+  --sakura-poll-track: var(--color-blue-400);
+  --sakura-poll-leading: var(--color-white);
+  --sakura-poll-checkmark: var(--color-white);
+  --sakura-verified-start: var(--color-blue-50);
+  --sakura-verified-end: var(--color-white);
+  --color-text-brand: var(--color-blue-50);
+  --color-text-brand-soft: var(--color-blue-50);
+  --color-text-on-brand-base: var(--color-blue-950);
+  --color-text-status-links: var(--color-blue-50);
+  --color-text-success: var(--color-blue-50);
+  --color-text-on-success-base: var(--color-blue-950);
+  --color-text-error: var(--color-red-100);
+  --color-text-on-error-base: #080808; // KURO
+  --color-bg-brand-base: var(--color-blue-200);
+  --color-bg-brand-base-hover: var(--color-blue-50);
+  --color-bg-success-base: var(--color-blue-200);
+  --color-bg-success-soft: color-mix(in srgb, var(--color-blue-200) 18%, var(--color-blue-950));
+  --color-bg-success-softest: color-mix(in srgb, var(--color-blue-200) 10%, var(--color-blue-950));
+  --color-bg-error-base: var(--color-red-400);
+  --color-bg-error-base-hover: var(--color-red-300);
+  --color-bg-secondary: var(--color-blue-900);
+  --color-border-primary: var(--color-blue-50);
+  --color-border-brand: var(--color-white);
+  --color-border-brand-soft: var(--color-blue-50);
+  --color-border-success-soft: var(--color-blue-50);
+}

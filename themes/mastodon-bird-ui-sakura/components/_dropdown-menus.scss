@@ -1,0 +1,36 @@
+// Dropdown menus (e.g. the More menu in the navigation panel) can grow taller
+// than short or zoomed viewports; cap them to the viewport and let them
+// scroll with the same minimal scrollbar as the navigation menu
+.dropdown-menu__container {
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+
+.dropdown-menu__container,
+.dropdown-menu__container__list--scrollable {
+  @supports not selector(::-webkit-scrollbar) {
+    scrollbar-color: var(--sakura-scrollbar) transparent;
+    scrollbar-width: thin;
+  }
+}
+
+.dropdown-menu__container::-webkit-scrollbar,
+.dropdown-menu__container__list--scrollable::-webkit-scrollbar {
+  height: 4px;
+  width: 4px;
+}
+
+.dropdown-menu__container::-webkit-scrollbar-track,
+.dropdown-menu__container__list--scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dropdown-menu__container::-webkit-scrollbar-thumb,
+.dropdown-menu__container__list--scrollable::-webkit-scrollbar-thumb {
+  background-color: var(--sakura-scrollbar);
+}
+
+.dropdown-menu__container::-webkit-scrollbar-thumb:is(:hover, :active),
+.dropdown-menu__container__list--scrollable::-webkit-scrollbar-thumb:is(:hover, :active) {
+  background-color: var(--sakura-scrollbar-hover);
+}

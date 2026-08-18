@@ -1,0 +1,120 @@
+html[data-color-scheme='dark'][data-contrast='high'],
+html:not([data-color-scheme])[data-contrast='high'] {
+  --color-text-primary: #fffffb;
+  --color-text-secondary: #7db9de;
+  --color-text-tertiary: #58b2dc;
+  --color-text-brand: #2ea9df;
+  --color-text-brand-soft: #58b2dc;
+  --color-text-status-links: #7db9de;
+  --color-text-favourite-highlight: #e83015;
+  --color-text-success: #7db9de;
+  --color-text-on-brand-base: #080808;
+  --color-text-on-success-base: #080808;
+  --color-bg-brand-base: #58b2dc;
+  --color-bg-brand-base-hover: #2ea9df;
+  --color-bg-success-base: #7db9de;
+  --color-bg-success-base-hover: #58b2dc;
+  --color-bg-error-base: #e83015;
+  --color-bg-error-base-hover: #f75c2f;
+  --color-border: #58b2dc;
+  --color-border-primary: #58b2dc;
+  --color-border-success-soft: #58b2dc;
+  --color-verified: #7db9de;
+  --color-green: #7db9de;
+  --color-button-text: #7db9de;
+  --color-accent: #58b2dc;
+  --color-accent-dark: #2ea9df;
+  --color-ghost-button-text: #7db9de;
+  --color-link: #7db9de;
+  --color-mention: #7db9de;
+  --color-hashtag: #7db9de;
+  --sakura-radio-dot: #7db9de;
+  --sakura-scrollbar: #58b2dc;
+  --sakura-scrollbar-hover: #7db9de;
+  --border-strength-primary: 25%;
+  --color-dim: #7db9de;
+}
+
+html[data-color-scheme='light'][data-contrast='high'] {
+  --color-text-primary: #1c1c1c;
+  --color-text-secondary: #434343;
+  --color-text-tertiary: #656765;
+  --color-text-brand: #b5495b;
+  --color-text-brand-soft: #d0104c;
+  --color-text-status-links: #b5495b;
+  --color-text-favourite-highlight: #d0104c;
+  --color-text-success: #b5495b;
+  --color-text-on-brand-base: #fffffb;
+  --color-text-on-success-base: #fffffb;
+  --color-bg-brand-base: #d0104c;
+  --color-bg-brand-base-hover: #b5495b;
+  --color-bg-success-base: #d0104c;
+  --color-bg-success-base-hover: #b5495b;
+  --color-bg-error-base: #d0104c;
+  --color-bg-error-base-hover: #b5495b;
+  --color-border: #e16b8c;
+  --color-border-brand: #e16b8c;
+  --color-border-brand-soft: #e16b8c;
+  --color-border-success-soft: #e16b8c;
+  --color-border-primary: #e16b8c;
+  --color-verified: #d0104c;
+  --color-green: #b5495b;
+  --color-button-text: #fffffb;
+  --color-accent: #b5495b;
+  --color-accent-dark: #d0104c;
+  --color-ghost-button-text: #b5495b;
+  --color-brand-mastodon-links: #b5495b;
+  --color-link: #b5495b;
+  --color-mention: #b5495b;
+  --color-hashtag: #b5495b;
+  --sakura-radio-dot: #d0104c;
+  --sakura-scrollbar: #e16b8c;
+  --sakura-scrollbar-hover: #d0104c;
+  --border-strength-primary: 25%;
+  --color-dim: #656765;
+  --color-light-shade: color-mix(in srgb, #e16b8c 8%, #fffffb);
+  --color-focusable-toot: color-mix(in srgb, #e16b8c 8%, #fffffb);
+}
+
+@media (prefers-color-scheme: light) {
+  html:not([data-color-scheme])[data-contrast='high'] {
+    --color-text-primary: #1c1c1c;
+    --color-text-secondary: #434343;
+    --color-text-tertiary: #656765;
+    --color-text-brand: #b5495b;
+    --color-text-brand-soft: #d0104c;
+    --color-text-status-links: #b5495b;
+    --color-text-favourite-highlight: #d0104c;
+    --color-text-success: #b5495b;
+    --color-text-on-brand-base: #fffffb;
+    --color-text-on-success-base: #fffffb;
+    --color-bg-brand-base: #d0104c;
+    --color-bg-brand-base-hover: #b5495b;
+    --color-bg-success-base: #d0104c;
+    --color-bg-success-base-hover: #b5495b;
+    --color-bg-error-base: #d0104c;
+    --color-bg-error-base-hover: #b5495b;
+    --color-border: #e16b8c;
+    --color-border-brand: #e16b8c;
+    --color-border-brand-soft: #e16b8c;
+    --color-border-success-soft: #e16b8c;
+    --color-border-primary: #e16b8c;
+    --color-verified: #d0104c;
+    --color-green: #b5495b;
+    --color-button-text: #fffffb;
+    --color-accent: #b5495b;
+    --color-accent-dark: #d0104c;
+    --color-ghost-button-text: #b5495b;
+    --color-brand-mastodon-links: #b5495b;
+    --color-link: #b5495b;
+    --color-mention: #b5495b;
+    --color-hashtag: #b5495b;
+    --sakura-radio-dot: #d0104c;
+    --sakura-scrollbar: #e16b8c;
+    --sakura-scrollbar-hover: #d0104c;
+    --border-strength-primary: 25%;
+    --color-dim: #656765;
+    --color-light-shade: color-mix(in srgb, #e16b8c 8%, #fffffb);
+    --color-focusable-toot: color-mix(in srgb, #e16b8c 8%, #fffffb);
+  }
+}

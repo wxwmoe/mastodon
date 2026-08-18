@@ -1,0 +1,208 @@
+@use 'utils';
+
+@mixin tokens {
+  --color-text-primary: var(--color-black);
+  --color-text-secondary: var(--color-grey-800);
+  --color-text-tertiary: var(--color-grey-700);
+  --sakura-placeholder: var(--color-grey-700);
+  --sakura-selection-bg: var(--color-indigo-300);
+  --sakura-selection-text: var(--color-black);
+  --sakura-radio-dot: var(--color-indigo-400);
+  --sakura-poll-track: var(--color-indigo-300);
+  --sakura-poll-leading: var(--color-indigo-400);
+  --sakura-poll-checkmark: var(--color-black);
+  --sakura-verified-start: var(--color-indigo-200);
+  --sakura-verified-end: var(--color-indigo-500);
+  --color-text-inverted: var(--color-white);
+  --color-text-brand: var(--color-indigo-500);
+  --color-text-brand-soft: var(--color-indigo-400);
+  --color-text-on-brand-base: #fff;
+  --color-text-brand-on-inverted: var(--color-indigo-300);
+  --color-text-error: var(--color-red-500);
+  --color-text-on-error-base: var(--color-white);
+  --color-text-warning: var(--color-yellow-950);
+  --color-text-on-warning-base: var(--color-blue-950);
+  --color-text-success: var(--color-indigo-500);
+  --color-text-on-success-base: #fff;
+  --color-text-disabled: var(--color-grey-500);
+  --color-text-on-disabled: var(--color-grey-800);
+  --color-text-bookmark-highlight: var(--color-indigo-500);
+  --color-text-favourite-highlight: var(--color-indigo-500);
+  --color-text-on-media: var(--color-white);
+  --color-text-status-links: var(--color-text-brand);
+  --color-bg-primary: #fff;
+  --overlay-strength-secondary: 4%;
+  --color-bg-secondary: #fff;
+  --color-bg-tertiary: var(--color-indigo-200);
+  --color-bg-inverted: var(--color-blue-950);
+  --color-bg-overlay-base: #{utils.css-alpha(var(--color-blue-950), 60%)};
+  --color-bg-overlay-highlight: #{utils.css-alpha(var(--color-indigo-400), 8%)};
+  --color-bg-overlay: #fff;
+  --color-bg-media-base: var(--color-blue-950);
+  --color-bg-media: #{utils.css-alpha(var(--color-bg-media-base), 65%)};
+  --color-bg-disabled: var(--color-indigo-200);
+  --color-bg-brand-base: var(--color-indigo-400);
+  --color-bg-brand-base-hover: var(--color-indigo-500);
+  --color-bg-brand-soft: var(--color-indigo-300);
+  --color-bg-brand-softest: var(--color-indigo-200);
+  --color-bg-error-base: var(--color-red-500);
+  --color-bg-error-base-hover: var(--color-red-600);
+  --color-bg-error-soft: color-mix(in srgb, var(--color-red-500) 12%, var(--color-white));
+  --color-bg-error-softest: color-mix(in srgb, var(--color-red-500) 6%, var(--color-white));
+  --color-bg-warning-base: var(--color-yellow-200);
+  --color-bg-warning-soft: color-mix(in srgb, var(--color-yellow-200) 18%, var(--color-white));
+  --color-bg-warning-softest: color-mix(in srgb, var(--color-yellow-200) 9%, var(--color-white));
+  --color-bg-success-base: var(--color-indigo-400);
+  --color-bg-success-soft: color-mix(in srgb, var(--color-indigo-400) 18%, #fff);
+  --color-bg-success-softest: color-mix(in srgb, var(--color-indigo-400) 9%, #fff);
+  --color-border-primary: var(--color-indigo-200);
+  --color-border-brand: var(--color-indigo-500);
+  --color-border-brand-soft: var(--color-indigo-300);
+  --color-border-error: var(--color-red-500);
+  --color-border-media: #{utils.css-alpha(var(--color-white), 15%)};
+  --color-border-error-soft: #{utils.css-alpha(var(--color-text-error), 50%)};
+  --color-border-warning-soft: #{utils.css-alpha(var(--color-text-warning), 50%)};
+  --color-border-success-soft: var(--color-indigo-300);
+  --shadow-strength-primary: 30%;
+  --color-shadow-primary: #{utils.css-alpha(var(--color-blue-950), var(--shadow-strength-primary))};
+  --dropdown-shadow: 0 20px 25px -5px var(--color-shadow-primary), 0 8px 10px -6px var(--color-shadow-primary);
+  --overlay-icon-shadow: drop-shadow(0 0 8px var(--color-shadow-primary));
+  --color-graph-primary-stroke: var(--color-text-brand);
+  --color-graph-primary-fill: var(--color-bg-brand-softest);
+  --color-graph-warning-stroke: var(--color-text-warning);
+  --color-graph-warning-fill: var(--color-bg-warning-softest);
+  --color-graph-disabled-stroke: var(--color-text-disabled);
+  --color-graph-disabled-fill: var(--color-bg-disabled);
+  --rich-text-container-color: var(--color-indigo-200);
+  --rich-text-text-color: var(--color-grey-800);
+  --rich-text-decorations-color: var(--color-indigo-500);
+  .poll__option:not(.dialog-option):not(.disabled):not(:has(> input:disabled)) > .poll__input:not(.disabled) {
+    border: 1px solid var(--color-border-brand);
+    background: var(--color-bg-primary);
+    box-shadow: none;
+  }
+  .poll__option:not(.dialog-option):not(.disabled):not(:has(> input:disabled)) > .poll__input:not(.disabled):is(:active, :focus, :hover) {
+    border-color: var(--color-border-brand);
+    border-width: 1px;
+  }
+  .poll__option:not(.dialog-option):not(.disabled):not(:has(> input:disabled)) > .poll__input:not(.disabled).active:not(.checkbox) {
+    background: var(--sakura-radio-dot);
+    box-shadow: inset 0 0 0 4px var(--color-bg-primary);
+  }
+  .poll__option:not(.dialog-option):not(.disabled):not(:has(> input:disabled)) > .poll__input:not(.disabled).checkbox.active {
+    color: var(--sakura-poll-checkmark);
+    background: var(--color-bg-primary);
+    box-shadow: none;
+  }
+  .poll__option:not(.dialog-option):not(.disabled):not(:has(> input:disabled)) > .poll__input:not(.disabled).checkbox.active::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 10px;
+    height: 8px;
+    border: 0;
+    background: currentColor;
+    mask: var(--sakura-checkmark) center / 100% no-repeat;
+  }
+
+  &:not([data-contrast='high']):not([data-contrast='high'] *) {
+    .search__input {
+      border-color: var(--color-indigo-200);
+      background: #fff;
+    }
+
+    .search__input:focus {
+      border-color: var(--color-indigo-400);
+      background: #fff;
+      outline-color: var(--color-indigo-400);
+    }
+
+    :is(.status__wrapper, .detailed-status__wrapper).focusable:hover {
+      background: #fefafb;
+    }
+
+    :is(.status__wrapper, .detailed-status__wrapper).focusable:focus-visible {
+      background: #fefafb;
+      outline-color: var(--color-indigo-400);
+    }
+
+    .layout-multiple-columns .status {
+      border-color: var(--color-border-brand-soft);
+    }
+
+    :is(
+      .hashtag-bar a,
+      .focusable:focus-visible .hashtag-bar a,
+      .detailed-status__wrapper-direct .detailed-status .hashtag-bar a,
+      .status__wrapper-direct .hashtag-bar a
+    ) {
+      background: #f7f9f9;
+
+      &:is(:hover, :focus, :active) {
+        background: var(--color-indigo-300);
+      }
+    }
+
+    .content-warning {
+      background: #fefafb;
+    }
+
+    :is(.content-warning--filter, .status__wrapper--filtered) {
+      background: #fafafa;
+    }
+
+    .compose-form .spoiler-input .autosuggest-input,
+    .compose-form .spoiler-input__input {
+      background: var(--color-bg-brand-softest);
+    }
+
+    .compose-form .spoiler-input__input {
+      color: var(--color-text-primary);
+    }
+
+    :is(.content-warning .link-button, .status__wrapper--filtered__button):is(:hover, :focus) {
+      background: #fdfafb;
+    }
+  }
+}
+
+@mixin contrast-overrides {
+  --color-text-primary: var(--color-black);
+  --color-text-secondary: var(--color-grey-800);
+  --color-text-tertiary: var(--color-grey-800);
+  --sakura-placeholder: var(--color-grey-800);
+  --sakura-selection-bg: var(--color-red-500);
+  --sakura-selection-text: var(--color-white);
+  --sakura-radio-dot: var(--color-red-500);
+  --sakura-poll-track: var(--color-red-200);
+  --sakura-poll-leading: var(--color-red-500);
+  --sakura-poll-checkmark: var(--color-red-500);
+  --sakura-verified-start: var(--color-red-200);
+  --sakura-verified-end: var(--color-red-500);
+  --color-text-brand: var(--color-red-700);
+  --color-text-brand-soft: var(--color-red-500);
+  --color-text-on-brand-base: var(--color-white);
+  --color-text-status-links: var(--color-red-700);
+  --color-text-success: var(--color-red-700);
+  --color-text-on-success-base: var(--color-white);
+  --color-text-bookmark-highlight: var(--color-text-error);
+  --color-text-favourite-highlight: var(--color-text-warning);
+  --color-bg-brand-base: var(--color-red-500);
+  --color-bg-brand-base-hover: var(--color-red-700);
+  --color-bg-success-base: var(--color-red-500);
+  --color-bg-success-soft: color-mix(in srgb, var(--color-red-500) 18%, var(--color-white));
+  --color-bg-success-softest: color-mix(in srgb, var(--color-red-500) 9%, var(--color-white));
+  --color-border-brand: var(--color-red-700);
+  --color-border-brand-soft: var(--color-red-200);
+  --color-border-success-soft: var(--color-red-200);
+  --color-bg-error-base: var(--color-red-800);
+  --color-bg-error-base-hover: var(--color-red-950);
+  --color-bg-primary: var(--color-white);
+  --color-bg-secondary: var(--color-grey-100);
+  --color-bg-overlay: var(--color-white);
+  --color-bg-brand-soft: var(--color-indigo-200);
+  --color-bg-brand-softest: var(--color-indigo-50);
+  --color-border-primary: var(--color-grey-600);
+  --rich-text-decorations-color: var(--color-indigo-600);
+}

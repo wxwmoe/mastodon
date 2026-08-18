@@ -1,0 +1,273 @@
+/* Shared controls for both Sakura themes. */
+
+::selection {
+  color: var(--sakura-selection-text);
+  background: var(--sakura-selection-bg);
+}
+
+.announcements__content {
+  color: var(--color-text-primary);
+}
+
+.announcements__content a,
+.announcements__content a.unhandled-link {
+  color: var(--color-text-status-links);
+}
+
+.simple_form :is(input, textarea)::placeholder,
+:is(.layout-single-column, .layout-multiple-columns) :is(.search__input, .autosuggest-textarea__textarea, .spoiler-input__input, .emoji-mart-search input)::placeholder,
+:is(input, textarea)[class*="_comp_form_fields_text_input__input"]::placeholder {
+  color: var(--sakura-placeholder);
+  opacity: 1;
+}
+
+.simple_form select:focus-visible {
+  outline-offset: -1px;
+}
+
+.simple_form :is(input, textarea, select):is(:autofill, :-webkit-autofill) {
+  box-shadow: 0 0 0 1000px var(--color-bg-overlay) inset;
+  -webkit-text-fill-color: var(--color-text-primary);
+  caret-color: var(--color-text-primary);
+}
+
+.simple_form input[type="file"]::file-selector-button {
+  margin-inline-end: 8px;
+  border: 1px solid var(--color-bg-brand-base);
+  border-radius: 4px;
+  padding: 6px 12px;
+  background: var(--color-bg-brand-base);
+  color: var(--color-text-on-brand-base);
+  font: inherit;
+  cursor: pointer;
+}
+
+.simple_form input[type="file"]:not(:disabled):is(:hover, :focus-visible)::file-selector-button {
+  border-color: var(--color-bg-brand-base-hover);
+  background: var(--color-bg-brand-base-hover);
+}
+
+.simple_form input[type="file"]:disabled::file-selector-button {
+  border-color: var(--color-bg-disabled);
+  background: var(--color-bg-disabled);
+  color: var(--color-text-on-disabled);
+  cursor: not-allowed;
+}
+
+.simple_form .input.radio_buttons .radio input[type="radio"],
+input[type="radio"][class*="_comp_form_fields_radio_button__radioButton"] {
+  appearance: none;
+  box-sizing: border-box;
+  border: 1px solid var(--color-border-brand);
+  border-radius: 50%;
+  background: var(--color-bg-primary);
+  box-shadow: none;
+}
+
+.simple_form .input.radio_buttons .radio input[type="radio"]:checked,
+input[type="radio"][class*="_comp_form_fields_radio_button__radioButton"]:checked {
+  background: var(--sakura-radio-dot);
+  box-shadow: inset 0 0 0 4px var(--color-bg-primary);
+}
+
+.simple_form .input.radio_buttons .radio input[type="radio"]:disabled,
+input[type="radio"][class*="_comp_form_fields_radio_button__radioButton"]:disabled {
+  border-color: var(--color-text-disabled);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.simple_form .input.radio_buttons .radio input[type="radio"]:focus-visible,
+input[type="radio"][class*="_comp_form_fields_radio_button__radioButton"]:focus-visible {
+  outline: var(--outline-focus-default);
+  outline-offset: 2px;
+}
+
+input[type="checkbox"][class*="_comp_form_fields_checkbox__checkbox"]:not(:disabled) {
+  border-color: var(--color-border-brand);
+}
+
+:is(.simple_form label.checkbox, .simple_form .check_boxes .checkbox, .batch-checkbox, .batch-checkbox-all) input[type="checkbox"] {
+  appearance: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1px solid var(--color-border-brand);
+  border-radius: 4px;
+  background: var(--color-bg-primary);
+  cursor: pointer;
+}
+
+:is(.simple_form label.checkbox, .simple_form .check_boxes .checkbox, .batch-checkbox, .batch-checkbox-all) input[type="checkbox"]::before {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 8px;
+  margin: auto;
+  background: var(--color-text-on-brand-base);
+  mask: var(--sakura-checkmark) center / 100% no-repeat;
+  opacity: 0;
+}
+
+:is(.simple_form label.checkbox, .simple_form .check_boxes .checkbox, .batch-checkbox, .batch-checkbox-all) input[type="checkbox"]:is(:checked, :indeterminate) {
+  border-color: var(--color-border-brand);
+  background: var(--color-bg-brand-base);
+}
+
+:is(.simple_form label.checkbox, .simple_form .check_boxes .checkbox, .batch-checkbox, .batch-checkbox-all) input[type="checkbox"]:checked::before {
+  opacity: 1;
+}
+
+:is(.simple_form label.checkbox, .simple_form .check_boxes .checkbox, .batch-checkbox, .batch-checkbox-all) input[type="checkbox"]:indeterminate::before {
+  width: 8px;
+  height: 2px;
+  mask: none;
+  opacity: 1;
+}
+
+:is(.simple_form label.checkbox, .simple_form .check_boxes .checkbox, .batch-checkbox, .batch-checkbox-all) input[type="checkbox"]:focus-visible {
+  outline: var(--outline-focus-default);
+  outline-offset: 2px;
+}
+
+:is(.simple_form label.checkbox, .simple_form .check_boxes .checkbox, .batch-checkbox, .batch-checkbox-all) input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+:is(.radio-button__input, .check-box__input) {
+  border: 1px solid var(--color-border-brand);
+  background-color: var(--color-bg-primary);
+}
+
+.radio-button__input.checked {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-bg-primary);
+}
+
+.radio-button__input.checked::before {
+  background: var(--sakura-radio-dot);
+}
+
+.check-box__input:is(.checked, .indeterminate) {
+  border-color: var(--color-border-brand);
+  background: var(--color-bg-brand-base);
+  color: var(--color-text-on-brand-base);
+}
+
+.react-toggle:not(.react-toggle--checked) .react-toggle-track,
+input[class*="_comp_form_fields_toggle__input"]:not(:checked) + [class*="_comp_form_fields_toggle__toggle"] {
+  background-color: var(--color-bg-tertiary);
+}
+
+.react-toggle .react-toggle-thumb,
+input[class*="_comp_form_fields_toggle__input"] + [class*="_comp_form_fields_toggle__toggle"]::before {
+  border: 1px solid var(--color-border-brand);
+  background-color: var(--color-bg-primary);
+}
+
+:root {
+  --sakura-checkmark: url("data:image/svg+xml;utf8,<svg width=%2710%27 height=%278%27 viewBox=%270 0 10 8%27 fill=%27none%27 xmlns=%27http://www.w3.org/2000/svg%27><path d=%27M8.29289 0.292893C8.68342 -0.0976311 9.31643 -0.0976311 9.70696 0.292893C10.0975 0.683418 10.0975 1.31643 9.70696 1.70696L4.20696 7.20696C3.81643 7.59748 3.18342 7.59748 2.79289 7.20696L0.292893 4.70696C-0.0976311 4.31643 -0.0976311 3.68342 0.292893 3.29289C0.683418 2.90237 1.31643 2.90237 1.70696 3.29289L3.49992 5.08586L8.29289 0.292893Z%27 fill=%27black%27/></svg>");
+  --sakura-warning-stripes: repeating-linear-gradient(135deg, var(--color-bg-warning-base) 0 2px, var(--color-bg-warning-softest) 2px 4px);
+}
+
+.compose-form .spoiler-input__border {
+  background: var(--sakura-warning-stripes) repeat-y;
+}
+
+.account-card__warning-badge {
+  background: var(--sakura-warning-stripes) left / 5px 100% no-repeat, var(--sakura-warning-stripes) right / 5px 100% no-repeat, var(--color-bg-primary);
+}
+
+@media (forced-colors: active) {
+  :is(input[type="radio"], input[type="checkbox"], input[type="range"], select) {
+    forced-color-adjust: auto;
+  }
+
+  :is(input[type="radio"], input[type="checkbox"]) {
+    appearance: auto !important;
+    accent-color: auto !important;
+    border: revert !important;
+    background: revert !important;
+    box-shadow: none !important;
+  }
+
+  :is(input[type="checkbox"])::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  input[type="range"],
+  select {
+    appearance: auto !important;
+  }
+
+  :is(.select-wrapper, .select .label_input__wrapper)::after {
+    display: none !important;
+  }
+
+  :is(.radio-button__input, .check-box__input, .poll__input) {
+    forced-color-adjust: none;
+    border-color: ButtonText !important;
+    background: Canvas !important;
+    color: CanvasText !important;
+    box-shadow: none !important;
+  }
+
+  .radio-button__input.checked {
+    border-color: Highlight !important;
+    background: Canvas !important;
+  }
+
+  .radio-button__input.checked::before {
+    background: Highlight !important;
+  }
+
+  .poll__input.active:not(.checkbox) {
+    border-color: Highlight !important;
+    background: Highlight !important;
+    box-shadow: inset 0 0 0 4px Canvas !important;
+  }
+
+  :is(.check-box__input.checked, .check-box__input.indeterminate, .poll__input.active.checkbox) {
+    border-color: Highlight !important;
+    background: Highlight !important;
+    color: HighlightText !important;
+  }
+
+  :is(.react-toggle-track, [class*="_comp_form_fields_toggle__toggle"]) {
+    forced-color-adjust: none;
+    border-color: ButtonText !important;
+    background: Canvas !important;
+  }
+
+  :is(.react-toggle--checked .react-toggle-track, input[class*="_comp_form_fields_toggle__input"]:checked + [class*="_comp_form_fields_toggle__toggle"]) {
+    border-color: Highlight !important;
+    background: Highlight !important;
+  }
+
+  .react-toggle-thumb,
+  [class*="_comp_form_fields_toggle__toggle"]::before {
+    border: 1px solid ButtonText !important;
+    background: ButtonText !important;
+  }
+
+  .react-toggle--checked .react-toggle-thumb,
+  input[class*="_comp_form_fields_toggle__input"]:checked + [class*="_comp_form_fields_toggle__toggle"]::before {
+    border-color: HighlightText !important;
+    background: HighlightText !important;
+  }
+
+  .simple_form input[type="file"]::file-selector-button {
+    border-color: ButtonText !important;
+    background: ButtonFace !important;
+    color: ButtonText !important;
+  }
+
+  ::selection {
+    color: HighlightText;
+    background: Highlight;
+  }
+}

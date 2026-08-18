@@ -1,0 +1,76 @@
+// Keep the native CSS spring animation so favourite activation follows the
+// semantic icon color instead of a baked-color sprite.
+
+// Size constraint must apply in both motion modes so the action-bar counter
+// sits flush against the icon when reduce-motion is enabled.
+.icon-button.star-icon {
+  max-height: 23px;
+  max-width: 42.22px;
+  min-height: 23px;
+  min-width: 42.22px;
+  position: relative;
+}
+
+.status__action-bar .icon-button.star-icon::after {
+  left: -3px;
+}
+
+// Body
+.layout-single-column,
+.layout-multiple-columns {
+  // Left sidebar column links
+  .column-link .icon-star {
+    background-image: var(--icon-heart-column-link);
+  }
+
+  .column-link.active .icon-star {
+    background-image: var(--icon-heart-column-link-active);
+  }
+
+  .notification-group--favourite .icon-star,
+  .notification-favourite .icon-star {
+    background-color: var(--color-text-favourite-highlight);
+    background-image: none;
+    -webkit-mask: var(--icon-heart-notification) center / contain no-repeat;
+    mask: var(--icon-heart-notification) center / contain no-repeat;
+  }
+
+  .notification__filter-bar .icon-star,
+  .detailed-status__action-bar .icon-button .icon-star,
+  .status__action-bar .icon-button .icon-star {
+    background-image: var(--icon-heart);
+  }
+
+  .notification__filter-bar .active .icon-star {
+    background-image: var(--icon-heart-active);
+  }
+
+  .detailed-status__action-bar .active:not(.activated) .icon-star,
+  .status__action-bar .active:not(.activated) .icon-star {
+    background-color: var(--color-text-favourite-highlight);
+    background-image: none;
+    -webkit-mask: var(--icon-heart-active-red) center / contain no-repeat;
+    mask: var(--icon-heart-active-red) center / contain no-repeat;
+  }
+
+  .icon-button.star-icon.active,
+  .notification-group--favourite .star-icon,
+  .notification-favourite .star-icon {
+    color: var(--color-text-favourite-highlight);
+  }
+
+  // Favourite counter follows the mode-specific heart color on hover/active.
+  button.icon-button:hover .icon-star ~ span,
+  button.icon-button.active .icon-star ~ span {
+    color: var(--color-text-favourite-highlight);
+  }
+
+  .detailed-status__action-bar .icon-button:hover .icon-star,
+  .detailed-status button.icon-button:hover .icon-star,
+  .status button.icon-button:hover .icon-star {
+    background-color: var(--color-text-favourite-highlight);
+    background-image: none;
+    -webkit-mask: var(--icon-heart-hover) center / contain no-repeat;
+    mask: var(--icon-heart-hover) center / contain no-repeat;
+  }
+}

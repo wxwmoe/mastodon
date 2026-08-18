@@ -1,0 +1,82 @@
+@mixin palette {
+  --color-white: #fffffb; // GOFUN
+  --color-black: #1c1c1c; // SUMI
+
+  // Sakura neutrals
+  --color-grey-50: #fffffb; // GOFUN
+  --color-grey-100: #fcfaf2; // SHIRONERI
+  --color-grey-200: #fedfe1; // SAKURA
+  --color-grey-300: #d7c4bb; // HAIZAKURA
+  --color-grey-400: #bdc0ba; // SHIRONEZUMI
+  --color-grey-500: #91989f; // GINNEZUMI
+  --color-grey-600: #828282; // HAI
+  --color-grey-700: #656765; // NIBI
+  --color-grey-800: #434343; // KESHIZUMI
+  --color-grey-900: #1c1c1c; // SUMI
+  --color-grey-950: #0b1013; // KUROTSURUBAMI
+
+  // Sakura brand
+  --color-indigo-50: #fffffb; // GOFUN
+  --color-indigo-100: #fcfaf2; // SHIRONERI
+  --color-indigo-200: #fedfe1; // SAKURA
+  --color-indigo-300: #f8c3cd; // TAIKOH
+  --color-indigo-400: #f4a7b9; // IKKONZOME
+  --color-indigo-500: #f596aa; // MOMO
+  --color-indigo-600: #e16b8c; // KOHBAI
+  --color-indigo-700: #b5495b; // ICHIGO
+  --color-indigo-800: #d0104c; // KARAKURENAI
+  --color-indigo-900: #cb1b45; // KURENAI
+  --color-indigo-950: #9f353a; // ENJI
+
+  // Blue dark theme
+  --color-blue-50: #7db9de;
+  --color-blue-100: #7db9de;
+  --color-blue-200: #58b2dc;
+  --color-blue-300: #51a8dd;
+  --color-blue-400: #2ea9df;
+  --color-blue-500: #0089a7;
+  --color-blue-600: #005caf;
+  --color-blue-700: #113285;
+  --color-blue-800: #0b346e;
+  --color-blue-900: #0f2540;
+  --color-blue-950: #0b1013;
+
+  // Error
+  --color-red-50: #fedfe1;
+  --color-red-100: #f8c3cd;
+  --color-red-200: #e16b8c;
+  --color-red-300: #f75c2f;
+  --color-red-400: #e83015;
+  --color-red-500: #d0104c;
+  --color-red-600: #cb1b45;
+  --color-red-700: #b5495b;
+  --color-red-800: #9f353a;
+  --color-red-900: #8e354a;
+  --color-red-950: #64363c;
+
+  // Warning
+  --color-yellow-50: #fffffb;
+  --color-yellow-100: #fbe251;
+  --color-yellow-200: #f7d94c;
+  --color-yellow-300: #e9cd4c;
+  --color-yellow-400: #f9bf45;
+  --color-yellow-500: #ffb11b;
+  --color-yellow-600: #caad5f;
+  --color-yellow-700: #c7802d;
+  --color-yellow-800: #867835;
+  --color-yellow-900: #8d742a;
+  --color-yellow-950: #6c6024;
+
+  // Success
+  --color-green-50: var(--color-indigo-50);
+  --color-green-100: var(--color-indigo-100);
+  --color-green-200: var(--color-indigo-300);
+  --color-green-300: var(--color-indigo-400);
+  --color-green-400: var(--color-indigo-500);
+  --color-green-500: var(--color-indigo-600);
+  --color-green-600: var(--color-indigo-700);
+  --color-green-700: var(--color-indigo-800);
+  --color-green-800: var(--color-indigo-900);
+  --color-green-900: var(--color-indigo-950);
+  --color-green-950: var(--color-indigo-950);
+}

@@ -1,0 +1,118 @@
+@use 'mastodon/variables';
+@use 'mastodon/mixins';
+@use 'fonts/roboto';
+@use 'fonts/roboto-mono';
+
+@use 'mastodon/reset';
+@use 'mastodon-sakura/index';
+@use 'mastodon/basics';
+@use 'mastodon/branding';
+@use 'mastodon/containers';
+@use 'mastodon/lists';
+@use 'mastodon/widgets';
+@use 'mastodon/forms';
+@use 'mastodon/accounts';
+@use 'mastodon/components';
+@use 'mastodon/polls';
+@use 'mastodon/modal';
+@use 'mastodon/emoji_picker';
+@use 'mastodon/about';
+@use 'mastodon/tables';
+@use 'mastodon/admin';
+@use 'mastodon/dashboard';
+@use 'mastodon/rtl';
+@use 'mastodon/rich_text';
+@use 'sakura-controls';
+
+#VerifiedGradient stop:first-child {
+  stop-color: var(--sakura-verified-start);
+}
+
+#VerifiedGradient stop:last-child {
+  stop-color: var(--sakura-verified-end);
+}
+
+html[data-color-scheme="light"] :is(._comp_empty_state_empty_state__defaultImage, .empty-state svg) {
+  --color-shadow: #fcfaf2;
+  --color-skin-1: #f8c3cd;
+  --color-skin-2: #fffffb;
+  --color-skin-3: #fedfe1;
+  --color-outline: #f4a7b9;
+  --color-highlight: #fffffb;
+}
+
+html[data-color-scheme="dark"] :is(._comp_empty_state_empty_state__defaultImage, .empty-state svg),
+html:not([data-color-scheme]) :is(._comp_empty_state_empty_state__defaultImage, .empty-state svg) {
+  --color-shadow: #0f2540;
+  --color-skin-1: #2ea9df;
+  --color-skin-2: #7db9de;
+  --color-skin-3: #58b2dc;
+  --color-outline: #0b346e;
+  --color-highlight: #7db9de;
+}
+
+html[data-color-scheme="light"][data-contrast="high"] :is(._comp_empty_state_empty_state__defaultImage, .empty-state svg) {
+  --color-shadow: #fedfe1;
+  --color-skin-1: #e16b8c;
+  --color-skin-2: #fffffb;
+  --color-skin-3: #f8c3cd;
+  --color-outline: #d0104c;
+  --color-highlight: #fffffb;
+}
+
+html:is([data-color-scheme="dark"], :not([data-color-scheme]))[data-contrast="high"] :is(._comp_empty_state_empty_state__defaultImage, .empty-state svg) {
+  --color-shadow: #0b346e;
+  --color-skin-1: #58b2dc;
+  --color-skin-2: #fffffb;
+  --color-skin-3: #7db9de;
+  --color-outline: #2ea9df;
+  --color-highlight: #fffffb;
+}
+
+.poll__chart {
+  background: var(--sakura-poll-track);
+}
+
+.poll__chart.leading {
+  background: var(--sakura-poll-leading);
+}
+
+.poll progress::-moz-progress-bar {
+  background: var(--sakura-poll-track);
+}
+
+.poll progress::-webkit-progress-value {
+  background: var(--sakura-poll-track);
+}
+
+.poll progress.leading::-moz-progress-bar {
+  background: var(--sakura-poll-leading);
+}
+
+.poll progress.leading::-webkit-progress-value {
+  background: var(--sakura-poll-leading);
+}
+
+.hover-card-controller :is(.hover-card__bio, .account-fields) a {
+  color: var(--color-text-status-links);
+}
+
+.button.button-secondary:not(.button--destructive):not(:disabled):not(.disabled):is(:active, :focus, :hover) {
+  background-color: var(--color-bg-brand-softest);
+}
+
+.button.button-secondary.button--destructive:not(:disabled):not(.disabled):is(:active, :focus, :hover) {
+  background-color: var(--color-bg-error-softest);
+}
+
+.layout-single-column .announcements__root {
+  flex-direction: column-reverse;
+}
+
+.layout-single-column .announcements__root .announcements {
+  width: 100%;
+}
+
+.layout-single-column .announcements__root .announcements__mastodon {
+  align-self: flex-start;
+}

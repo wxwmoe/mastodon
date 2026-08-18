@@ -1,0 +1,137 @@
+// Mastodon Bird UI - Semantic token overrides
+// Updated for v4.6.0-alpha.3-2026-01-24 file-based theme system with data-color-scheme/data-contrast attributes
+// Dark tokens apply by default - light themes override via _variables-light.scss
+// stylelint-disable no-duplicate-selectors
+// stylelint-disable plugin/no-unused-custom-properties
+
+// Dark theme tokens - apply by default when Bird UI is loaded
+// The stylesheet being loaded IS the theme selection
+:root,
+html:not([data-color-scheme]) {
+  // Guard direct upstream palette consumers from falling back to Mastodon
+  // purple; semantic tokens below remain the preferred component API.
+  --color-indigo-50: #7db9de;
+  --color-indigo-100: #58b2dc;
+  --color-indigo-200: #51a8dd;
+  --color-indigo-300: #2ea9df;
+  --color-indigo-400: #0089a7;
+  --color-indigo-500: #005caf;
+  --color-indigo-600: #113285;
+  --color-indigo-700: #0b346e;
+  --color-indigo-800: #0f2540;
+  --color-indigo-900: #0b1013;
+  --color-indigo-950: #080808;
+
+  // Text tokens
+  --color-text-primary: #7db9de;
+  --color-text-secondary: #2ea9df;
+  --color-text-tertiary: #2ea9df;
+  --sakura-placeholder: #58b2dc;
+  --sakura-selection-bg: #0b346e;
+  --sakura-selection-text: #7db9de;
+  --sakura-radio-dot: #2ea9df;
+  --sakura-scrollbar: #005caf;
+  --sakura-scrollbar-hover: #2ea9df;
+  --color-text-on-inverted: #080808;
+  --color-text-brand: #2ea9df;
+  --color-text-brand-soft: #2ea9df;
+  --color-text-on-brand-base: #080808;
+  --color-text-brand-on-inverted: var(--color-accent-dark);
+  --color-text-error: #e83015;
+  --color-text-on-error-base: #080808;
+  --color-text-warning: #f7d94c;
+  --color-text-on-warning-base: #080808;
+  --color-text-success: #2ea9df;
+  --color-text-on-success-base: #080808;
+  --color-text-disabled: #58b2dc;
+  --color-text-on-disabled: #7db9de;
+  --color-text-bookmark-highlight: #e83015;
+  --color-text-favourite-highlight: #b5495b;
+  --color-text-on-media: #fffffb;
+  --color-text-status-links: #2ea9df;
+
+  --color-text-inverted: #080808;
+  --color-bg-overlay-base: rgb(8 8 8 / 60%);
+  --color-bg-overlay-highlight: rgb(88 178 220 / 8%);
+  --color-bg-brand-softest: rgb(88 178 220 / 10%);
+  --color-bg-error-softest: rgb(232 48 21 / 6%);
+  --color-bg-warning-softest: rgb(247 217 76 / 6%);
+  --color-bg-success-softest: rgb(88 178 220 / 8%);
+  --color-border-brand: #58b2dc;
+  --color-border-brand-soft: #0b346e;
+  --color-border-error: #e83015;
+  --color-border-error-soft: rgb(232 48 21 / 50%);
+  --color-border-warning-soft: rgb(247 217 76 / 50%);
+  --color-border-success-soft: rgb(88 178 220 / 50%);
+  --color-poll-chart: #577c8a;
+  --color-poll-chart-leading: #58b2dc;
+  --color-poll-selection: #2ea9df;
+  --color-poll-check: #2ea9df;
+  // Background tokens
+  --color-bg-primary: #080808;
+  --overlay-strength-secondary: 8%;
+  --color-bg-secondary-base: #0b1013;
+  --color-bg-secondary: rgb(46 169 223 / 5%);
+  --color-bg-secondary-solid: #0b1013;
+  --color-bg-tertiary: #0f2540;
+  --color-bg-ambient: #080808;
+  --color-bg-elevated: #080808;
+  --color-bg-inverted: #fffffb;
+  --color-bg-media-base: #080808;
+  --color-bg-media-strength: 65%;
+  --color-bg-media: rgb(8 8 8 / 65%);
+  --color-bg-overlay: #0b1013;
+  --color-bg-disabled: #0f2540;
+  --overlay-strength-brand: 10%;
+  --color-bg-brand-base: #58b2dc;
+  --color-bg-brand-base-hover: #2ea9df;
+  --color-bg-brand-soft: rgb(17 50 133 / 15%);
+  --color-bg-brand-softer: rgb(17 50 133 / 10%);
+  --overlay-strength-error: 12%;
+  --color-bg-error-base: #e83015;
+  --color-bg-error-base-hover: #f75c2f;
+  --color-bg-error-soft: rgb(232 48 21 / 18%);
+  --color-bg-error-softer: rgb(232 48 21 / 12%);
+  --overlay-strength-warning: 10%;
+  --color-bg-warning-base: #f7d94c;
+  --color-bg-warning-base-hover: #e9cd4c;
+  --color-bg-warning-soft: rgb(247 217 76 / 15%);
+  --color-bg-warning-softer: rgb(247 217 76 / 10%);
+  --overlay-strength-success: 15%;
+  --color-bg-success-base: #58b2dc;
+  --color-bg-success-base-hover: #2ea9df;
+  --color-bg-success-soft: rgb(88 178 220 / 22%);
+  --color-bg-success-softer: rgb(88 178 220 / 15%);
+
+  // Border tokens
+  --border-strength-primary: 18%;
+  --color-border-primary: #0b346e;
+  --color-border-media: rgb(88 178 220 / 15%);
+  --color-border-on-bg-secondary: rgb(88 178 220 / 12%);
+  --color-border-on-bg-brand-softer: #0b346e;
+  --color-border-on-bg-error-softer: rgb(232 48 21 / 50%);
+  --color-border-on-bg-warning-softer: rgb(247 217 76 / 50%);
+  --color-border-on-bg-success-softer: rgb(88 178 220 / 50%);
+  --color-border-on-bg-inverted: #0b346e;
+
+  // Shadow tokens
+  --shadow-strength-primary: 80%;
+  --color-shadow-primary: rgb(8 8 8 / 80%);
+  --dropdown-shadow:
+    0 20px 25px -5px rgb(15 37 64 / 80%),
+    0 8px 10px -6px rgb(15 37 64 / 80%);
+  --overlay-icon-shadow: drop-shadow(0 0 8px rgb(8 8 8 / 80%));
+
+  // Graph tokens
+  --color-graph-primary-stroke: #113285;
+  --color-graph-primary-fill: rgb(17 50 133 / 10%);
+  --color-graph-warning-stroke: #f7d94c;
+  --color-graph-warning-fill: rgb(247 217 76 / 10%);
+  --color-graph-disabled-stroke: #58b2dc;
+  --color-graph-disabled-fill: #0f2540;
+
+  // Legacy tokens
+  --rich-text-container-color: #0b346e;
+  --rich-text-text-color: #7db9de;
+  --rich-text-decorations-color: #2ea9df;
+}
