@@ -14,6 +14,17 @@ cp icons/paw.svg src/app/javascript/material-icons/400-24px
 # 修改字数上限
 sed -i "s|MAX_CHARS = 500|MAX_CHARS = 20000|" src/app/validators/status_length_validator.rb
 
+# 放宽正则超时
+grep -Fqx "    config.load_defaults 8.1" src/config/application.rb
+sed -i 's|^    config.load_defaults 8.1$|&\n\n    Regexp.timeout = 3|' src/config/application.rb
+grep -Fqx "    Regexp.timeout = 3" src/config/application.rb
+
+# 兜底正则超时
+grep -Fqx "    entities = extract_urls_with_indices(text, options) +" src/app/lib/extractor.rb
+grep -Fqx "               extract_extra_uris_with_indices(text)" src/app/lib/extractor.rb
+sed -i '/^    entities = extract_urls_with_indices/,/^               extract_extra_uris_with_indices(text)$/c\    entities = [\n      -> { extract_urls_with_indices(text, options) },\n      -> { extract_hashtags_with_indices(text, check_url_overlap: false) },\n      -> { extract_mentions_or_lists_with_indices(text) },\n      -> { extract_extra_uris_with_indices(text) },\n    ].flat_map do |extract|\n      extract.call\n    rescue Regexp::TimeoutError\n      []\n    end' src/app/lib/extractor.rb
+grep -Fqx "    ].flat_map do |extract|" src/app/lib/extractor.rb
+
 # 修改媒体上限
 sed -i "s|pixels: 8_294_400|pixels: 9_999_999|" src/app/models/media_attachment.rb
 sed -i "s|IMAGE_LIMIT = 16|IMAGE_LIMIT = 99|" src/app/models/media_attachment.rb
