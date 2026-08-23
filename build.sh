@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-MASTODON_VERSION="4.6.6"
+MASTODON_VERSION="4.7.0"
 
 # 拉取源代码
 rm -rf src && wget --progress=dot:giga "https://github.com/mastodon/mastodon/archive/refs/tags/v${MASTODON_VERSION}.tar.gz" -O source.tar.gz
@@ -37,9 +37,13 @@ bash theme.sh || exit 1
 bash emoji.sh || exit 1
 
 # 修复回复建议
-grep -Fq '(\\s[${WORD}]+)?$' src/app/javascript/mastodon/components/autosuggest/utils.ts
+grep -Fq '(\\s[\\p{Script=Latin}\\p{Script=Cyrillic}\\p{M}]+)?$' src/app/javascript/mastodon/components/autosuggest/utils.ts
 sed -i '/const regex = new RegExp(/,/);/s|]+(.*|]+$`,|' src/app/javascript/mastodon/components/autosuggest/utils.ts
 grep -Fq '${WORD}+-]+$' src/app/javascript/mastodon/components/autosuggest/utils.ts
+grep -Fqx "      [1, '#hash tag']," src/app/javascript/mastodon/components/autosuggest/utils.test.ts
+grep -Fqx "      [1, '@alice reply']," src/app/javascript/mastodon/components/autosuggest/utils.test.ts
+grep -Fqx "      [1, '@алиса пример']," src/app/javascript/mastodon/components/autosuggest/utils.test.ts
+sed -i -e "s|      \[1, '#hash tag'\],|      [null, null],|" -e "s|      \[1, '@alice reply'\],|      [null, null],|" -e "s|      \[1, '@алиса пример'\],|      [null, null],|" src/app/javascript/mastodon/components/autosuggest/utils.test.ts
 
 # 替换媒体资源网址
 grep -qx "initializeLogLevel(process.env, environment);" src/streaming/index.js

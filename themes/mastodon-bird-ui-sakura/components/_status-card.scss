@@ -117,10 +117,6 @@
     color: var(--color-dim);
   }
 
-  div[data-popper-placement] .reblog-button__item button:disabled {
-    align-items: flex-start;
-  }
-
   .notification-grouped
     .status--has-quote
     .status__quote

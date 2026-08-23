@@ -93,7 +93,9 @@ function getPreviewSource(target: EventTarget | null) {
 }
 
 function createPreview(target: HTMLImageElement) {
-  const source = target.dataset.original || target.currentSrc || target.src;
+  const source = [target.dataset.original, target.currentSrc, target.src].find(
+    Boolean,
+  );
   if (!source) {
     return;
   }
@@ -111,9 +113,13 @@ function createPreview(target: HTMLImageElement) {
   previewSource = target;
   previewImage = image;
 
-  image.addEventListener('load', () => showPreview(image, target), {
-    once: true,
-  });
+  image.addEventListener(
+    'load',
+    () => {
+      showPreview(image, target);
+    },
+    { once: true },
+  );
   image.addEventListener(
     'error',
     () => {
