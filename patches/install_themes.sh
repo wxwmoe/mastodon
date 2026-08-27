@@ -8,7 +8,7 @@ source_tmp="$(mktemp -d)"; trap 'rm -rf "$source_tmp"' EXIT
 bird_ui_dir="$styles_dir/mastodon-bird-ui"
 bird_ui_tmp="$source_tmp/bird-ui"
 mkdir -p "$bird_ui_tmp"
-wget --progress=dot:giga "https://github.com/rollecode/mastodon-bird-ui/archive/5614118f735266dabb7915a8efa11474350698fd.tar.gz" -O "$bird_ui_tmp/source.tar.gz"
+wget "https://github.com/rollecode/mastodon-bird-ui/archive/5614118f735266dabb7915a8efa11474350698fd.tar.gz" -O "$bird_ui_tmp/source.tar.gz"
 tar -xzf "$bird_ui_tmp/source.tar.gz" --strip-components=1 -C "$bird_ui_tmp"
 mkdir -p "$bird_ui_dir"
 cp "$bird_ui_tmp/src/_index.scss" "$bird_ui_dir/_index.scss"
@@ -22,7 +22,7 @@ printf '%s\n' "@use 'application';" "@use 'mastodon-bird-ui';" "@use 'mastodon-b
 # Tangerine Neue
 tangerine_tmp="$source_tmp/tangerine"
 mkdir -p "$tangerine_tmp"
-wget --progress=dot:giga "https://github.com/mattbirchler/Tangerine-Neue-for-Mastodon/archive/34cd010bec276d9e180cb2b830eeff9372b161d9.tar.gz" -O "$tangerine_tmp/source.tar.gz"
+wget "https://github.com/mattbirchler/Tangerine-Neue-for-Mastodon/archive/34cd010bec276d9e180cb2b830eeff9372b161d9.tar.gz" -O "$tangerine_tmp/source.tar.gz"
 tar -xzf "$tangerine_tmp/source.tar.gz" --strip-components=1 -C "$tangerine_tmp"
 # Show only the active announcement slide.
 tangerine_theme_files=("$tangerine_tmp/mastodon/app/javascript/styles"/tangerineui*/tangerineui*.scss)
@@ -40,7 +40,8 @@ cp "$tangerine_tmp/mastodon/config/locales/tangerineui.yml" src/config/locales/t
       Generated using ChatGPT 5.6 Sol (Ultra),
 |    Sakura palettes sourced from NIPPON COLORS.    |
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-cp -R themes/. "$styles_dir/"
+cp -R overlay/themes/styles/. "$styles_dir/"
+cp overlay/themes/paw.svg src/app/javascript/material-icons/400-24px
 
 # patch components
 announcements_styles="$styles_dir/mastodon/components.scss"
