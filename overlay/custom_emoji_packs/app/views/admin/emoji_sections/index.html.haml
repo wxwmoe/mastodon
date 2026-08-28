@@ -1,0 +1,38 @@
+- content_for :page_title do
+  = t('wxw_emoji.admin.sections.title')
+
+- content_for :heading_actions do
+  = link_to t('auth.rules.back'), admin_emoji_packs_path, class: 'button'
+
+%hr.spacer/
+
+= render 'shared/error_messages', object: @section if @section&.errors&.any?
+
+= form_with url: batch_admin_emoji_sections_path do |form|
+  .batch-table
+    .batch-table__toolbar
+      %label.batch-table__toolbar__select.batch-checkbox-all
+        = check_box_tag :batch_checkbox_all, nil, false
+      .batch-table__toolbar__actions
+        = form.button safe_join([material_symbol('save'), t('generic.save_changes')]), name: :save_order, class: 'table-action-link', type: :submit if can?(:update, :custom_emoji)
+        = link_to safe_join([material_symbol('add'), t('wxw_emoji.admin.sections.add_new')]), new_admin_emoji_section_path, class: 'table-action-link' if can?(:create, :custom_emoji)
+        = form.button safe_join([material_symbol('close'), t('wxw_emoji.admin.sections.delete')]), name: :delete, class: 'table-action-link', type: :submit, data: { confirm: t('admin.accounts.are_you_sure') } if can?(:destroy, :custom_emoji)
+
+    - if @sections.empty?
+      .batch-table__body
+        = nothing_here 'nothing-here--under-tabs'
+    - else
+      .batch-table__body.wxw-sortable{ data: { wxw_sortable: true } }
+        - @sections.each do |section|
+          - translations = section.translations.map { |translation| "#{translation.language}: #{translation.name}" }.join("\n")
+          .batch-table__row.wxw-sortable__item{ data: { wxw_sortable_item: true } }
+            = hidden_field_tag 'order[]', section.id
+            %label.batch-table__row__select.batch-table__row__select--aligned.batch-checkbox
+              = hidden_field_tag "emoji_sections[#{section.id}][selected]", '0', id: nil
+              = check_box_tag "emoji_sections[#{section.id}][selected]", '1', false, id: "emoji_section_#{section.id}_selected"
+            .batch-table__row__content.wxw-emoji-pack-list__content
+              = link_to edit_admin_emoji_section_path(section), class: 'wxw-emoji-pack-list__identity', title: translations.presence do
+                .wxw-emoji-pack-list__name= section.name_for(I18n.locale)
+              .wxw-emoji-pack-list__meta
+                .wxw-emoji-pack-list__moves
+                  = form.button material_symbol('drag_indicator'), type: :button, class: 'wxw-sortable__handle', title: t('wxw_emoji.reorder_handle'), aria: { label: t('wxw_emoji.reorder_handle') }, data: { wxw_sortable_handle: true } if can?(:update, :custom_emoji)

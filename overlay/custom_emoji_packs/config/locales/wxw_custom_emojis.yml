@@ -1,0 +1,239 @@
+en:
+  wxw_emoji:
+    title: Emoji packs
+    no_section: No section
+    reorder_handle: Drag to reorder
+    preferences:
+      packs_hint: Choose the emoji packs shown in your picker and arrange their order.
+      numbered_action: Show numbers
+      unnumbered_action: Hide numbers
+      show: Show
+      hide: Hide
+      reset: Restore defaults
+    admin:
+      sections:
+        title: Emoji sections
+        manage: Manage sections
+        add_new: Add section
+        edit: Edit section
+        delete: Delete sections
+      packs:
+        manage: Manage emoji packs
+        edit: Edit emoji pack
+        publish: Refresh cache
+        refresh: Sync list
+        reorder: Reorder
+        set_section: Set section
+        no_selection: Select at least one emoji pack
+        selected_count: "%{count} emoji packs selected."
+        set_default: Set as default
+        remove_default: Remove default
+        preset: Preset
+    picker:
+      search: Search emoji
+      all_emojis: All emoji
+      enabled_emojis: Enabled emoji
+  activerecord:
+    models:
+      wxw/emoji_section: Emoji section
+      wxw/emoji_pack: Emoji pack
+    attributes:
+      wxw/emoji_section:
+        name: Name
+      wxw/emoji_pack:
+        featured_shortcode: Icon
+        category_name: Category
+        name: Name
+        section: Section
+
+ja:
+  wxw_emoji:
+    title: 絵文字パック
+    no_section: グループなし
+    reorder_handle: ドラッグして並べ替え
+    preferences:
+      packs_hint: 絵文字ピッカーに表示するパックを選び、順番を並べ替えます。
+      numbered_action: 番号を表示
+      unnumbered_action: 番号を隠す
+      show: 表示
+      hide: 隠す
+      reset: デフォルトに戻す
+    admin:
+      sections:
+        title: 絵文字グループ
+        manage: グループ管理
+        add_new: グループを追加
+        edit: グループを編集
+        delete: グループを削除
+      packs:
+        manage: 絵文字パック管理
+        edit: 絵文字パックを編集
+        publish: キャッシュ更新
+        refresh: リスト同期
+        reorder: 並べ替え
+        set_section: グループを設定
+        no_selection: 絵文字パックを1つ以上選択してください
+        selected_count: "%{count}個の絵文字パックを選択しています。"
+        set_default: デフォルトに設定
+        remove_default: デフォルト解除
+        preset: デフォルト
+    picker:
+      search: 絵文字を検索
+      all_emojis: すべての絵文字
+      enabled_emojis: 有効な絵文字
+  activerecord:
+    models:
+      wxw/emoji_section: 絵文字グループ
+      wxw/emoji_pack: 絵文字パック
+    attributes:
+      wxw/emoji_section:
+        name: 名前
+      wxw/emoji_pack:
+        featured_shortcode: アイコン
+        category_name: カテゴリー
+        name: 名前
+        section: グループ
+
+zh-CN:
+  wxw_emoji:
+    title: 表情包
+    no_section: 未分组
+    reorder_handle: 拖动排序
+    preferences:
+      packs_hint: 选择要在表情选择器中显示的表情包，并调整它们的顺序。
+      numbered_action: 显示序号
+      unnumbered_action: 隐藏序号
+      show: 显示
+      hide: 隐藏
+      reset: 恢复默认
+    admin:
+      sections:
+        title: 表情包分组
+        manage: 管理分组
+        add_new: 新建分组
+        edit: 编辑分组
+        delete: 删除分组
+      packs:
+        manage: 表情包管理
+        edit: 编辑表情包
+        publish: 刷新缓存
+        refresh: 同步列表
+        reorder: 重新排序
+        set_section: 设置分组
+        no_selection: 请至少选择一个表情包
+        selected_count: "已选择 %{count} 个表情包。"
+        set_default: 设为预设
+        remove_default: 取消预设
+        preset: 预设
+    picker:
+      search: 搜索表情
+      all_emojis: 全部表情
+      enabled_emojis: 已启用的表情
+  activerecord:
+    models:
+      wxw/emoji_section: 表情包分组
+      wxw/emoji_pack: 表情包
+    attributes:
+      wxw/emoji_section:
+        name: 名称
+      wxw/emoji_pack:
+        featured_shortcode: 图标
+        category_name: 类别
+        name: 名称
+        section: 分组
+
+zh-HK:
+  wxw_emoji:
+    title: 表情包
+    no_section: 未分組
+    reorder_handle: 拖曳排序
+    preferences:
+      packs_hint: 選擇要在表情選擇器中顯示的表情包，並調整它們的順序。
+      numbered_action: 顯示序號
+      unnumbered_action: 隱藏序號
+      show: 顯示
+      hide: 隱藏
+      reset: 還原預設
+    admin:
+      sections:
+        title: 表情包分組
+        manage: 管理分組
+        add_new: 新建分組
+        edit: 編輯分組
+        delete: 刪除分組
+      packs:
+        manage: 表情包管理
+        edit: 編輯表情包
+        publish: 重新整理快取
+        refresh: 同步列表
+        reorder: 重新排序
+        set_section: 設定分組
+        no_selection: 請至少選取一個表情包
+        selected_count: "已選取 %{count} 個表情包。"
+        set_default: 設為預設
+        remove_default: 取消預設
+        preset: 預設
+    picker:
+      search: 搜尋表情
+      all_emojis: 全部表情
+      enabled_emojis: 已啟用的表情
+  activerecord:
+    models:
+      wxw/emoji_section: 表情包分組
+      wxw/emoji_pack: 表情包
+    attributes:
+      wxw/emoji_section:
+        name: 名稱
+      wxw/emoji_pack:
+        featured_shortcode: 圖示
+        category_name: 類別
+        name: 名稱
+        section: 分組
+
+zh-TW:
+  wxw_emoji:
+    title: 表情包
+    no_section: 未分組
+    reorder_handle: 拖曳排序
+    preferences:
+      packs_hint: 選擇要在表情選擇器中顯示的表情包，並調整它們的順序。
+      numbered_action: 顯示序號
+      unnumbered_action: 隱藏序號
+      show: 顯示
+      hide: 隱藏
+      reset: 還原預設
+    admin:
+      sections:
+        title: 表情包分組
+        manage: 管理分組
+        add_new: 新增分組
+        edit: 編輯分組
+        delete: 刪除分組
+      packs:
+        manage: 表情包管理
+        edit: 編輯表情包
+        publish: 重新整理快取
+        refresh: 同步列表
+        reorder: 重新排序
+        set_section: 設定分組
+        no_selection: 請至少選取一個表情包
+        selected_count: "已選取 %{count} 個表情包。"
+        set_default: 設為預設
+        remove_default: 取消預設
+        preset: 預設
+    picker:
+      search: 搜尋表情
+      all_emojis: 所有表情
+      enabled_emojis: 已啟用的表情
+  activerecord:
+    models:
+      wxw/emoji_section: 表情包分組
+      wxw/emoji_pack: 表情包
+    attributes:
+      wxw/emoji_section:
+        name: 名稱
+      wxw/emoji_pack:
+        featured_shortcode: 圖示
+        category_name: 類別
+        name: 名稱
+        section: 分組

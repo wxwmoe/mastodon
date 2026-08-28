@@ -1,0 +1,23 @@
+.fields-group
+  = form.input :name,
+               input_html: { maxlength: Wxw::Named::NAME_LIMIT },
+               wrapper: :with_block_label
+
+%hr.spacer/
+
+%h2= t('admin.rules.translations')
+
+.table-wrapper
+  %table.table.keywords-table
+    %thead
+      %tr
+        %th= t('admin.statuses.language')
+        %th
+    %tbody
+      = form.simple_fields_for :translations do |translation|
+        = render 'wxw/translation_fields', f: translation
+    %tfoot
+      %tr
+        %td{ colspan: 2 }
+          = link_to_add_association form, :translations, class: 'table-action-link', partial: 'wxw/translation_fields', 'data-association-insertion-node': '.keywords-table tbody', 'data-association-insertion-method': 'append' do
+            = safe_join([material_symbol('add'), t('admin.rules.add_translation')])

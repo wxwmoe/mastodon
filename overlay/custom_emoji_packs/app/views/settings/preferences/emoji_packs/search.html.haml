@@ -1,0 +1,47 @@
+- content_for :page_title do
+  = t('wxw_emoji.picker.search')
+
+- content_for :heading_actions do
+  = link_to t('auth.rules.back'), settings_preferences_emoji_packs_path, class: 'button'
+
+= form_with url: search_settings_preferences_emoji_packs_path, method: :get, class: :simple_form do |form|
+  .fields-group
+    .input.select.optional
+      .label_input
+        = select_tag :pack_id,
+                     options_for_select([[t('wxw_emoji.picker.all_emojis'), ''], [t('wxw_emoji.picker.enabled_emojis'), '0']] + @packs.map { |pack| [pack.name_for(I18n.locale), pack.id] }, @selected_pack_id),
+                     'aria-label': t('wxw_emoji.title'),
+                     class: 'select optional'
+
+    .input.string.optional
+      .label_input
+        = form.text_field :shortcode,
+                          value: @shortcode,
+                          class: 'string optional',
+                          placeholder: t('admin.custom_emojis.shortcode')
+
+  .actions
+    %button.button= t('admin.accounts.search')
+    = link_to t('admin.accounts.reset'), search_settings_preferences_emoji_packs_path(@reset_params), class: 'button button--dangerous'
+
+%hr.spacer/
+
+.batch-table.batch-table--no-toolbar
+  .batch-table__toolbar
+  .batch-table__body
+    - if @emojis.empty?
+      = nothing_here 'nothing-here--under-tabs nothing-here--no-toolbar'
+    - else
+      - @emojis.each do |emoji|
+        - shortcode = emoji.shortcode.downcase
+        .batch-table__row
+          .batch-table__row__content.wxw-emoji-picker__content
+            .wxw-custom-emoji-frame.wxw-emoji-picker__icon
+              = image_tag full_asset_url(emoji.image.url(:static)), class: 'custom-emoji wxw-custom-emoji-image', alt: ":#{shortcode}:", data: { original: full_asset_url(emoji.image.url), static: full_asset_url(emoji.image.url(:static)) }
+            %samp.wxw-emoji-picker__label :#{shortcode}:
+            .input-copy.wxw-emoji-picker__copy
+              .input-copy__wrapper{ hidden: true }
+                = copyable_input value: ":#{shortcode}:"
+              %button.wxw-emoji-picker__copy-button{ type: :button }= safe_join([material_symbol('content_copy'), t('generic.copy')])
+
+= paginate @emojis

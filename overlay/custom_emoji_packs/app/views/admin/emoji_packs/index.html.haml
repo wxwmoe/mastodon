@@ -1,0 +1,55 @@
+- content_for :page_title do
+  = t('wxw_emoji.title')
+
+- content_for :heading_actions do
+  = link_to t('wxw_emoji.admin.sections.manage'), admin_emoji_sections_path, class: 'button'
+  - if can?(:create, :custom_emoji)
+    = button_to t('wxw_emoji.admin.packs.refresh'), refresh_admin_emoji_packs_path, class: 'button'
+    = button_to t('wxw_emoji.admin.packs.publish'), publish_admin_emoji_packs_path, class: 'button'
+
+%hr.spacer/
+
+- @packs.each do |pack|
+  = render 'shared/error_messages', object: pack if pack.errors.any?
+
+= form_with url: batch_admin_emoji_packs_path do |form|
+  .batch-table
+    .batch-table__toolbar
+      %label.batch-table__toolbar__select.batch-checkbox-all
+        = check_box_tag :batch_checkbox_all, nil, false
+      .batch-table__toolbar__actions
+        = form.button safe_join([material_symbol('save'), t('generic.save_changes')]), name: :save_order, class: 'table-action-link', type: :submit
+        = form.button safe_join([material_symbol('sync_alt'), t('wxw_emoji.admin.packs.reorder')]), name: :reorder, class: 'table-action-link', type: :submit
+        = form.button safe_join([material_symbol('edit_square'), t('wxw_emoji.admin.packs.set_section')]), name: :group, class: 'table-action-link', type: :submit
+        = form.button safe_join([material_symbol('radio_button_checked'), t('wxw_emoji.admin.packs.set_default')]), name: :enable, class: 'table-action-link', type: :submit
+        = form.button safe_join([material_symbol('radio_button_unchecked'), t('wxw_emoji.admin.packs.remove_default')]), name: :disable, class: 'table-action-link', type: :submit
+
+    - if @packs.empty?
+      .batch-table__body
+        = nothing_here 'nothing-here--under-tabs'
+    - else
+      .batch-table__body.wxw-sortable{ data: { wxw_sortable: true } }
+        - @packs.each do |pack|
+          - icon_emoji = @pack_icons[pack.id]
+          - pack_label = pack.name_for(I18n.locale)
+          - section_label = pack.section&.name_for(I18n.locale) || t('wxw_emoji.no_section')
+          - section_label = "#{section_label} · #{t('wxw_emoji.admin.packs.preset')}" if pack.default_enabled?
+
+          .batch-table__row.wxw-sortable__item{ data: { wxw_sortable_item: true } }
+            = hidden_field_tag 'order[]', pack.id
+            %label.batch-table__row__select.batch-table__row__select--aligned.batch-checkbox
+              = hidden_field_tag "emoji_packs[#{pack.id}][selected]", '0', id: nil
+              = check_box_tag "emoji_packs[#{pack.id}][selected]", '1', false, id: "emoji_pack_#{pack.id}_selected"
+            .batch-table__row__content.wxw-emoji-pack-list__content
+              = link_to edit_admin_emoji_pack_path(pack), class: 'wxw-emoji-pack-list__identity' do
+                .wxw-custom-emoji-frame.wxw-emoji-pack-list__icon
+                  - if icon_emoji
+                    = image_tag full_asset_url(icon_emoji.image.url(:static)), class: 'custom-emoji wxw-custom-emoji-image', alt: ":#{icon_emoji.shortcode}:", data: { original: full_asset_url(icon_emoji.image.url), static: full_asset_url(icon_emoji.image.url(:static)) }
+                  - else
+                    = material_symbol 'mood'
+                .wxw-emoji-pack-list__names
+                  .wxw-emoji-pack-list__name= pack_label
+                  .wxw-emoji-pack-list__section-name= section_label
+              .wxw-emoji-pack-list__meta
+                .wxw-emoji-pack-list__moves
+                  = form.button material_symbol('drag_indicator'), type: :button, class: 'wxw-sortable__handle', title: t('wxw_emoji.reorder_handle'), aria: { label: t('wxw_emoji.reorder_handle') }, data: { wxw_sortable_handle: true } if can?(:update, :custom_emoji)

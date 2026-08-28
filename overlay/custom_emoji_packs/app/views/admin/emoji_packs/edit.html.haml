@@ -1,0 +1,51 @@
+- content_for :page_title do
+  = t('wxw_emoji.admin.packs.edit')
+
+- content_for :heading_actions do
+  = link_to t('auth.rules.back'), admin_emoji_packs_path, class: 'button'
+
+= simple_form_for @pack, url: admin_emoji_pack_path(@pack) do |form|
+  = render 'shared/error_messages', object: @pack
+
+  .fields-group
+    = form.input :name,
+                 required: true,
+                 input_html: { maxlength: Wxw::Named::NAME_LIMIT },
+                 wrapper: :with_block_label
+    = form.simple_fields_for :custom_emoji_category do |category_form|
+      = category_form.input :name,
+                            label: t('activerecord.attributes.wxw/emoji_pack.category_name'),
+                            required: true,
+                            input_html: { maxlength: Wxw::Named::NAME_LIMIT },
+                            wrapper: :with_block_label
+    = form.association :section,
+                       collection: @sections,
+                       include_blank: t('wxw_emoji.no_section'),
+                       label_method: ->(section) { section.name_for(I18n.locale) },
+                       required: false,
+                       wrapper: :with_block_label
+    = form.input :featured_shortcode,
+                 required: false,
+                 wrapper: :with_block_label
+
+  %hr.spacer/
+
+  %h2= t('admin.rules.translations')
+
+  .table-wrapper
+    %table.table.keywords-table
+      %thead
+        %tr
+          %th= t('admin.statuses.language')
+          %th
+      %tbody
+        = form.simple_fields_for :translations do |translation|
+          = render 'wxw/translation_fields', f: translation
+      %tfoot
+        %tr
+          %td{ colspan: 2 }
+            = link_to_add_association form, :translations, class: 'table-action-link', partial: 'wxw/translation_fields', 'data-association-insertion-node': '.keywords-table tbody', 'data-association-insertion-method': 'append' do
+              = safe_join([material_symbol('add'), t('admin.rules.add_translation')])
+
+  .actions
+    = form.button :button, t('generic.save_changes'), type: :submit

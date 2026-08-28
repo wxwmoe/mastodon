@@ -1,0 +1,13 @@
+- content_for :page_title do
+  = t('wxw_emoji.admin.sections.add_new')
+
+- content_for :heading_actions do
+  = link_to t('auth.rules.back'), admin_emoji_sections_path, class: 'button'
+
+= simple_form_for @section, url: admin_emoji_sections_path do |form|
+  = render 'shared/error_messages', object: @section
+
+  = render 'form', form: form
+
+  .actions
+    = form.button :button, t('wxw_emoji.admin.sections.add_new'), type: :submit

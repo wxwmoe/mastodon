@@ -1,0 +1,18 @@
+%tr.nested-fields
+  %td
+    .fields-row
+      .fields-row__column.fields-group
+        = f.input :language,
+                  collection: ui_languages,
+                  label_method: ->(locale) { "#{native_locale_name(locale)} (#{standard_locale_name(locale)})" }
+
+      .fields-row__column.fields-group
+        = f.hidden_field :id if f.object&.persisted?
+        = link_to_remove_association(f, class: 'table-action-link') do
+          = safe_join([material_symbol('close'), t('filters.index.delete')])
+
+    .fields-group
+      = f.input :name,
+                label: false,
+                input_html: { lang: f.object&.language, maxlength: Wxw::Named::NAME_LIMIT },
+                wrapper: :with_block_label
