@@ -25,12 +25,11 @@ test "$(grep -Fxc "  draw(:wxw_custom_emojis)" "$routes")" -eq 1
 # 用户设置
 user_settings="src/app/models/user_settings.rb"
 test "$(grep -Fxc "  setting :email_subscriptions, default: false" "$user_settings")" -eq 1
-sed -i 's|^  setting :email_subscriptions, default: false$|&\n\n  namespace :wxw_emoji do\n    setting :picks, default: nil\n    setting :order, default: nil\n    setting :numbered, default: true\n    setting :version, default: nil\n  end|' "$user_settings"
+sed -i 's|^  setting :email_subscriptions, default: false$|&\n\n  namespace :wxw_emoji do\n    setting :picks, default: nil\n    setting :order, default: nil\n    setting :numbered, default: true\n  end|' "$user_settings"
 test "$(grep -Fxc "  namespace :wxw_emoji do" "$user_settings")" -eq 1
 test "$(grep -Fxc "    setting :picks, default: nil" "$user_settings")" -eq 1
 test "$(grep -Fxc "    setting :order, default: nil" "$user_settings")" -eq 1
 test "$(grep -Fxc "    setting :numbered, default: true" "$user_settings")" -eq 1
-test "$(grep -Fxc "    setting :version, default: nil" "$user_settings")" -eq 1
 
 # 导航菜单
 navigation="src/config/navigation.rb"

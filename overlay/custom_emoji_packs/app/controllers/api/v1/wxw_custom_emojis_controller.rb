@@ -66,7 +66,6 @@ class Api::V1::WxwCustomEmojisController < Api::BaseController
       anonymous? ? nil : I18n.locale,
       anonymous?,
       ::Wxw::EmojiPack.publish_version,
-      anonymous? ? nil : current_user.settings[::Wxw::EmojiPack::USER_VERSION_KEY],
       anonymous? ? nil : ::Wxw::EmojiPack.picked_ids(current_user),
       anonymous? ? nil : ::Wxw::EmojiPack.order_ids(current_user),
       numbered?,

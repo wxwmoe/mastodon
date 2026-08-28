@@ -6,8 +6,7 @@ class Wxw::EmojiPack < ApplicationRecord
   PICKS_KEY = 'wxw_emoji.picks'
   ORDER_KEY = 'wxw_emoji.order'
   NUMBERED_KEY = 'wxw_emoji.numbered'
-  USER_VERSION_KEY = 'wxw_emoji.version'
-  PUBLISH_VERSION_KEY = 'wxw_emoji.publish_version'
+  VERSION_KEY = 'wxw_emoji.version'
 
   belongs_to :section, class_name: 'Wxw::EmojiSection', inverse_of: :packs, optional: true
   belongs_to :custom_emoji_category
@@ -96,7 +95,7 @@ class Wxw::EmojiPack < ApplicationRecord
     end
 
     def publish_version
-      Setting[PUBLISH_VERSION_KEY]
+      Setting[VERSION_KEY]
     end
 
     def icon_emojis_for(packs)
@@ -135,7 +134,7 @@ class Wxw::EmojiPack < ApplicationRecord
     end
 
     def publish!
-      Setting[PUBLISH_VERSION_KEY] = SecureRandom.uuid
+      Setting[VERSION_KEY] = SecureRandom.uuid
     end
 
     def refresh!

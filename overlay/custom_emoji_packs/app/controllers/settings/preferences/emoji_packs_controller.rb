@@ -26,7 +26,6 @@ class Settings::Preferences::EmojiPacksController < Settings::Preferences::BaseC
   def update
     return render_invalid_submission unless valid_submission?
 
-    current_user.settings[::Wxw::EmojiPack::USER_VERSION_KEY] = SecureRandom.uuid
     case action_from_button
     when 'reset'
       current_user.settings[::Wxw::EmojiPack::PICKS_KEY] = nil
