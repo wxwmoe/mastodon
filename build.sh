@@ -24,7 +24,7 @@ custom_emoji_packs                            # 安装表情选单
 reply_autosuggest                             # 修复回复建议
 streaming_media_hosts                         # 替换媒体资源网址
 navigation_entry                              # 替换当前热门入口
-media_proxy_rate_limit                        # 调整媒体请求阈值
+rate_limit_tiers                              # 用户年限放宽限速
 chinese_search                                # 全文搜索中文优化
 version_format                                # 修改版本输出样式
 docker_version_metadata                       # 修改 Mastodon 版本
