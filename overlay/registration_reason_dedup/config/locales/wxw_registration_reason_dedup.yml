@@ -1,0 +1,40 @@
+en:
+  activerecord:
+    errors:
+      models:
+        user_invite_request:
+          attributes:
+            text:
+              taken: A registration application with the same reason is already awaiting review. If you have already applied, please wait for the outcome; otherwise, please revise your reason and try again.
+ja:
+  activerecord:
+    errors:
+      models:
+        user_invite_request:
+          attributes:
+            text:
+              taken: 同じ理由の登録申請がすでに審査待ちです。すでに申請済みの場合は、審査結果をお待ちください。そうでない場合は、申請理由を変更してから再度お試しください。
+zh-CN:
+  activerecord:
+    errors:
+      models:
+        user_invite_request:
+          attributes:
+            text:
+              taken: 已有使用相同理由的注册申请正在等待审核。如果你已提交申请，请等待审核结果；否则，请修改申请理由后重试。
+zh-HK:
+  activerecord:
+    errors:
+      models:
+        user_invite_request:
+          attributes:
+            text:
+              taken: 已有使用相同理由的註冊申請正在等待審核。如果你已提交申請，請等待審核結果；否則，請修改申請理由後重試。
+zh-TW:
+  activerecord:
+    errors:
+      models:
+        user_invite_request:
+          attributes:
+            text:
+              taken: 已有使用相同理由的註冊申請正在等待審核。如果你已提交申請，請等待審核結果；否則，請修改申請理由後重試。
