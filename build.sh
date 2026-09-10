@@ -2,10 +2,24 @@
 set -e
 MASTODON_VERSION="4.7.0"
 
+# 预校验
+if [[ $# -gt 1 || ( $# -eq 1 && $1 != --check && $1 != --no-cache ) ]]; then
+  echo "Usage: $0 [--check|--no-cache]" >&2
+  exit 2
+fi
+cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
+for script in build.sh patches/*.sh; do
+  bash -n "$script"
+done
+
 # 拉取源代码
 echo "Downloading Mastodon ${MASTODON_VERSION} source..."
-rm -rf src && wget "https://github.com/mastodon/mastodon/archive/refs/tags/v${MASTODON_VERSION}.tar.gz" -O source.tar.gz
-mkdir src && tar -xzf source.tar.gz --strip-components=1 -C src && rm -rf source.tar.gz
+source_tmp="$(mktemp -d)"; trap 'rm -rf "$source_tmp"' EXIT
+wget "https://github.com/mastodon/mastodon/archive/refs/tags/v${MASTODON_VERSION}.tar.gz" -O "$source_tmp/source.tar.gz"
+mkdir "$source_tmp/src"
+tar -xzf "$source_tmp/source.tar.gz" --strip-components=1 -C "$source_tmp/src"
+rm -rf src
+mv "$source_tmp/src" src
 
 # 编辑源代码
 while read -r patch _; do
@@ -32,10 +46,15 @@ WXW.MOE MASTODON PATCHES
 echo "All patches applied."
 
 # 编译 Mastodon 镜像
+[[ ${1:-} != --check ]] || exit 0
+build_args=()
+if [[ ${1:-} == --no-cache ]]; then
+  build_args+=(--no-cache)
+fi
 echo "Building Mastodon ${MASTODON_VERSION} Docker image..."
-cd src && docker build --no-cache -t wxwmoe/mastodon -t wxwmoe/mastodon:v${MASTODON_VERSION} . && cd ..
+docker build "${build_args[@]}" -t wxwmoe/mastodon -t wxwmoe/mastodon:v${MASTODON_VERSION} src
 
 # 编译 Mastodon Streaming 镜像
 echo "Building Mastodon Streaming ${MASTODON_VERSION} Docker image..."
 printf 'FROM ghcr.io/mastodon/mastodon-streaming:v%s\nCOPY index.js /opt/mastodon/streaming/index.js\n' "${MASTODON_VERSION}" > src/streaming/Dockerfile
-cd src/streaming && docker build -t wxwmoe/mastodon-streaming -t wxwmoe/mastodon-streaming:v${MASTODON_VERSION} . && cd ../..
+docker build -t wxwmoe/mastodon-streaming -t wxwmoe/mastodon-streaming:v${MASTODON_VERSION} src/streaming

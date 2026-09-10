@@ -53,7 +53,7 @@
   }
 
   // Filter dropdown (unchanged from before)
-  [class*="_v2__filtersWrapper"] {
+  [class*="_feat_account_timeline__filtersWrapper"] {
     padding: 0;
   }
 
@@ -62,12 +62,12 @@
     z-index: 4;
   }
 
-  [class*="_v2__filterOverlay"] {
+  [class*="_feat_account_timeline__filterOverlay"] {
     border: 0;
     box-shadow: 2px 4px 16px var(--color-light-shade);
   }
 
-  [class*="_v2__filtersWrapper"] [class*="filterSelectButton"] {
+  [class*="_feat_account_timeline__filtersWrapper"] [class*="filterSelectButton"] {
     color: var(--color-dim);
     font-size: var(--font-size);
     font-weight: var(--font-weight-semibold);
@@ -75,7 +75,7 @@
     transition: background 200ms;
   }
 
-  [class*="_v2__filtersWrapper"] [class*="filterSelectButton"]:hover {
+  [class*="_feat_account_timeline__filtersWrapper"] [class*="filterSelectButton"]:hover {
     background-color: var(--color-column-link-hover);
     color: var(--color-light-text);
   }

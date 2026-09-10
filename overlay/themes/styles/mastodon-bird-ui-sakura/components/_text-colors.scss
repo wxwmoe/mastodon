@@ -16,8 +16,4 @@
   .status-link.mention:not(.hashtag) {
     color: var(--color-mention);
   }
-
-  .status-link.mention:not(.hashtag):not(.mention) {
-    color: var(--color-link);
-  }
 }

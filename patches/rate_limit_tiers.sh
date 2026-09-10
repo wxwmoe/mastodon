@@ -12,6 +12,7 @@ grep -Fqx "  throttle('throttle_api_delete', limit: 30, period: 30.minutes) do |
 grep -Fqx "  throttle('throttle_media_proxy', limit: 30, period: 10.minutes) do |req|" src/config/initializers/rack_attack.rb
 
 # 核对复用的辅助方法和常量
+grep -Fqx "    def authenticated_token" src/config/initializers/rack_attack.rb
 grep -Fqx "    def authenticated_user_id" src/config/initializers/rack_attack.rb
 grep -Fqx "    def authenticated_token_id" src/config/initializers/rack_attack.rb
 grep -Fqx "    def warden_user_id" src/config/initializers/rack_attack.rb
@@ -37,7 +38,8 @@ class Rack::Attack
     STAFF_ACCOUNT_YEARS = 10
 
     def rate_limit_user_id
-      authenticated_user_id || warden_user_id
+      token_user_id = authenticated_token.resource_owner_id if authenticated_token&.accessible?
+      token_user_id || warden_user_id
     end
 
     def rate_limit_years

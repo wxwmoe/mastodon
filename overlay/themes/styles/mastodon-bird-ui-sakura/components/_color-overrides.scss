@@ -27,7 +27,6 @@
   }
 
   // Things like notification status update text that should be dim
-  .notification .status-link.mention:not(.hashtag):not(.mention),
   .notification .status-link.hashtag,
   .notification .status-link.mention:not(.hashtag),
   .compose-form .autosuggest-textarea__textarea::placeholder,
