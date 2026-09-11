@@ -1,0 +1,20 @@
+en:
+  wxw_remote_visibility:
+    label: Visibility on other servers
+    hint: Choose who can see your posts on other servers. This follows your posting visibility unless you choose a more restricted audience.
+ja:
+  wxw_remote_visibility:
+    label: 他のサーバーでの公開範囲
+    hint: 他のサーバーで投稿を誰に公開するかを設定します。投稿の公開範囲に連動し、より狭い範囲を選ぶこともできます。
+zh-CN:
+  wxw_remote_visibility:
+    label: 外站可见性
+    hint: 设置嘟文在其他服务器上的可见范围。默认随本站可见性变化，也可以选择更严格的范围。
+zh-HK:
+  wxw_remote_visibility:
+    label: 外站可見性
+    hint: 設定帖文在其他伺服器上的可見範圍。預設會跟隨本站可見性，也可以選擇更嚴格的範圍。
+zh-TW:
+  wxw_remote_visibility:
+    label: 外站可見性
+    hint: 設定嘟文在其他伺服器上的可見範圍。預設與本站可見性同步，也可以選擇更嚴格的範圍。

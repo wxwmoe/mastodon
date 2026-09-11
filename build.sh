@@ -37,6 +37,7 @@ custom_emoji_preview                          # 安装表情预览
 custom_emoji_packs                            # 安装表情选单
 status_settings                               # 安装嘟文扩展
 html_status                                   # 支持富文本嘟文
+remote_visibility                             # 支持外站可见性
 streaming_media_hosts                         # 替换媒体资源网址
 registration_reason_dedup                     # 拦截重复注册理由
 navigation_entry                              # 替换当前热门入口

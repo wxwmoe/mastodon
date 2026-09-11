@@ -1,0 +1,1091 @@
+--- a/app/controllers/activitypub/base_controller.rb
++++ b/app/controllers/activitypub/base_controller.rb
+@@ -2,6 +2,7 @@
+
+ class ActivityPub::BaseController < Api::BaseController
+   include SignatureVerification
++  include Wxw::RemoteVisibilityControllerConcern
+   include AccountOwnedConcern
+
+   skip_before_action :require_authenticated_user!
+--- a/app/controllers/activitypub/collections_controller.rb
++++ b/app/controllers/activitypub/collections_controller.rb
+@@ -35,7 +35,7 @@
+     case params[:id]
+     when 'featured'
+       @items = for_signed_account { preload_collection(@account.pinned_statuses, Status) }
+-      @items = @items.map { |item| item.distributable? ? item : ActivityPub::TagManager.instance.uri_for(item) }
++      @items = wxw_federated_featured_items(@items)
+     when 'tags'
+       @items = for_signed_account { @account.featured_tags }
+     else
+--- a/app/controllers/activitypub/contexts_controller.rb
++++ b/app/controllers/activitypub/contexts_controller.rb
+@@ -31,7 +31,7 @@
+   end
+
+   def set_items
+-    @items = @conversation.statuses.distributable_visibility.paginate_by_min_id(DESCENDANTS_LIMIT, params[:min_id])
++    @items = @conversation.statuses.wxw_remote_visibility_in(:public, :unlisted).paginate_by_min_id(DESCENDANTS_LIMIT, params[:min_id])
+   end
+
+   def context_presenter
+--- a/app/controllers/activitypub/likes_controller.rb
++++ b/app/controllers/activitypub/likes_controller.rb
+@@ -9,7 +9,7 @@
+   before_action :set_status
+
+   def index
+-    expires_in 0, public: @status.distributable? && public_fetch_mode?
++    expires_in 0, public: @status.wxw_remote_distributable? && public_fetch_mode?
+     render json: likes_collection_presenter, serializer: ActivityPub::CollectionSerializer, adapter: ActivityPub::Adapter, content_type: 'application/activity+json'
+   end
+
+@@ -21,7 +21,7 @@
+
+   def set_status
+     @status = @account.statuses.find(params[:status_id])
+-    authorize @status, :show?
++    wxw_authorize_remote_status! @status
+   rescue ActiveRecord::RecordNotFound, Mastodon::NotPermittedError
+     not_found
+   end
+--- a/app/controllers/activitypub/outboxes_controller.rb
++++ b/app/controllers/activitypub/outboxes_controller.rb
+@@ -7,6 +7,7 @@
+
+   before_action :require_account_signature!, if: :authorized_fetch_mode?
+   before_action :set_statuses
++  before_action :wxw_filter_outbox_statuses, if: :page_requested?
+
+   def show
+     if page_requested?
+@@ -46,18 +47,18 @@
+   end
+
+   def next_page
+-    outbox_url(page: true, max_id: @statuses.last.id) if @statuses.size == LIMIT
++    outbox_url(page: true, max_id: @statuses_for_pagination.last.id) if @statuses_for_pagination.size == LIMIT
+   end
+
+   def prev_page
+-    outbox_url(page: true, min_id: @statuses.first.id) unless @statuses.empty?
++    outbox_url(page: true, min_id: @statuses_for_pagination.first.id) unless @statuses_for_pagination.empty?
+   end
+
+   def set_statuses
+     return unless page_requested?
+
+     @statuses = preload_collection_paginated_by_id(
+-      AccountStatusesFilter.new(@account, signed_request_account).results,
++      AccountStatusesFilter.new(@account, signed_request_account, federation: true).results,
+       Status,
+       LIMIT,
+       params_slice(:max_id, :min_id, :since_id)
+--- a/app/controllers/activitypub/quote_authorizations_controller.rb
++++ b/app/controllers/activitypub/quote_authorizations_controller.rb
+@@ -9,7 +9,7 @@
+   before_action :set_quote_authorization
+
+   def show
+-    expires_in 30.seconds, public: true if @quote.quoted_status.distributable? && public_fetch_mode?
++    expires_in 30.seconds, public: true if @quote.quoted_status.wxw_remote_distributable? && public_fetch_mode?
+     render json: @quote, serializer: ActivityPub::QuoteAuthorizationSerializer, adapter: ActivityPub::Adapter, content_type: 'application/activity+json'
+   end
+
+@@ -23,7 +23,7 @@
+     @quote = Quote.accepted.where(quoted_account: @account).find(params[:id])
+     return not_found unless @quote.status.present? && @quote.quoted_status.present?
+
+-    authorize @quote.quoted_status, :show?
++    wxw_authorize_remote_status! @quote.quoted_status
+   rescue ActiveRecord::RecordNotFound, Mastodon::NotPermittedError
+     not_found
+   end
+--- a/app/controllers/activitypub/replies_controller.rb
++++ b/app/controllers/activitypub/replies_controller.rb
+@@ -12,7 +12,7 @@
+   before_action :set_replies
+
+   def index
+-    expires_in 0, public: @status.distributable? && public_fetch_mode?
++    expires_in 0, public: @status.wxw_remote_distributable? && public_fetch_mode?
+     render json: replies_collection_presenter, serializer: ActivityPub::CollectionSerializer, adapter: ActivityPub::Adapter, content_type: 'application/activity+json', skip_activities: true
+   end
+
+@@ -24,14 +24,14 @@
+
+   def set_status
+     @status = @account.statuses.find(params[:status_id])
+-    authorize @status, :show?
++    wxw_authorize_remote_status! @status
+   rescue ActiveRecord::RecordNotFound, Mastodon::NotPermittedError
+     not_found
+   end
+
+   def set_replies
+     @replies = only_other_accounts? ? Status.where.not(account_id: @account.id).joins(:account).merge(Account.without_suspended) : @account.statuses
+-    @replies = @replies.distributable_visibility.where(in_reply_to_id: @status.id)
++    @replies = @replies.wxw_remote_visibility_in(:public, :unlisted).where(in_reply_to_id: @status.id)
+     @replies = @replies.paginate_by_min_id(DESCENDANTS_LIMIT, params[:min_id])
+   end
+
+--- a/app/controllers/activitypub/shares_controller.rb
++++ b/app/controllers/activitypub/shares_controller.rb
+@@ -9,7 +9,7 @@
+   before_action :set_status
+
+   def index
+-    expires_in 0, public: @status.distributable? && public_fetch_mode?
++    expires_in 0, public: @status.wxw_remote_distributable? && public_fetch_mode?
+     render json: shares_collection_presenter, serializer: ActivityPub::CollectionSerializer, adapter: ActivityPub::Adapter, content_type: 'application/activity+json'
+   end
+
+@@ -21,7 +21,7 @@
+
+   def set_status
+     @status = @account.statuses.find(params[:status_id])
+-    authorize @status, :show?
++    wxw_authorize_remote_status! @status
+   rescue ActiveRecord::RecordNotFound, Mastodon::NotPermittedError
+     not_found
+   end
+--- a/app/controllers/api/v1/statuses_controller.rb
++++ b/app/controllers/api/v1/statuses_controller.rb
+@@ -44,7 +44,8 @@
+       poll: status_params[:poll],
+       allowed_mentions: status_params[:allowed_mentions],
+       idempotency: request.headers['Idempotency-Key'],
+-      with_rate_limit: true
++      with_rate_limit: true,
++      **status_params.slice(:wxw_remote_visibility).to_h.symbolize_keys
+     )
+
+     render json: @status, serializer: serializer_for_status
+@@ -139,6 +140,7 @@
+       :sensitive,
+       :spoiler_text,
+       :visibility,
++      :wxw_remote_visibility,
+       :language,
+       :scheduled_at,
+       allowed_mentions: [],
+--- a/app/controllers/settings/preferences/posting_defaults_controller.rb
++++ b/app/controllers/settings/preferences/posting_defaults_controller.rb
+@@ -1,6 +1,8 @@
+ # frozen_string_literal: true
+
+ class Settings::Preferences::PostingDefaultsController < Settings::Preferences::BaseController
++  include Wxw::PostingDefaultsConcern
++
+   private
+
+   def after_update_redirect_path
+@@ -9,7 +11,7 @@
+
+   def user_params
+     super.tap do |params|
+-      params[:settings_attributes][:default_quote_policy] = 'nobody' if params[:settings_attributes][:default_privacy] == 'private'
++      wxw_normalize_default_quote_policy(params)
+     end
+   end
+ end
+--- a/app/controllers/statuses_controller.rb
++++ b/app/controllers/statuses_controller.rb
+@@ -5,6 +5,7 @@
+   include SignatureAuthentication
+   include Authorization
+   include AccountOwnedConcern
++  include Wxw::RemoteVisibilityControllerConcern
+
+   vary_by -> { public_fetch_mode? ? 'Accept, Accept-Language, Cookie' : 'Accept, Accept-Language, Cookie, Signature' }
+
+@@ -31,14 +32,14 @@
+       end
+
+       format.json do
+-        expires_in @status.quote&.pending? ? 5.seconds : 3.minutes, public: true if @status.distributable? && public_fetch_mode?
++        expires_in @status.quote&.pending? ? 5.seconds : 3.minutes, public: true if @status.wxw_remote_distributable? && public_fetch_mode?
+         render_with_cache json: @status, content_type: 'application/activity+json', serializer: ActivityPub::NoteSerializer, adapter: ActivityPub::Adapter
+       end
+     end
+   end
+
+   def activity
+-    expires_in 3.minutes, public: @status.distributable? && public_fetch_mode?
++    expires_in 3.minutes, public: @status.wxw_remote_distributable? && public_fetch_mode?
+     render_with_cache json: @status, content_type: 'application/activity+json', serializer: activity_serializer, adapter: ActivityPub::Adapter
+   end
+
+@@ -63,7 +64,7 @@
+
+   def set_status
+     @status = @account.statuses.find(params[:id])
+-    authorize @status, :show?
++    wxw_authorize_status! @status
+   rescue ActiveRecord::RecordNotFound, Mastodon::NotPermittedError
+     not_found
+   end
+--- a/app/javascript/entrypoints/public.tsx
++++ b/app/javascript/entrypoints/public.tsx
+@@ -24,6 +24,11 @@
+ import { getNestedProperty } from '@/mastodon/utils/objects';
+ import { isDarkMode } from '@/mastodon/utils/theme';
+ import { formatTime } from '@/mastodon/utils/time';
++
++import {
++  getPostingDefaultsQuoteVisibility,
++  postingDefaultsVisibilitySelector,
++} from '../wxw_remote_visibility/posting_defaults';
+
+ import 'cocoon-js-vanilla';
+
+@@ -430,9 +435,10 @@
+   );
+   if (!select) return;
+
+-  setInputHint(select, privacySelect.value);
+-
+-  if (privacySelect.value === 'private') {
++  const visibility = getPostingDefaultsQuoteVisibility(privacySelect);
++  setInputHint(select, visibility === 'direct' ? 'private' : visibility);
++
++  if (visibility === 'private' || visibility === 'direct') {
+     select.value = 'nobody';
+     setInputDisabled(select, true);
+   } else {
+@@ -440,7 +446,7 @@
+   }
+ };
+
+-on('change', '#user_settings_attributes_default_privacy', ({ target }) => {
++on('change', postingDefaultsVisibilitySelector, ({ target }) => {
+   updateDefaultQuotePrivacyFromPrivacy(target);
+ });
+
+--- a/app/javascript/mastodon/actions/compose.js
++++ b/app/javascript/mastodon/actions/compose.js
+@@ -7,5 +7,6 @@
+ import { browserHistory } from 'mastodon/components/router';
+ import { countableText } from 'mastodon/features/compose/util/counter';
++import { wxwComposeVisibilityParams } from 'mastodon/features/compose/util/wxw_remote_visibility';
+ import { tagHistory } from 'mastodon/settings';
+ import { emojiMartSearch } from '@/mastodon/features/emoji/picker';
+
+@@ -262,7 +263,7 @@
+         poll: getState().getIn(['compose', 'poll'], null),
+         language: getState().getIn(['compose', 'language']),
+         quoted_status_id: getState().getIn(['compose', 'quoted_status_id']),
+-        quote_approval_policy: visibility === 'private' || visibility === 'direct' ? 'nobody' : getState().getIn(['compose', 'quote_policy']),
++        ...wxwComposeVisibilityParams(getState().getIn(['compose'])),
+       },
+       headers: {
+         'Idempotency-Key': getState().getIn(['compose', 'idempotencyKey']),
+--- a/app/javascript/mastodon/actions/compose_typed.ts
++++ b/app/javascript/mastodon/actions/compose_typed.ts
+@@ -26,6 +26,8 @@
+ } from './compose';
+ import { importFetchedStatuses } from './importer';
+ import { openModal } from './modal';
++
++export { changeComposeRemoteVisibility } from '@/mastodon/features/compose/util/wxw_remote_visibility';
+
+ export const PRIVATE_QUOTE_MODAL_ID = 'quote/private_notify';
+
+--- a/app/javascript/mastodon/actions/statuses.js
++++ b/app/javascript/mastodon/actions/statuses.js
+@@ -136,2 +136,3 @@
+     dispatch(fetchStatusSourceSuccess());
++    status = status.set('wxw_remote_visibility', response.data.wxw_remote_visibility);
+     ensureComposeIsVisible(getState);
+--- a/app/javascript/mastodon/api_types/statuses.ts
++++ b/app/javascript/mastodon/api_types/statuses.ts
+@@ -90,6 +90,7 @@
+   sensitive: boolean;
+   spoiler_text?: string;
+   visibility: StatusVisibility;
++  wxw_remote_visibility?: StatusVisibility;
+   language: string;
+   uri: string;
+   url: string;
+--- a/app/javascript/mastodon/features/compose/components/visibility_button.tsx
++++ b/app/javascript/mastodon/features/compose/components/visibility_button.tsx
+@@ -7,6 +7,7 @@
+
+ import {
+   changeComposeVisibility,
++  changeComposeRemoteVisibility,
+   setComposeQuotePolicy,
+ } from '@/mastodon/actions/compose_typed';
+ import { openModal } from '@/mastodon/actions/modal';
+@@ -22,6 +23,7 @@
+ import type { VisibilityModalCallback } from '../../ui/components/visibility_modal';
+
+ import { messages as privacyMessages } from './privacy_dropdown';
++import { useWxwVisibilitySummary } from './wxw_remote_visibility';
+
+ const messages = defineMessages({
+   anyone_quote: {
+@@ -83,15 +85,15 @@
+     (state) => state.compose.get('privacy') as StatusVisibility,
+   );
+
++  const wxwVisibility = useWxwVisibilitySummary(visibility);
++
+   const { icon, iconComponent } = useMemo(() => {
+     const option = visibilityOptions[visibility];
+     return { icon: option.icon, iconComponent: option.iconComponent };
+   }, [visibility]);
+   const text = useMemo(() => {
+-    const visibilityText = intl.formatMessage(
+-      visibilityOptions[visibility].text,
+-    );
+-    if (visibility === 'private' || visibility === 'direct') {
++    const visibilityText = wxwVisibility.text;
++    if (wxwVisibility.restricted) {
+       return visibilityText;
+     }
+     if (quotePolicy === 'nobody') {
+@@ -107,15 +109,16 @@
+     return intl.formatMessage(messages.anyone_quote, {
+       visibility: visibilityText,
+     });
+-  }, [quotePolicy, visibility, intl]);
++  }, [quotePolicy, wxwVisibility, intl]);
+
+   const dispatch = useAppDispatch();
+
+   const handleChange: VisibilityModalCallback = useCallback(
+-    (newVisibility, newQuotePolicy) => {
++    (newVisibility, newQuotePolicy, newRemoteVisibility) => {
+       if (newVisibility !== visibility) {
+         dispatch(changeComposeVisibility(newVisibility));
+       }
++      dispatch(changeComposeRemoteVisibility(newRemoteVisibility));
+       if (newQuotePolicy !== quotePolicy) {
+         dispatch(setComposeQuotePolicy(newQuotePolicy));
+       }
+--- a/app/javascript/mastodon/features/ui/components/visibility_modal.tsx
++++ b/app/javascript/mastodon/features/ui/components/visibility_modal.tsx
+@@ -15,6 +15,11 @@
+ import { IconButton } from '@/mastodon/components/icon_button';
+ import { NavigationFocusTarget } from '@/mastodon/components/navigation_focus_target';
+ import { messages as privacyMessages } from '@/mastodon/features/compose/components/privacy_dropdown';
++import {
++  useWxwRemoteVisibility,
++  WxwRemoteVisibilityField,
++} from '@/mastodon/features/compose/components/wxw_remote_visibility';
++import { wxwQuoteRestricted } from '@/mastodon/features/compose/util/wxw_remote_visibility';
+ import { createAppSelector, useAppSelector } from '@/mastodon/store';
+ import AlternateEmailIcon from '@/material-icons/400-24px/alternate_email.svg?react';
+ import CloseIcon from '@/material-icons/400-24px/close.svg?react';
+@@ -47,6 +52,7 @@
+ export type VisibilityModalCallback = (
+   visibility: StatusVisibility,
+   quotePolicy: ApiQuotePolicy,
++  remoteVisibility: StatusVisibility | null,
+ ) => void;
+
+ interface VisibilityModalProps extends BaseConfirmationModalProps {
+@@ -73,7 +79,7 @@
+     const visibility = status.get('visibility') as StatusVisibility;
+
+     // If the status is private or direct, it cannot be quoted by anyone.
+-    if (visibility === 'private' || visibility === 'direct') {
++    if (wxwQuoteRestricted(visibility, status.get('wxw_remote_visibility'))) {
+       return 'nobody';
+     }
+
+@@ -124,11 +130,14 @@
+     );
+
+     const [visibility, setVisibility] = useState(currentVisibility);
++    const remoteVisibility = useWxwRemoteVisibility(visibility, statusId);
+     const [quotePolicy, setQuotePolicy] = useState(currentQuotePolicy);
+
+     const disableVisibility = !!statusId;
+-    const disableQuotePolicy =
+-      visibility === 'private' || visibility === 'direct';
++    const disableQuotePolicy = wxwQuoteRestricted(
++      visibility,
++      remoteVisibility.override,
++    );
+     const disablePublicVisibilities = useAppSelector(
+       selectDisablePublicVisibilities,
+     );
+@@ -187,20 +196,35 @@
+       [intl],
+     );
+
+-    const handleVisibilityChange = useCallback((value: string) => {
+-      if (isStatusVisibility(value)) {
+-        setVisibility(value);
+-      }
+-    }, []);
++    const handleVisibilityChange = useCallback(
++      (value: string) => {
++        if (isStatusVisibility(value)) {
++          setVisibility(value);
++          remoteVisibility.follow(value);
++        }
++      },
++      [remoteVisibility],
++    );
+     const handleQuotePolicyChange = useCallback((value: string) => {
+       if (isQuotePolicy(value)) {
+         setQuotePolicy(value);
+       }
+     }, []);
+     const handleSave = useCallback(() => {
+-      onChange(visibility, quotePolicy);
++      onChange(
++        visibility,
++        disableQuotePolicy ? 'nobody' : quotePolicy,
++        remoteVisibility.override,
++      );
+       onClose();
+-    }, [onChange, onClose, visibility, quotePolicy]);
++    }, [
++      onChange,
++      onClose,
++      visibility,
++      quotePolicy,
++      disableQuotePolicy,
++      remoteVisibility.override,
++    ]);
+
+     const uniqueId = useId();
+     const visibilityLabelId = `${uniqueId}-visibility-label`;
+@@ -291,6 +315,11 @@
+               )}
+             </div>
+
++            <WxwRemoteVisibilityField
++              selection={remoteVisibility}
++              disabled={disableVisibility}
++            />
++
+             <div
+               className={classNames('visibility-dropdown', {
+                 disabled: disableQuotePolicy,
+@@ -315,7 +344,7 @@
+               />
+               <QuotePolicyHelper
+                 policy={quotePolicy}
+-                visibility={visibility}
++                visibility={remoteVisibility.quoteVisibility}
+                 className='visibility-dropdown__helper'
+                 id={quoteDescriptionId}
+               />
+--- a/app/javascript/mastodon/initial_state.ts
++++ b/app/javascript/mastodon/initial_state.ts
+@@ -68,6 +68,7 @@
+ interface InitialStateCompose {
+   text: string;
+   default_privacy?: string;
++  wxw_default_remote_privacy?: string | null;
+   default_sensitive?: boolean;
+   default_language?: string;
+   default_quote_policy?: string;
+--- a/app/javascript/mastodon/locales/en.json
++++ b/app/javascript/mastodon/locales/en.json
+@@ -1399,5 +1399,7 @@
+   "visibility_modal.quote_label": "Who can quote",
+   "visibility_modal.quote_nobody": "Just me",
+   "visibility_modal.quote_public": "Anyone",
+-  "visibility_modal.save": "Save"
++  "visibility_modal.save": "Save",
++  "privacy.wxw_remote_visibility": "{visibility}, other servers: {remoteVisibility, select, public {Public} unlisted {Quiet public} private {Followers} direct {Private mention} other {{remoteVisibility}}}",
++  "visibility_modal.wxw_remote_visibility_label": "Other server visibility"
+ }
+--- a/app/javascript/mastodon/locales/ja.json
++++ b/app/javascript/mastodon/locales/ja.json
+@@ -1061,5 +1061,7 @@
+   "visibility_modal.quote_label": "引用できるユーザー",
+   "visibility_modal.quote_nobody": "自分のみ",
+   "visibility_modal.quote_public": "誰でも",
+-  "visibility_modal.save": "保存"
++  "visibility_modal.save": "保存",
++  "privacy.wxw_remote_visibility": "{visibility}、他のサーバー: {remoteVisibility, select, public {公開} unlisted {ひかえめな公開} private {フォロワー} direct {非公開の返信} other {{remoteVisibility}}}",
++  "visibility_modal.wxw_remote_visibility_label": "他のサーバーでの公開範囲"
+ }
+--- a/app/javascript/mastodon/locales/zh-CN.json
++++ b/app/javascript/mastodon/locales/zh-CN.json
+@@ -1399,5 +1399,7 @@
+   "visibility_modal.quote_label": "谁可以引用",
+   "visibility_modal.quote_nobody": "仅限自己",
+   "visibility_modal.quote_public": "任何人",
+-  "visibility_modal.save": "保存"
++  "visibility_modal.save": "保存",
++  "privacy.wxw_remote_visibility": "{visibility}，外站{remoteVisibility, select, public {公开} unlisted {悄悄公开} private {仅关注} direct {仅提及} other {{remoteVisibility}}}",
++  "visibility_modal.wxw_remote_visibility_label": "外站可见性"
+ }
+--- a/app/javascript/mastodon/locales/zh-HK.json
++++ b/app/javascript/mastodon/locales/zh-HK.json
+@@ -808,5 +808,7 @@
+   "video.play": "播放",
+   "video.volume_down": "調低音量",
+   "video.volume_up": "調高音量",
+-  "visibility_modal.save": "儲存"
++  "visibility_modal.save": "儲存",
++  "privacy.wxw_remote_visibility": "{visibility}，外站{remoteVisibility, select, public {公共} unlisted {半公開} private {僅追蹤} direct {僅提及} other {{remoteVisibility}}}",
++  "visibility_modal.wxw_remote_visibility_label": "外站可見性"
+ }
+--- a/app/javascript/mastodon/locales/zh-TW.json
++++ b/app/javascript/mastodon/locales/zh-TW.json
+@@ -1399,5 +1399,7 @@
+   "visibility_modal.quote_label": "誰能引用此嘟文",
+   "visibility_modal.quote_nobody": "僅有我",
+   "visibility_modal.quote_public": "所有人",
+-  "visibility_modal.save": "儲存"
++  "visibility_modal.save": "儲存",
++  "privacy.wxw_remote_visibility": "{visibility}，外站{remoteVisibility, select, public {公開} unlisted {不公開} private {僅跟隨} direct {僅提及} other {{remoteVisibility}}}",
++  "visibility_modal.wxw_remote_visibility_label": "外站可見性"
+ }
+--- a/app/javascript/mastodon/models/status.ts
++++ b/app/javascript/mastodon/models/status.ts
+@@ -85,6 +85,7 @@
+   reblogs_count: number;
+   replies_count: number;
+   visibility: StatusVisibility;
++  wxw_remote_visibility?: StatusVisibility;
+ }
+ export type ExpandedStatusShape = Omit<StatusShape, 'account' | 'reblog'> & {
+   account: AccountShapeFull;
+--- a/app/javascript/mastodon/reducers/compose.js
++++ b/app/javascript/mastodon/reducers/compose.js
+@@ -2,6 +2,7 @@
+
+ import {
+   changeComposeVisibility,
++  changeComposeRemoteVisibility,
+   changeUploadCompose,
+   quoteCompose,
+   quoteComposeCancel,
+@@ -11,6 +12,7 @@
+   setDragUploadEnabled,
+ } from '@/mastodon/actions/compose_typed';
+ import { timelineDelete } from 'mastodon/actions/timelines_typed';
++import { wxwNormalizeRemoteVisibility, wxwNormalizeComposeRemoteVisibility, wxwSetComposeRemoteVisibility } from 'mastodon/features/compose/util/wxw_remote_visibility';
+
+ import {
+   COMPOSE_MOUNT,
+@@ -68,4 +70,5 @@
+   spoiler_text: '',
+   privacy: null,
++  wxw_remote_visibility: null,
+   id: null,
+   text: '',
+@@ -89,6 +92,7 @@
+   suggestion_token: null,
+   suggestions: ImmutableList(),
+   default_privacy: 'public',
++  wxw_default_remote_privacy: null,
+   default_sensitive: false,
+   default_language: 'en',
+   resetFileKey: Math.floor((Math.random() * 0x10000)),
+@@ -129,6 +133,7 @@
+     map.set('is_changing_upload', false);
+     map.set('in_reply_to', null);
+     map.set('privacy', state.get('default_privacy'));
++    map.set('wxw_remote_visibility', wxwNormalizeRemoteVisibility(state.get('default_privacy'), state.get('wxw_default_remote_privacy')));
+     map.set('sensitive', state.get('default_sensitive'));
+     map.set('language', state.get('default_language'));
+     map.update('media_attachments', list => list.clear());
+@@ -331,7 +336,10 @@
+   if (changeComposeVisibility.match(action)) {
+     return state
+       .set('privacy', action.payload)
++      .update(wxwNormalizeComposeRemoteVisibility)
+       .set('idempotencyKey', uuid());
++  } else if (changeComposeRemoteVisibility.match(action)) {
++    return wxwSetComposeRemoteVisibility(state, action.payload);
+   } else if (changeUploadCompose.fulfilled.match(action)) {
+     return state
+       .set('is_changing_upload', false)
+@@ -358,7 +366,8 @@
+           return 'private';
+         }
+         return visibility;
+-      });
++      })
++      .update(wxwNormalizeComposeRemoteVisibility);
+   } else if (quoteComposeCancel.match(action)) {
+     return state.set('quoted_status_id', null);
+   } else if (setComposeQuotePolicy.match(action)) {
+@@ -435,2 +444,4 @@
+       map.set('privacy', privacyPreference(action.status.get('visibility'), state.get('default_privacy')));
++      const remoteVisibility = privacyPreference(action.status.get('wxw_remote_visibility') || action.status.get('visibility'), state.get('wxw_default_remote_privacy') || state.get('default_privacy'));
++      map.set('wxw_remote_visibility', wxwNormalizeRemoteVisibility(map.get('privacy'), remoteVisibility));
+       map.set('focusDate', new Date());
+@@ -511,6 +522,7 @@
+     return state.withMutations(map => {
+       map.update('text', text => [text.trim(), `@${action.account.get('acct')} `].filter((str) => str.length !== 0).join(' '));
+       map.set('privacy', 'direct');
++      map.update(wxwNormalizeComposeRemoteVisibility);
+       map.set('focusDate', new Date());
+       map.set('caretPosition', null);
+       map.set('idempotencyKey', uuid());
+@@ -544,4 +556,5 @@
+       map.set('in_reply_to', action.status.get('in_reply_to_id'));
+       map.set('privacy', action.status.get('visibility'));
++      map.set('wxw_remote_visibility', wxwNormalizeRemoteVisibility(action.status.get('visibility'), action.status.get('wxw_remote_visibility')));
+       map.set('media_attachments', action.status.get('media_attachments').map((media) => media.set('unattached', true)));
+       map.set('focusDate', new Date());
+@@ -583,4 +596,5 @@
+       map.set('in_reply_to', action.status.get('in_reply_to_id'));
+       map.set('privacy', action.status.get('visibility'));
++      map.set('wxw_remote_visibility', wxwNormalizeRemoteVisibility(action.status.get('visibility'), action.status.get('wxw_remote_visibility')));
+       map.set('media_attachments', action.status.get('media_attachments'));
+       map.set('focusDate', new Date());
+--- a/app/lib/account_statuses_filter.rb
++++ b/app/lib/account_statuses_filter.rb
+@@ -1,6 +1,8 @@
+ # frozen_string_literal: true
+
+ class AccountStatusesFilter
++  prepend Wxw::AccountStatusesFilterConcern
++
+   KEYS = %i(
+     pinned
+     tagged
+@@ -35,9 +37,9 @@
+     return Status.none if account.unavailable?
+
+     if anonymous?
+-      account.statuses.distributable_visibility
++      wxw_visibility_scope(account.statuses, %i(public unlisted))
+     elsif author?
+-      exclude_direct? ? account.statuses.where(visibility: %i(public unlisted private)) : account.statuses.all # NOTE: #merge! does not work without the #all
++      exclude_direct? ? wxw_visibility_scope(account.statuses, %i(public unlisted private)) : account.statuses.all # NOTE: #merge! does not work without the #all
+     elsif blocked?
+       Status.none
+     else
+@@ -46,13 +48,13 @@
+   end
+
+   def filtered_scope
+-    scope = account.statuses
++    scope = wxw_statuses_scope
+
+     if exclude_direct?
+-      scope = scope.where(visibility: follower? ? %i(public unlisted private) : %i(public unlisted))
++      scope = wxw_visibility_scope(scope, follower? ? %i(public unlisted private) : %i(public unlisted))
+     else
+-      scope = account.statuses.left_outer_joins(:mentions)
+-      scope.merge!(scope.where(visibility: follower? ? %i(public unlisted private) : %i(public unlisted)).or(scope.where(mentions: { account_id: current_account.id })).group(Status.arel_table[:id]))
++      scope = scope.left_outer_joins(:mentions)
++      scope.merge!(wxw_visibility_scope(scope, follower? ? %i(public unlisted private) : %i(public unlisted)).or(scope.where(mentions: { account_id: current_account.id })).group(Status.arel_table[:id]))
+     end
+
+     scope.merge!(filtered_reblogs_scope) if reblogs_may_occur?
+--- a/app/lib/activitypub/activity/announce.rb
++++ b/app/lib/activitypub/activity/announce.rb
+@@ -71,6 +71,8 @@
+   end
+
+   def announceable?(status)
++    return false if status.wxw_remote_visibility.present? && !StatusPolicy.new(@account, status, federation: true).reblog?
++
+     status.account_id == @account.id || status.distributable?
+   end
+
+--- a/app/lib/activitypub/activity/create.rb
++++ b/app/lib/activitypub/activity/create.rb
+@@ -361,6 +361,8 @@
+   def poll_vote?
+     return false if replied_to_status.nil? || replied_to_status.preloadable_poll.nil? || !replied_to_status.local? || !replied_to_status.preloadable_poll.options.include?(@object['name'])
+
++    return true if replied_to_status.wxw_remote_visibility.present? && !StatusPolicy.new(@account, replied_to_status, federation: true).show?
++
+     poll_vote! unless replied_to_status.preloadable_poll.expired?
+
+     true
+--- a/app/lib/activitypub/activity/like.rb
++++ b/app/lib/activitypub/activity/like.rb
+@@ -6,6 +6,8 @@
+
+     return if original_status.nil? || !original_status.account.local? || delete_arrived_first?(@json['id']) || @account.favourited?(original_status)
+
++    return if original_status.wxw_remote_visibility.present? && !StatusPolicy.new(@account, original_status, federation: true).favourite?
++
+     favourite = original_status.favourites.create!(account: @account)
+
+     LocalNotificationWorker.perform_async(original_status.account_id, favourite.id, 'Favourite', 'favourite')
+--- a/app/lib/activitypub/forwarder.rb
++++ b/app/lib/activitypub/forwarder.rb
+@@ -8,7 +8,7 @@
+   end
+
+   def forwardable?
+-    @json['signature'].present? && @status.distributable?
++    @json['signature'].present? && @status.wxw_remote_distributable? && @status.wxw_federatable?
+   end
+
+   def forward!
+--- a/app/lib/activitypub/tag_manager.rb
++++ b/app/lib/activitypub/tag_manager.rb
+@@ -171,7 +171,7 @@
+   # Unlisted and private statuses go out primarily to the followers collection
+   # Others go out only to the people they mention
+   def to(status)
+-    case status.visibility
++    case status.wxw_effective_remote_visibility
+     when 'public'
+       [COLLECTIONS[:public]]
+     when 'unlisted', 'private'
+@@ -207,14 +207,14 @@
+
+     cc << uri_for(status.reblog.account) if status.reblog?
+
+-    case status.visibility
++    case status.wxw_effective_remote_visibility
+     when 'public'
+       cc << followers_uri_for(status.account)
+     when 'unlisted'
+       cc << COLLECTIONS[:public]
+     end
+
+-    unless status.direct_visibility? || status.limited_visibility?
++    unless %w(direct limited).include?(status.wxw_effective_remote_visibility)
+       if status.account.silenced?
+         # Only notify followers if the account is locally silenced
+         account_ids = status.active_mentions.pluck(:account_id)
+--- a/app/lib/status_reach_finder.rb
++++ b/app/lib/status_reach_finder.rb
+@@ -10,6 +10,8 @@
+   end
+
+   def inboxes
++    return [] unless @status.wxw_federatable?
++
+     (reached_account_inboxes + followers_inboxes + relay_inboxes).uniq
+   end
+
+@@ -86,7 +88,7 @@
+   end
+
+   def relay_inboxes
+-    if @status.public_visibility?
++    if @status.wxw_effective_remote_visibility == 'public'
+       Relay.enabled.pluck(:inbox_url)
+     else
+       []
+@@ -94,7 +96,7 @@
+   end
+
+   def distributable?
+-    @status.public_visibility? || @status.unlisted_visibility?
++    @status.wxw_remote_distributable?
+   end
+
+   def unsafe?
+@@ -104,7 +106,7 @@
+   def followers_scope
+     if @status.in_reply_to_local_account? && distributable?
+       @status.account.followers.or(@status.thread.account.followers.not_domain_blocked_by_account(@status.account))
+-    elsif @status.direct_visibility? || @status.limited_visibility?
++    elsif %w(direct limited).include?(@status.wxw_effective_remote_visibility)
+       Account.none
+     else
+       @status.account.followers
+--- a/app/models/concerns/status/interaction_policy_concern.rb
++++ b/app/models/concerns/status/interaction_policy_concern.rb
+@@ -6,7 +6,7 @@
+   included do
+     composed_of :quote_interaction_policy, class_name: 'InteractionPolicy', mapping: { quote_approval_policy: :bitmap }
+
+-    before_validation :downgrade_quote_policy, if: -> { local? && !distributable? }
++    before_validation :downgrade_quote_policy, if: -> { local? && (!distributable? || !wxw_remote_distributable?) }
+   end
+
+   def quote_policy_as_keys(kind)
+--- a/app/models/concerns/status/threading_concern.rb
++++ b/app/models/concerns/status/threading_concern.rb
+@@ -29,8 +29,9 @@
+     find_statuses_from_tree_path(descendant_ids(limit, depth), account, promote: true)
+   end
+
+-  def self_replies(limit)
+-    account.statuses.distributable_visibility.where(in_reply_to_id: id).reorder(id: :asc).limit(limit)
++  def self_replies(limit, federation: false)
++    statuses = federation ? account.statuses.wxw_remote_visibility_in(:public, :unlisted) : account.statuses.distributable_visibility
++    statuses.where(in_reply_to_id: id).reorder(id: :asc).limit(limit)
+   end
+
+   private
+--- a/app/models/concerns/user/has_settings.rb
++++ b/app/models/concerns/user/has_settings.rb
+@@ -5,6 +5,8 @@
+
+   included do
+     serialize :settings, coder: UserSettingsSerializer
++
++    include Wxw::UserRemoteVisibilityConcern
+   end
+
+   def settings_attributes=(attributes)
+--- a/app/models/status.rb
++++ b/app/models/status.rb
+@@ -44,6 +44,7 @@
+   include Status::ThreadingConcern
+   include Status::Visibility
+   include Status::InteractionPolicyConcern
++  include Wxw::StatusRemoteVisibilityConcern
+
+   CACHEABLE_ASSOCIATIONS = [
+     :application,
+--- a/app/models/user_settings.rb
++++ b/app/models/user_settings.rb
+@@ -15,6 +15,7 @@
+   setting :default_language, default: nil
+   setting :default_sensitive, default: false
+   setting :default_privacy, default: nil, in: %w(public unlisted private)
++  setting :wxw_default_remote_privacy, default: nil, in: [nil, 'public', 'unlisted', 'private', 'direct']
+   setting :default_quote_policy, default: 'public', in: %w(public followers nobody)
+   setting :email_subscriptions, default: false
+
+--- a/app/models/wxw_status_setting.rb
++++ b/app/models/wxw_status_setting.rb
+@@ -10,1 +10,3 @@
++  include Wxw::RemoteVisibilitySettingConcern
++
+   validate :local_owner
+--- a/app/policies/status_policy.rb
++++ b/app/policies/status_policy.rb
+@@ -1,6 +1,8 @@
+ # frozen_string_literal: true
+
+ class StatusPolicy < ApplicationPolicy
++  prepend Wxw::RemoteVisibilityPolicy
++
+   def show?
+     return false if author.unavailable?
+
+--- a/app/serializers/activitypub/announce_note_serializer.rb
++++ b/app/serializers/activitypub/announce_note_serializer.rb
+@@ -36,7 +36,7 @@
+   end
+
+   def virtual_object
+-    if allow_inlining? && object.account == object.proper.account && object.proper.private_visibility? && object.local?
++    if allow_inlining? && object.account == object.proper.account && object.proper.wxw_effective_remote_visibility == 'private' && object.local?
+       object.proper
+     else
+       ActivityPub::TagManager.instance.uri_for(object.proper)
+--- a/app/serializers/activitypub/note_serializer.rb
++++ b/app/serializers/activitypub/note_serializer.rb
+@@ -59,7 +59,7 @@
+   end
+
+   def replies
+-    replies = object.self_replies(5).pluck(:id, :uri)
++    replies = object.self_replies(5, federation: true).pluck(:id, :uri)
+     last_id = replies.last&.first
+
+     ActivityPub::CollectionPresenter.new(
+--- a/app/serializers/initial_state_serializer.rb
++++ b/app/serializers/initial_state_serializer.rb
+@@ -57,6 +57,7 @@
+       store[:default_sensitive] = object_account_user.setting_default_sensitive
+       store[:default_language]  = object_account_user.preferred_posting_language
+       store[:default_quote_policy] = object_account_user.setting_default_quote_policy
++      store[:wxw_default_remote_privacy] = object_account_user.wxw_default_remote_privacy
+     end
+
+     store[:text] = object.text if object.text
+--- a/app/serializers/rest/credential_account_serializer.rb
++++ b/app/serializers/rest/credential_account_serializer.rb
+@@ -10,6 +10,7 @@
+
+     {
+       privacy: user.setting_default_privacy,
++      wxw_remote_visibility: user.wxw_default_remote_privacy,
+       sensitive: user.setting_default_sensitive,
+       language: user.setting_default_language,
+       note: object.note,
+--- a/app/serializers/rest/preferences_serializer.rb
++++ b/app/serializers/rest/preferences_serializer.rb
+@@ -2,6 +2,7 @@
+
+ class REST::PreferencesSerializer < ActiveModel::Serializer
+   attribute :posting_default_privacy, key: 'posting:default:visibility'
++  attribute :wxw_default_remote_privacy, key: 'posting:default:wxw_remote_visibility'
+   attribute :posting_default_sensitive, key: 'posting:default:sensitive'
+   attribute :posting_default_language, key: 'posting:default:language'
+   attribute :posting_default_quote_policy, key: 'posting:default:quote_policy'
+@@ -12,6 +13,10 @@
+
+   def posting_default_privacy
+     object.user.setting_default_privacy
++  end
++
++  def wxw_default_remote_privacy
++    object.user.wxw_default_remote_privacy
+   end
+
+   def posting_default_quote_policy
+--- a/app/serializers/rest/status_serializer.rb
++++ b/app/serializers/rest/status_serializer.rb
+@@ -9,6 +9,8 @@
+              :sensitive, :spoiler_text, :visibility, :language,
+              :uri, :url, :replies_count, :reblogs_count,
+              :favourites_count, :quotes_count, :edited_at
++
++  attribute :wxw_remote_visibility, if: -> { object.wxw_remote_visibility.present? }
+
+   attribute :favourited, if: :current_user?
+   attribute :reblogged, if: :current_user?
+--- a/app/serializers/rest/status_source_serializer.rb
++++ b/app/serializers/rest/status_source_serializer.rb
+@@ -4,1 +4,2 @@
++  attribute :wxw_remote_visibility
+   attributes :id, :text, :spoiler_text
+--- a/app/services/post_status_service.rb
++++ b/app/services/post_status_service.rb
+@@ -4,6 +4,7 @@
+   include Redisable
+   include Lockable
+   include LanguagesHelper
++  include Wxw::PostStatusRemoteVisibility
+
+   # How much to delay sending an e-mail about a new post, to allow grouping multiple posts
+   EMAIL_DISTRIBUTION_DELAY = 5.minutes.freeze
+@@ -29,6 +30,7 @@
+   # @option [String] :quote_approval_policy Approval policy for quotes, one of `public`, `followers` or `nobody`
+   # @option [Boolean] :sensitive
+   # @option [String] :visibility
++  # @option [String, nil] :wxw_remote_visibility Optional remote audience override
+   # @option [String] :spoiler_text
+   # @option [String] :language
+   # @option [String] :scheduled_at
+@@ -77,6 +79,7 @@
+     @visibility   = @options[:visibility] || @account.user&.setting_default_privacy
+     @visibility   = :unlisted if @visibility&.to_sym == :public && @account.silenced?
+     @visibility   = :private if @quoted_status&.private_visibility? && %i(public unlisted).include?(@visibility&.to_sym)
++    wxw_preprocess_remote_visibility!
+     @scheduled_at = @options[:scheduled_at]&.to_datetime
+     @scheduled_at = nil if scheduled_in_the_past?
+   rescue ArgumentError
+@@ -267,6 +270,7 @@
+       sensitive: @sensitive,
+       spoiler_text: @options[:spoiler_text] || '',
+       visibility: @visibility,
++      wxw_remote_visibility: @wxw_remote_visibility,
+       language: valid_locale_cascade(@options[:language], @account.user&.preferred_posting_language, I18n.default_locale),
+       application: @options[:application],
+       rate_limit: @options[:with_rate_limit],
+@@ -290,6 +294,7 @@
+
+   def scheduled_options
+     @options.dup.tap do |options_hash|
++      wxw_snapshot_remote_visibility!(options_hash)
+       options_hash[:in_reply_to_id]  = options_hash.delete(:thread)&.id
+       options_hash[:application_id]  = options_hash.delete(:application)&.id
+       options_hash[:quoted_status_id] = options_hash.delete(:quoted_status)&.id
+--- a/app/services/reblog_service.rb
++++ b/app/services/reblog_service.rb
+@@ -26,7 +26,7 @@
+                    options[:visibility] || account.user&.setting_default_privacy
+                  end
+
+-    reblog = account.statuses.create!(reblog: reblogged_status, text: '', visibility: visibility, rate_limit: options[:with_rate_limit])
++    reblog = account.statuses.create!(reblog: reblogged_status, text: '', visibility: visibility, wxw_remote_visibility: reblogged_status.wxw_remote_reblog_visibility, rate_limit: options[:with_rate_limit])
+
+     Trends.register!(reblog)
+     DistributionWorker.perform_async(reblog.id)
+--- a/app/views/settings/preferences/posting_defaults/show.html.haml
++++ b/app/views/settings/preferences/posting_defaults/show.html.haml
+@@ -4,8 +4,7 @@
+ - content_for :heading_actions do
+   = button_tag t('generic.save_changes'), class: 'button', form: 'edit_preferences'
+
+-- if ['unlisted', 'private'].include?(current_user.setting_default_privacy)
+-  - initial_quote_hint = I18n.t("simple_form.hints.defaults.setting_default_quote_policy_#{current_user.setting_default_privacy}")
++- initial_quote_hint = wxw_default_quote_hint
+
+ = simple_form_for current_user, url: settings_preferences_posting_defaults_path, html: { id: :edit_preferences } do |f|
+   = render 'shared/error_messages', object: current_user
+@@ -23,6 +22,8 @@
+                  label: I18n.t('simple_form.labels.defaults.setting_default_privacy'),
+                  required: false,
+                  wrapper: :with_label
++
++    = render 'settings/preferences/posting_defaults/wxw_remote_visibility', form: ff
+
+     .fields-group
+       = ff.input :default_quote_policy,
+--- a/app/workers/activitypub/distribute_poll_update_worker.rb
++++ b/app/workers/activitypub/distribute_poll_update_worker.rb
+@@ -24,7 +24,7 @@
+   private
+
+   def relayable?
+-    @status.public_visibility?
++    @status.wxw_effective_remote_visibility == 'public'
+   end
+
+   def inboxes
+@@ -32,11 +32,11 @@
+
+     @inboxes = [@status.mentions, @status.reblogs, @status.preloadable_poll.votes].flat_map do |relation|
+       relation.includes(:account).map do |record|
+-        record.account.preferred_inbox_url if !record.account.local? && record.account.activitypub?
++        @status.wxw_remote_inbox_for(record.account)
+       end
+     end
+
+-    @inboxes.concat(@account.followers.inboxes) unless @status.direct_visibility?
++    @inboxes.concat(@account.followers.inboxes) unless @status.wxw_effective_remote_visibility == 'direct'
+     @inboxes.uniq!
+     @inboxes.compact!
+     @inboxes
+--- a/app/workers/activitypub/distribution_worker.rb
++++ b/app/workers/activitypub/distribution_worker.rb
+@@ -11,6 +11,8 @@
+   def perform(status_id)
+     @status  = Status.find(status_id)
+     @account = @status.account
++
++    return unless @status.wxw_federatable?
+
+     distribute!
+   rescue ActiveRecord::RecordNotFound
+@@ -36,6 +38,6 @@
+   end
+
+   def options
+-    { 'synchronize_followers' => @status.private_visibility? && @account.followers_count < MAX_FOLLOWERS_FOR_SYNCHRONIZATION }
++    { 'synchronize_followers' => @status.wxw_effective_remote_visibility == 'private' && @account.followers_count < MAX_FOLLOWERS_FOR_SYNCHRONIZATION }
+   end
+ end
+--- a/app/workers/publish_scheduled_status_worker.rb
++++ b/app/workers/publish_scheduled_status_worker.rb
+@@ -21,6 +21,7 @@
+
+   def options_with_objects(options)
+     options.tap do |options_hash|
++      options_hash[:wxw_remote_visibility] = nil unless options_hash.key?(:wxw_remote_visibility)
+       options_hash[:application] = Doorkeeper::Application.find(options_hash.delete(:application_id)) if options[:application_id]
+       options_hash[:thread]      = Status.find(options_hash.delete(:in_reply_to_id)) if options_hash[:in_reply_to_id]
+       options_hash[:quoted_status] = Status.find(options_hash.delete(:quoted_status_id)) if options_hash[:quoted_status_id]
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -1491,1 +1491,3 @@
++    t.check_constraint "NOT (settings ? 'remote_visibility') OR settings->'remote_visibility' IN ('0'::jsonb, '1'::jsonb, '2'::jsonb, '3'::jsonb)", name: "wxw_status_settings_remote_visibility"
++    t.check_constraint "status_edit_id IS NULL OR NOT (settings ? 'remote_visibility')", name: "wxw_status_settings_edit_keys"
+     t.check_constraint "jsonb_typeof(settings) = 'object' AND settings <> '{}'::jsonb", name: "wxw_status_settings_object"
+--- a/spec/requests/api/v1/statuses/sources_spec.rb
++++ b/spec/requests/api/v1/statuses/sources_spec.rb
+@@ -27,4 +27,5 @@
+         expect(response.parsed_body).to match({
+           id: status.id.to_s,
++          wxw_remote_visibility: nil,
+           text: status.text,
+           spoiler_text: status.spoiler_text,
+@@ -60,4 +61,5 @@
+         expect(response.parsed_body).to match({
+           id: status.id.to_s,
++          wxw_remote_visibility: nil,
+           text: status.text,
+           spoiler_text: status.spoiler_text,

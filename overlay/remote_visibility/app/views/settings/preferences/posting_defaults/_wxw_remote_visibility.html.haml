@@ -1,0 +1,12 @@
+.fields-group
+  = form.input :wxw_default_remote_privacy,
+               collection: %w(public unlisted private direct),
+               selected: wxw_default_remote_privacy,
+               disabled: Status.selectable_visibilities.take_while { |visibility| visibility != current_user.setting_default_privacy },
+               include_blank: false,
+               label_method: ->(visibility) { %w(private direct).include?(visibility) ? I18n.t("statuses.visibilities.#{visibility}") : safe_join([I18n.t("statuses.visibilities.#{visibility}"), I18n.t("statuses.visibilities.#{visibility}_long")], ' - ') },
+               label: t('wxw_remote_visibility.label'),
+               hint: t('wxw_remote_visibility.hint'),
+               input_html: { data: { wxw_override: current_user.wxw_default_remote_privacy.present? } },
+               required: false,
+               wrapper: :with_label
