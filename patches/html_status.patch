@@ -1,0 +1,699 @@
+--- a/app/controllers/api/v1/statuses_controller.rb
++++ b/app/controllers/api/v1/statuses_controller.rb
+@@ -1,6 +1,8 @@
+ # frozen_string_literal: true
+
+ class Api::V1::StatusesController < Api::BaseController
++  prepend Wxw::StatusFormatParams
++
+   include Authorization
+   include Api::InteractionPoliciesConcern
+
+@@ -31,6 +33,7 @@
+     @status = PostStatusService.new.call(
+       current_user.account,
+       text: status_params[:status],
++      content_type: status_params[:content_type],
+       thread: @thread,
+       quoted_status: @quoted_status,
+       quote_approval_policy: quote_approval_policy,
+@@ -66,6 +69,8 @@
+       poll: status_params[:poll],
+     }
+
++    update_options.select! { |key, _| status_params.key?(key) } unless status_params.key?(:status)
++    update_options[:content_type] = status_params[:content_type] if status_params.key?(:content_type)
+     update_options[:quote_approval_policy] = quote_approval_policy if status_params[:quote_approval_policy].present?
+
+     UpdateStatusService.new.call(@status, current_account.id, update_options)
+--- a/app/helpers/admin/trends/statuses_helper.rb
++++ b/app/helpers/admin/trends/statuses_helper.rb
+@@ -4,7 +4,7 @@
+   def one_line_preview(status)
+     text = begin
+       if status.local?
+-        status.text.split("\n").first
++        FormattingHelper.extract_status_plain_text(status).split("\n").first
+       else
+         Nokogiri::HTML5(status.text).css('html > body > *').first&.text
+       end
+--- a/app/helpers/formatting_helper.rb
++++ b/app/helpers/formatting_helper.rb
+@@ -22,14 +22,14 @@
+   end
+
+   def extract_status_plain_text(status)
+-    PlainTextFormatter.new(status.text, status.local?).to_s
++    Wxw::HtmlFormatter.status_plain_text(status)
+   end
+   module_function :extract_status_plain_text
+
+   def status_content_format(status)
+     quoted_status = status.quote&.quoted_status if status.local?
+
+-    html_aware_format(status.text, status.local?, preloaded_accounts: [status.account] + (status.respond_to?(:active_mentions) ? status.active_mentions.map(&:account) : []), quoted_status: quoted_status)
++    Wxw::HtmlFormatter.format(status.text, status.local?, content_type: status.wxw_content_type, preloaded_accounts: [status.account] + (status.respond_to?(:active_mentions) ? status.active_mentions.map(&:account) : []), quoted_status: quoted_status)
+   end
+
+   def rss_status_content_format(status)
+--- a/app/helpers/statuses_helper.rb
++++ b/app/helpers/statuses_helper.rb
+@@ -58,7 +58,7 @@
+     components = [[media_summary(status), status_text_summary(status)].compact_blank.join(' · ')]
+
+     if status.spoiler_text.blank?
+-      components << status.text
++      components << FormattingHelper.extract_status_plain_text(status)
+       components << poll_summary(status)
+     end
+
+--- a/app/javascript/mastodon/actions/compose.js
++++ b/app/javascript/mastodon/actions/compose.js
+@@ -24,6 +24,7 @@
+ let searchComposeSuggestionsEmojiController;
+
+ export const COMPOSE_CHANGE          = 'COMPOSE_CHANGE';
++export const COMPOSE_FORMAT_CHANGE = 'COMPOSE_FORMAT_CHANGE';
+ export const COMPOSE_SUBMIT_REQUEST  = 'COMPOSE_SUBMIT_REQUEST';
+ export const COMPOSE_SUBMIT_SUCCESS  = 'COMPOSE_SUBMIT_SUCCESS';
+ export const COMPOSE_SUBMIT_FAIL     = 'COMPOSE_SUBMIT_FAIL';
+@@ -96,7 +97,7 @@
+   }
+ };
+
+-export function setComposeToStatus(status, text, spoiler_text) {
++export function setComposeToStatus(status, text, spoiler_text, content_type) {
+   return (dispatch, getState) => {
+     const maxOptions = getState().server.server.item?.configuration.polls.max_options;
+
+@@ -105,9 +106,14 @@
+       status,
+       text,
+       spoiler_text,
++      content_type,
+       maxOptions,
+     });
+   }
++}
++
++export function changeComposeFormat(format) {
++  return { type: COMPOSE_FORMAT_CHANGE, format };
+ }
+
+ export function changeCompose(text) {
+@@ -238,6 +244,7 @@
+       method: statusId === null ? 'post' : 'put',
+       data: {
+         status: statusText,
++        content_type: `text/${getState().getIn(['compose', 'format'], 'plain')}`,
+         spoiler_text,
+         in_reply_to_id: getState().getIn(['compose', 'in_reply_to'], null),
+         media_ids: media.map(item => item.get('id')),
+--- a/app/javascript/mastodon/actions/statuses.js
++++ b/app/javascript/mastodon/actions/statuses.js
+@@ -109,7 +109,7 @@
+   };
+ }
+
+-export function redraft(status, raw_text, quoted_status_id = null) {
++export function redraft(status, raw_text, quoted_status_id = null, content_type) {
+   return (dispatch, getState) => {
+     const maxOptions = getState().server.server.item?.configuration.polls.max_options;
+
+@@ -117,6 +117,7 @@
+       type: REDRAFT,
+       status,
+       raw_text,
++      content_type,
+       quoted_status_id,
+       maxOptions,
+     });
+@@ -138,4 +139,4 @@
+-    dispatch(setComposeToStatus(status, response.data.text, response.data.spoiler_text));
++    dispatch(setComposeToStatus(status, response.data.text, response.data.spoiler_text, response.data.content_type));
+   }).catch(error => {
+     dispatch(fetchStatusSourceFail(error));
+   });
+@@ -170,7 +171,7 @@
+       dispatch(importFetchedAccount(response.data.account));
+
+       if (withRedraft) {
+-        dispatch(redraft(status, response.data.text, response.data.quote?.quoted_status?.id));
++        dispatch(redraft(status, response.data.text, response.data.quote?.quoted_status?.id, response.data.content_type));
+         ensureComposeIsVisible(getState);
+       } else {
+         dispatch(showAlert({ message: messages.deleteSuccess }));
+--- a/app/javascript/mastodon/features/compose/components/compose_form.jsx
++++ b/app/javascript/mastodon/features/compose/components/compose_form.jsx
+@@ -25,6 +25,7 @@
+ import { CharacterCounter } from './character_counter';
+ import { EditIndicator } from './edit_indicator';
+ import { LanguageDropdown } from './language_dropdown';
++import { WxwFormatSelect } from './wxw_format_select';
+ import { NavigationBar } from './navigation_bar';
+ import { PollForm } from "./poll_form";
+ import { ReplyIndicator } from './reply_indicator';
+@@ -37,6 +38,8 @@
+
+ const messages = defineMessages({
+   placeholder: { id: 'compose_form.placeholder', defaultMessage: 'What is on your mind?' },
++  markdownPlaceholder: { id: 'compose_form.markdown_placeholder', defaultMessage: 'Write your post in Markdown.' },
++  htmlPlaceholder: { id: 'compose_form.html_placeholder', defaultMessage: 'Write your post in HTML.' },
+   spoiler_placeholder: { id: 'compose_form.spoiler_placeholder', defaultMessage: 'Content warning (optional)' },
+   publish: { id: 'compose_form.publish', defaultMessage: 'Post' },
+   saveChanges: { id: 'compose_form.save_changes', defaultMessage: 'Update' },
+@@ -47,6 +50,7 @@
+   static propTypes = {
+     intl: PropTypes.object.isRequired,
+     text: PropTypes.string.isRequired,
++    format: PropTypes.string.isRequired,
+     suggestions: ImmutablePropTypes.list,
+     spoiler: PropTypes.bool,
+     privacy: PropTypes.string,
+@@ -269,6 +273,7 @@
+           <div className='compose-form__dropdowns'>
+             <VisibilityButton disabled={this.props.isEditing} />
+             <LanguageDropdown />
++            <WxwFormatSelect />
+           </div>
+
+           {this.props.spoiler && (
+@@ -299,7 +304,7 @@
+
+           <AutosuggestTextarea
+             ref={this.textareaRef}
+-            placeholder={intl.formatMessage(messages.placeholder)}
++            placeholder={intl.formatMessage(this.props.format === 'markdown' ? messages.markdownPlaceholder : this.props.format === 'html' ? messages.htmlPlaceholder : messages.placeholder)}
+             disabled={isSubmitting}
+             value={this.props.text}
+             onChange={this.handleChange}
+--- a/app/javascript/mastodon/features/compose/containers/compose_form_container.js
++++ b/app/javascript/mastodon/features/compose/containers/compose_form_container.js
+@@ -37,6 +37,7 @@
+
+ const mapStateToProps = state => ({
+   text: state.getIn(['compose', 'text']),
++  format: state.getIn(['compose', 'format']),
+   suggestions: state.getIn(['compose', 'suggestions']),
+   spoiler: state.getIn(['compose', 'spoiler']),
+   spoilerText: state.getIn(['compose', 'spoiler_text']),
+--- a/app/javascript/mastodon/locales/en.json
++++ b/app/javascript/mastodon/locales/en.json
+@@ -492,6 +492,10 @@
+   "community.column_settings.media_only": "Media Only",
+   "community.column_settings.remote_only": "Remote only",
+   "compose.error.blank_post": "Post can't be blank.",
++  "compose.format": "Post format",
++  "compose.format.plain": "Plain text",
++  "compose.format.html": "HTML",
++  "compose.format.markdown": "Markdown",
+   "compose.language.change": "Change language",
+   "compose.language.search": "Search languages...",
+   "compose.published.body": "Post published.",
+@@ -512,6 +516,8 @@
+   "compose_form.poll.type": "Style",
+   "compose_form.publish": "Post",
+   "compose_form.reply": "Reply",
++  "compose_form.markdown_placeholder": "Write your post in Markdown.",
++  "compose_form.html_placeholder": "Write your post in HTML.",
+   "compose_form.save_changes": "Update",
+   "compose_form.spoiler.marked": "Remove content warning",
+   "compose_form.spoiler.unmarked": "Add content warning",
+--- a/app/javascript/mastodon/locales/ja.json
++++ b/app/javascript/mastodon/locales/ja.json
+@@ -290,6 +290,10 @@
+   "community.column_settings.local_only": "ローカルのみ表示",
+   "community.column_settings.media_only": "メディアのみ表示",
+   "community.column_settings.remote_only": "リモートのみ表示",
++  "compose.format": "投稿形式",
++  "compose.format.plain": "プレーンテキスト",
++  "compose.format.html": "HTML",
++  "compose.format.markdown": "Markdown",
+   "compose.language.change": "言語を変更",
+   "compose.language.search": "言語を検索...",
+   "compose.published.body": "投稿されました！",
+@@ -310,6 +314,8 @@
+   "compose_form.poll.type": "スタイル",
+   "compose_form.publish": "投稿",
+   "compose_form.reply": "返信",
++  "compose_form.markdown_placeholder": "Markdown で投稿を入力してください。",
++  "compose_form.html_placeholder": "HTML で投稿を入力してください。",
+   "compose_form.save_changes": "更新",
+   "compose_form.spoiler.marked": "本文は警告の後ろに隠されます",
+   "compose_form.spoiler.unmarked": "本文は隠されていません",
+--- a/app/javascript/mastodon/locales/zh-CN.json
++++ b/app/javascript/mastodon/locales/zh-CN.json
+@@ -492,6 +492,10 @@
+   "community.column_settings.media_only": "仅媒体",
+   "community.column_settings.remote_only": "仅外站",
+   "compose.error.blank_post": "嘟文内容不能为空。",
++  "compose.format": "嘟文格式",
++  "compose.format.plain": "纯文本",
++  "compose.format.html": "HTML",
++  "compose.format.markdown": "Markdown",
+   "compose.language.change": "更改语言",
+   "compose.language.search": "搜索语言...",
+   "compose.published.body": "嘟文已发布。",
+@@ -512,6 +516,8 @@
+   "compose_form.poll.type": "类型",
+   "compose_form.publish": "发布",
+   "compose_form.reply": "回复",
++  "compose_form.markdown_placeholder": "使用 Markdown 编写嘟文。",
++  "compose_form.html_placeholder": "使用 HTML 编写嘟文。",
+   "compose_form.save_changes": "更改",
+   "compose_form.spoiler.marked": "移除内容警告",
+   "compose_form.spoiler.unmarked": "添加内容警告",
+--- a/app/javascript/mastodon/locales/zh-HK.json
++++ b/app/javascript/mastodon/locales/zh-HK.json
+@@ -222,6 +222,10 @@
+   "community.column_settings.local_only": "只顯示本站",
+   "community.column_settings.media_only": "只顯示多媒體",
+   "community.column_settings.remote_only": "只顯示外站",
++  "compose.format": "嘟文格式",
++  "compose.format.plain": "純文字",
++  "compose.format.html": "HTML",
++  "compose.format.markdown": "Markdown",
+   "compose.language.change": "更改語言",
+   "compose.language.search": "搜尋語言...",
+   "compose.published.body": "已發佈帖子",
+@@ -242,6 +246,8 @@
+   "compose_form.poll.type": "風格",
+   "compose_form.publish": "發佈",
+   "compose_form.reply": "回覆",
++  "compose_form.markdown_placeholder": "使用 Markdown 撰寫嘟文。",
++  "compose_form.html_placeholder": "使用 HTML 撰寫嘟文。",
+   "compose_form.save_changes": "更新",
+   "compose_form.spoiler.marked": "文字被警告隱藏",
+   "compose_form.spoiler.unmarked": "文字沒有被隱藏",
+--- a/app/javascript/mastodon/locales/zh-TW.json
++++ b/app/javascript/mastodon/locales/zh-TW.json
+@@ -492,6 +492,10 @@
+   "community.column_settings.media_only": "僅顯示媒體",
+   "community.column_settings.remote_only": "僅顯示遠端",
+   "compose.error.blank_post": "嘟文無法為空白。",
++  "compose.format": "嘟文格式",
++  "compose.format.plain": "純文字",
++  "compose.format.html": "HTML",
++  "compose.format.markdown": "Markdown",
+   "compose.language.change": "變更語言",
+   "compose.language.search": "搜尋語言...",
+   "compose.published.body": "發嘟成功。",
+@@ -512,6 +516,8 @@
+   "compose_form.poll.type": "投票方式",
+   "compose_form.publish": "發嘟",
+   "compose_form.reply": "回覆",
++  "compose_form.markdown_placeholder": "使用 Markdown 撰寫嘟文。",
++  "compose_form.html_placeholder": "使用 HTML 撰寫嘟文。",
+   "compose_form.save_changes": "更新",
+   "compose_form.spoiler.marked": "移除內容警告",
+   "compose_form.spoiler.unmarked": "新增內容警告",
+--- a/app/javascript/mastodon/reducers/compose.js
++++ b/app/javascript/mastodon/reducers/compose.js
+@@ -16,6 +16,7 @@
+   COMPOSE_MOUNT,
+   COMPOSE_UNMOUNT,
+   COMPOSE_CHANGE,
++  COMPOSE_FORMAT_CHANGE,
+   COMPOSE_REPLY,
+   COMPOSE_REPLY_CANCEL,
+   COMPOSE_DIRECT,
+@@ -56,8 +57,8 @@
+ } from '../actions/compose';
+ import { REDRAFT } from '../actions/statuses';
+ import { STORE_HYDRATE } from '../actions/store';
++import { wxwFormatFromSource } from '../features/compose/util/wxw_format';
+ import { me } from '../initial_state';
+-import { unescapeHTML } from '../utils/html';
+ import { uuid } from '../uuid';
+
+ const initialState = ImmutableMap({
+@@ -69,5 +70,7 @@
+   id: null,
+   text: '',
++  format: 'plain',
++  default_format: 'plain',
+   focusDate: null,
+   caretPosition: null,
+   preselectDate: null,
+@@ -120,6 +123,7 @@
+   return state.withMutations(map => {
+     map.set('id', null);
+     map.set('text', '');
++    map.set('format', state.get('default_format'));
+     map.set('spoiler', false);
+     map.set('spoiler_text', '');
+     map.set('is_submitting', false);
+@@ -248,17 +252,5 @@
+ };
+
+-const domParser = new DOMParser();
+-
+-const expandMentions = status => {
+-  const fragment = domParser.parseFromString(status.get('content'), 'text/html').documentElement;
+-
+-  status.get('mentions').forEach(mention => {
+-    fragment.querySelector(`a[href="${mention.get('url')}"]`).textContent = `@${mention.get('acct')}`;
+-  });
+-
+-  return fragment.innerHTML;
+-};
+-
+ const expiresInFromExpiresAt = expires_at => {
+   if (!expires_at) return 24 * 3600;
+   const delta = (new Date(expires_at).getTime() - Date.now()) / 1000;
+@@ -413,6 +405,12 @@
+     return state
+       .set('spoiler_text', action.text)
+       .set('idempotencyKey', uuid());
++  case COMPOSE_FORMAT_CHANGE:
++    if (state.get('format') === action.format) return state;
++
++    return state
++      .set('format', action.format)
++      .set('idempotencyKey', uuid());
+   case COMPOSE_CHANGE:
+     return state
+       .set('text', action.text)
+@@ -426,2 +424,3 @@
+       map.set('text', statusToTextMentions(state, action.status));
++      map.set('format', state.get('default_format'));
+       map.set('privacy', privacyPreference(action.status.get('visibility'), state.get('default_privacy')));
+@@ -533,3 +532,3 @@
+     return state.withMutations(map => {
+-      map.set('text', action.raw_text || unescapeHTML(expandMentions(action.status)));
++      map.merge(wxwFormatFromSource(action.raw_text, action.content_type));
+       map.set('in_reply_to', action.status.get('in_reply_to_id'));
+@@ -571,3 +570,3 @@
+       map.set('id', action.status.get('id'));
+-      map.set('text', action.text);
++      map.merge(wxwFormatFromSource(action.text, action.content_type));
+       map.set('in_reply_to', action.status.get('in_reply_to_id'));
+--- a/app/lib/antispam.rb
++++ b/app/lib/antispam.rb
+@@ -86,6 +86,6 @@
+   end
+
+   def status_text
+-    @status_text ||= @status.text.unicode_normalize(:nfkc).downcase
++    @status_text ||= Wxw::HtmlFormatter.for_status(@status).antispam_text.unicode_normalize(:nfkc).downcase
+   end
+ end
+--- a/app/mailers/email_subscription_mailer.rb
++++ b/app/mailers/email_subscription_mailer.rb
+@@ -30,7 +30,7 @@
+     @statuses = statuses
+
+     I18n.with_locale(locale) do
+-      mail subject: I18n.t(@statuses.size == 1 ? 'singular' : 'plural', scope: 'email_subscription_mailer.notification.subject', name: @subscription.account.display_name, excerpt: @statuses.first.text.truncate(17))
++      mail subject: I18n.t(@statuses.size == 1 ? 'singular' : 'plural', scope: 'email_subscription_mailer.notification.subject', name: @subscription.account.display_name, excerpt: FormattingHelper.extract_status_plain_text(@statuses.first).truncate(17))
+     end
+   end
+
+--- a/app/models/status.rb
++++ b/app/models/status.rb
+@@ -38,1 +38,3 @@
++  include Wxw::StatusFormatConcern
++  prepend Wxw::StatusFormatSnapshotConcern
+   include Cacheable
+@@ -125,6 +125,7 @@
+   validates :uri, uniqueness: true, presence: true, unless: :local?
+   validates :text, presence: true, unless: -> { with_media? || reblog? || with_quote? }
+   validates_with StatusLengthValidator
++  validates_with Wxw::StatusContentValidator
+   validates_with DisallowedHashtagsValidator
+   validates :reblog, uniqueness: { scope: :account }, if: :reblog?
+
+--- a/app/models/status_edit.rb
++++ b/app/models/status_edit.rb
+@@ -24,1 +24,2 @@
++  include Wxw::StatusFormatConcern
+   include RateLimitable
+--- a/app/models/user_settings.rb
++++ b/app/models/user_settings.rb
+@@ -12,6 +12,7 @@
+   setting :theme, default: -> { ::Setting.theme }
+   setting :noindex, default: -> { ::Setting.noindex }
+   setting :show_application, default: true
++  setting :wxw_default_post_format, default: 'plain', in: %w(plain markdown html)
+   setting :default_language, default: nil
+   setting :default_sensitive, default: false
+   setting :default_privacy, default: nil, in: %w(public unlisted private)
+--- a/app/models/wxw_status_setting.rb
++++ b/app/models/wxw_status_setting.rb
+@@ -9,1 +9,2 @@
++  include Wxw::StatusFormatSettingConcern
+   validate :supported_settings
+--- a/app/serializers/initial_state_serializer.rb
++++ b/app/serializers/initial_state_serializer.rb
+@@ -53,6 +53,7 @@
+
+     if object.current_account
+       store[:me]                = object.current_account.id.to_s
++      store[:default_format]    = object_account_user.settings['wxw_default_post_format']
+       store[:default_privacy]   = object.visibility || object_account_user.setting_default_privacy
+       store[:default_sensitive] = object_account_user.setting_default_sensitive
+       store[:default_language]  = object_account_user.preferred_posting_language
+--- a/app/serializers/rest/instance_serializer.rb
++++ b/app/serializers/rest/instance_serializer.rb
+@@ -86,6 +86,7 @@
+         max_characters: StatusLengthValidator::MAX_CHARS,
+         max_media_attachments: Status::MEDIA_ATTACHMENTS_LIMIT,
+         characters_reserved_per_url: StatusLengthValidator::URL_PLACEHOLDER_CHARS,
++        supported_mime_types: Wxw::PostFormat::CONTENT_TYPES.values,
+       },
+
+       media_attachments: {
+--- a/app/serializers/rest/v1/instance_serializer.rb
++++ b/app/serializers/rest/v1/instance_serializer.rb
+@@ -58,6 +58,7 @@
+         max_characters: StatusLengthValidator::MAX_CHARS,
+         max_media_attachments: Status::MEDIA_ATTACHMENTS_LIMIT,
+         characters_reserved_per_url: StatusLengthValidator::URL_PLACEHOLDER_CHARS,
++        supported_mime_types: Wxw::PostFormat::CONTENT_TYPES.values,
+       },
+
+       media_attachments: {
+--- a/app/serializers/rest/status_serializer.rb
++++ b/app/serializers/rest/status_serializer.rb
+@@ -19,6 +19,7 @@
+
+   attribute :content, unless: :source_requested?
+   attribute :text, if: :source_requested?
++  attribute :content_type, if: :source_requested?
+
+   belongs_to :reblog, serializer: REST::StatusSerializer
+   belongs_to :application, if: :show_application?
+@@ -84,6 +85,10 @@
+     ActivityPub::TagManager.instance.uri_for(object)
+   end
+
++  def content_type
++    object.wxw_content_type
++  end
++
+   def content
+     status_content_format(object)
+   end
+--- a/app/serializers/rest/status_source_serializer.rb
++++ b/app/serializers/rest/status_source_serializer.rb
+@@ -4,2 +4,7 @@
+   attributes :id, :text, :spoiler_text
++  attribute :content_type
++
++  def content_type
++    object.wxw_content_type
++  end
+
+--- a/app/serializers/web/notification_serializer.rb
++++ b/app/serializers/web/notification_serializer.rb
+@@ -33,7 +33,12 @@
+   end
+
+   def body
+-    str = strip_tags(object.target_status&.spoiler_text.presence || object.target_status&.text || object.from_account.note)
++    status = object.target_status
++    if status&.local? && status.spoiler_text.blank? && Wxw::HtmlFormatter.for_status(status).rich?
++      return truncate(FormattingHelper.extract_status_plain_text(status), length: 140, escape: false)
++    end
++
++    str = strip_tags(status&.spoiler_text.presence || status&.text || object.from_account.note)
+     truncate(HTMLEntities.new.decode(str.to_str), length: 140, escape: false) # Do not encode entities, since this value will not be used in HTML
+   end
+ end
+--- a/app/services/fetch_link_card_service.rb
++++ b/app/services/fetch_link_card_service.rb
+@@ -78,7 +78,7 @@
+
+   def parse_urls
+     urls = if @status.local?
+-             @status.text.scan(URL_PATTERN).map { |array| Addressable::URI.parse(array[1]).normalize }
++             Wxw::HtmlFormatter.for_status(@status).urls
+            else
+              document = Nokogiri::HTML5(@status.text)
+              links = document.css('a')
+--- a/app/services/post_status_service.rb
++++ b/app/services/post_status_service.rb
+@@ -71,7 +71,13 @@
+
+   def preprocess_attributes!
+     @sensitive    = (@options[:sensitive].nil? ? @account.user&.setting_default_sensitive : @options[:sensitive]) || @options[:spoiler_text].present?
+-    @text         = @options.delete(:spoiler_text) if @text.blank? && @options[:spoiler_text].present? && @quoted_status.blank?
++
++    if @text.blank? && @options[:spoiler_text].present? && @quoted_status.blank?
++      @text = @options.delete(:spoiler_text)
++      @options[:content_type] = 'text/plain'
++      @options[:sensitive] = @sensitive
++    end
++
+     @visibility   = @options[:visibility] || @account.user&.setting_default_privacy
+     @visibility   = :unlisted if @visibility&.to_sym == :public && @account.silenced?
+     @visibility   = :private if @quoted_status&.private_visibility? && %i(public unlisted).include?(@visibility&.to_sym)
+@@ -258,6 +264,7 @@
+   def status_attributes
+     {
+       text: @text,
++      wxw_content_type: @options[:content_type],
+       media_attachments: @media || [],
+       ordered_media_attachment_ids: (@options[:media_ids] || []).map(&:to_i) & @media.map(&:id),
+       thread: @in_reply_to,
+@@ -294,6 +301,7 @@
+       options_hash[:scheduled_at]    = nil
+       options_hash[:idempotency]     = nil
+       options_hash[:with_rate_limit] = false
++      options_hash[:text] = @text
+     end
+   end
+ end
+--- a/app/services/process_hashtags_service.rb
++++ b/app/services/process_hashtags_service.rb
+@@ -4,7 +4,7 @@
+   def call(status, raw_tags = [])
+     @status        = status
+     @account       = status.account
+-    @raw_tags      = status.local? ? Extractor.extract_hashtags(status.text) : raw_tags
++    @raw_tags      = status.local? ? Extractor.extract_hashtags(Wxw::HtmlFormatter.for_status(status).entity_text) : raw_tags
+     @previous_tags = status.tags.to_a
+     @current_tags  = []
+
+--- a/app/services/process_links_service.rb
++++ b/app/services/process_links_service.rb
+@@ -21,7 +21,7 @@
+   private
+
+   def scan_text!
+-    urls = @status.text.scan(FetchLinkCardService::URL_PATTERN).map { |array| Addressable::URI.parse(array[1]).normalize }
++    urls = Wxw::HtmlFormatter.for_status(@status).urls
+
+     domains = urls.map(&:host).uniq
+     valid_domains = Instance.searchable.where(domain: domains).pluck(:domain)
+--- a/app/services/process_mentions_service.rb
++++ b/app/services/process_mentions_service.rb
+@@ -23,8 +23,8 @@
+   private
+
+   def scan_text!
+-    @status.text = @status.text.gsub(Account::MENTION_RE) do |match|
+-      username, domain = Regexp.last_match(1).split('@')
++    @status.text = Wxw::HtmlFormatter.for_status(@status).rewrite_mentions do |match, acct|
++      username, domain = acct.split('@')
+
+       domain = if TagManager.instance.local_domain?(domain)
+                  nil
+@@ -41,7 +41,7 @@
+       # first try to resolve it
+       if mention_undeliverable?(mentioned_account)
+         begin
+-          mentioned_account = ResolveAccountService.new.call(Regexp.last_match(1))
++          mentioned_account = ResolveAccountService.new.call(acct)
+         rescue Webfinger::Error, *Mastodon::HTTP_CONNECTION_ERRORS, Mastodon::UnexpectedResponseError
+           mentioned_account = nil
+         end
+--- a/app/services/update_status_service.rb
++++ b/app/services/update_status_service.rb
+@@ -111,14 +111,17 @@
+   end
+
+   def update_immediate_attributes!
++    @status.wxw_content_type = @options[:content_type] if @options.key?(:content_type)
+     if @options.key?(:text)
+       @status.text = @options[:text].presence || ''
+-      @status.text = @options.delete(:spoiler_text) || '' if @status.text.blank? && @status.quote.blank?
++      @status.text = @options.delete(:spoiler_text) || '' if @status.text.blank? && @status.quote.blank? && @status.wxw_content_type == 'text/plain'
+     end
+     @status.spoiler_text = @options[:spoiler_text] || '' if @options.key?(:spoiler_text)
+     @status.sensitive    = @options[:sensitive] || @options[:spoiler_text].present? if @options.key?(:sensitive) || @options.key?(:spoiler_text)
+     @status.language     = valid_locale_cascade(@options[:language], @status.language, @status.account.user&.preferred_posting_language, I18n.default_locale)
+     @status.quote_approval_policy = @options[:quote_approval_policy] if @options[:quote_approval_policy].present?
++
++    @status.text_will_change! if @status.wxw_content_type_changed?
+
+     # We raise here to rollback the entire transaction
+     raise NoChangesSubmittedError unless significant_changes?
+--- a/app/validators/disallowed_hashtags_validator.rb
++++ b/app/validators/disallowed_hashtags_validator.rb
+@@ -4,7 +4,7 @@
+   def validate(status)
+     return unless status.local? && !status.reblog?
+
+-    disallowed_hashtags = Tag.matching_name(Extractor.extract_hashtags(status.text)).reject(&:usable?)
++    disallowed_hashtags = Tag.matching_name(Extractor.extract_hashtags(Wxw::HtmlFormatter.for_status(status).entity_text)).reject(&:usable?)
+     status.errors.add(:text, I18n.t('statuses.disallowed_hashtags', tags: disallowed_hashtags.map(&:name).join(', '), count: disallowed_hashtags.size)) unless disallowed_hashtags.empty?
+   end
+ end
+--- a/app/validators/status_length_validator.rb
++++ b/app/validators/status_length_validator.rb
+@@ -7,6 +7,7 @@
+
+   def validate(status)
+     return unless status.local? && !status.reblog?
++    return if Wxw::HtmlFormatter.for_status(status).rich?
+
+     status.errors.add(:text, I18n.t('statuses.over_character_limit', max: MAX_CHARS)) if too_long?(status)
+   end
+--- a/app/views/email_subscription_mailer/notification.text.erb
++++ b/app/views/email_subscription_mailer/notification.text.erb
+@@ -1,4 +1,4 @@
+-<%= t @statuses.size == 1 ? 'singular' : 'plural', scope: 'email_subscription_mailer.notification.title', name: display_name(@subscription.account), excerpt: truncate(@statuses.first.text, length: 17) %>
++<%= t @statuses.size == 1 ? 'singular' : 'plural', scope: 'email_subscription_mailer.notification.title', name: display_name(@subscription.account), excerpt: truncate(FormattingHelper.extract_status_plain_text(@statuses.first), length: 17, escape: false) %>
+
+ ===
+
+--- a/app/views/settings/preferences/posting_defaults/show.html.haml
++++ b/app/views/settings/preferences/posting_defaults/show.html.haml
+@@ -45,6 +45,8 @@
+                  required: false,
+                  wrapper: :with_label
+
++    = render 'settings/preferences/posting_defaults/wxw_post_format', form: ff
++
+     .fields-group
+       = ff.input :default_sensitive,
+                  hint: I18n.t('simple_form.hints.defaults.setting_default_sensitive'),
+--- a/app/views/statuses/show.html.haml
++++ b/app/views/statuses/show.html.haml
+@@ -1,4 +1,4 @@
+-- content_for :page_title, t('statuses.title', name: display_name(@account), quote: truncate(@status.spoiler_text.presence || @status.text, length: 50, omission: '…', escape: false))
++- content_for :page_title, t('statuses.title', name: display_name(@account), quote: truncate(@status.spoiler_text.presence || extract_status_plain_text(@status), length: 50, omission: '…', escape: false))
+
+ - content_for :header_tags do
+   - if @account.user_prefers_noindex?
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -1491,2 +1491,3 @@
+     t.check_constraint "jsonb_typeof(settings) = 'object' AND settings <> '{}'::jsonb", name: "wxw_status_settings_object"
++    t.check_constraint "NOT (settings ? 'text_type') OR settings->'text_type' IN ('\"markdown\"'::jsonb, '\"html\"'::jsonb)", name: "wxw_status_settings_text_type"
+   end
+--- a/spec/requests/api/v1/statuses/sources_spec.rb
++++ b/spec/requests/api/v1/statuses/sources_spec.rb
+@@ -29,4 +29,5 @@
+           text: status.text,
+           spoiler_text: status.spoiler_text,
++          content_type: 'text/plain',
+         })
+       end
+@@ -62,4 +63,5 @@
+           text: status.text,
+           spoiler_text: status.spoiler_text,
++          content_type: 'text/plain',
+         })
+       end

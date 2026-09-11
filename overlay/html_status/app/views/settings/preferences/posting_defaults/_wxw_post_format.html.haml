@@ -1,0 +1,10 @@
+.fields-group
+  = form.input :wxw_default_post_format,
+               collection: user_settings_collection('wxw_default_post_format'),
+               selected: form.object.wxw_default_post_format,
+               include_blank: false,
+               label_method: ->(format) { I18n.t("wxw_post_format.formats.#{format}") },
+               label: t('wxw_post_format.label'),
+               hint: t('wxw_post_format.hint'),
+               required: false,
+               wrapper: :with_label

@@ -1,0 +1,44 @@
+en:
+  wxw_post_format:
+    label: Posting format
+    hint: Sets the editor's initial format and the format used by API posts that do not specify one.
+    formats:
+      plain: Plain text
+      markdown: Markdown
+      html: HTML
+
+ja:
+  wxw_post_format:
+    label: 投稿形式
+    hint: エディターの初期形式と、形式を指定しない API 投稿に使う形式を設定します。
+    formats:
+      plain: プレーンテキスト
+      markdown: Markdown
+      html: HTML
+
+zh-CN:
+  wxw_post_format:
+    label: 发布格式
+    hint: 设置编辑器的初始格式，以及 API 发布时未指定格式所使用的格式。
+    formats:
+      plain: 纯文本
+      markdown: Markdown
+      html: HTML
+
+zh-HK:
+  wxw_post_format:
+    label: 發佈格式
+    hint: 設定編輯器的初始格式，以及 API 發佈時未指定格式所使用的格式。
+    formats:
+      plain: 純文字
+      markdown: Markdown
+      html: HTML
+
+zh-TW:
+  wxw_post_format:
+    label: 發佈格式
+    hint: 設定編輯器的初始格式，以及 API 發佈時未指定格式所使用的格式。
+    formats:
+      plain: 純文字
+      markdown: Markdown
+      html: HTML

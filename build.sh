@@ -28,15 +28,15 @@ while read -r patch _; do
 done << 'WXW.MOE MASTODON PATCHES'
 replace_icons                                 # 替换图标文件
 status_limit                                  # 修改字数上限
-regexp_timeout                                # 放宽正则超时
-extractor_timeout_fallback                    # 兜底正则超时
+status_regexp_timeout                         # 修复正则超时
+reply_autosuggest                             # 修复回复建议
 poll_limit                                    # 修改投票上限
 media_limits                                  # 修改媒体上限
 install_themes                                # 安装站点主题
 custom_emoji_preview                          # 安装表情预览
 custom_emoji_packs                            # 安装表情选单
 status_settings                               # 安装嘟文扩展
-reply_autosuggest                             # 修复回复建议
+html_status                                   # 支持富文本嘟文
 streaming_media_hosts                         # 替换媒体资源网址
 registration_reason_dedup                     # 拦截重复注册理由
 navigation_entry                              # 替换当前热门入口
