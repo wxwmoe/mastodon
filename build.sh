@@ -35,6 +35,7 @@ media_limits                                  # 修改媒体上限
 install_themes                                # 安装站点主题
 custom_emoji_preview                          # 安装表情预览
 custom_emoji_packs                            # 安装表情选单
+status_settings                               # 安装嘟文扩展
 reply_autosuggest                             # 修复回复建议
 streaming_media_hosts                         # 替换媒体资源网址
 registration_reason_dedup                     # 拦截重复注册理由

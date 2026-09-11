@@ -1,0 +1,121 @@
+--- a/app/controllers/api/v1/statuses/histories_controller.rb
++++ b/app/controllers/api/v1/statuses/histories_controller.rb
+@@ -11,6 +11,6 @@
+   private
+
+   def status_edits
+-    @status.edits.ordered.includes(:account, status: [:account]).to_a.presence || [@status.build_snapshot(at_time: @status.edited_at || @status.created_at)]
++    @status.edits.ordered.includes(:account, :wxw_status_setting, status: [:account, :wxw_status_setting]).to_a.presence || [@status.build_snapshot(at_time: @status.edited_at || @status.created_at)]
+   end
+ end
+--- a/app/controllers/api/v1/statuses/sources_controller.rb
++++ b/app/controllers/api/v1/statuses/sources_controller.rb
+@@ -1,6 +1,8 @@
+ # frozen_string_literal: true
+
+ class Api::V1::Statuses::SourcesController < Api::V1::Statuses::BaseController
++  prepend Wxw::StatusSourceController
++
+   before_action -> { doorkeeper_authorize! :read, :'read:statuses' }
+
+   def show
+--- a/app/controllers/api/v1/statuses_controller.rb
++++ b/app/controllers/api/v1/statuses_controller.rb
+@@ -53,7 +53,7 @@
+   end
+
+   def update
+-    @status = Status.where(account: current_account).find(params[:id])
++    @status = Status.eager_load(:wxw_status_setting).where(account: current_account).find(params[:id])
+     authorize @status, :update?
+
+     update_options = {
+@@ -74,7 +74,7 @@
+   end
+
+   def destroy
+-    @status = Status.where(account: current_account).find(params[:id])
++    @status = Status.eager_load(:wxw_status_setting).where(account: current_account).find(params[:id])
+     authorize @status, :destroy?
+
+     # JSON is generated before `discard_with_reblogs` in order to have the proper URL
+--- a/app/models/status.rb
++++ b/app/models/status.rb
+@@ -32,6 +32,8 @@
+ #
+
+ class Status < ApplicationRecord
++  include Wxw::StatusSettingsConcern
++
+   include Cacheable
+   include Discard::Model
+   include Paginable
+@@ -47,6 +50,7 @@
+
+   CACHEABLE_ASSOCIATIONS = [
+     :application,
++    :wxw_status_setting,
+     :conversation,
+     :media_attachments,
+     :preloadable_poll,
+@@ -57,5 +61,5 @@
+     tagged_objects: :object,
+     preview_cards_status: { preview_card: { author_account: [:account_stat, user: :role] } },
+-    quote: { status: { account: [:account_stat, user: :role] } },
++    quote: { status: [:wxw_status_setting, account: [:account_stat, user: :role]] },
+   ].freeze
+
+@@ -116,6 +120,7 @@
+   has_one :poll, inverse_of: :status, dependent: :destroy
+   has_one :trend, class_name: 'StatusTrend', inverse_of: :status, dependent: nil
+   has_one :quote, inverse_of: :status, dependent: :destroy
++  has_one :wxw_status_setting, inverse_of: :status, dependent: :delete, autosave: true
+
+   validates :uri, uniqueness: true, presence: true, unless: :local?
+   validates :text, presence: true, unless: -> { with_media? || reblog? || with_quote? }
+--- a/app/models/status_edit.rb
++++ b/app/models/status_edit.rb
+@@ -19,6 +19,7 @@
+ #
+
+ class StatusEdit < ApplicationRecord
++  include Wxw::StatusSettingsConcern
+   include RateLimitable
+
+   class PreservedMediaAttachment < ActiveModelSerializers::Model
+@@ -35,6 +36,7 @@
+
+   belongs_to :status
+   belongs_to :account, optional: true
++  has_one :wxw_status_setting, inverse_of: :status_edit, dependent: :delete, autosave: true
+
+   scope :ordered, -> { order(id: :asc) }
+
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -1477,6 +1477,16 @@
+     t.datetime "updated_at", null: false
+     t.string "url", null: false
+     t.index ["url"], name: "index_webhooks_on_url", unique: true
++  end
++
++  create_table "wxw_status_settings", force: :cascade do |t|
++    t.bigint "status_id"
++    t.bigint "status_edit_id"
++    t.jsonb "settings", default: {}, null: false
++    t.index ["status_id"], name: "index_wxw_status_settings_on_status_id", unique: true, where: "status_id IS NOT NULL"
++    t.index ["status_edit_id"], name: "index_wxw_status_settings_on_status_edit_id", unique: true, where: "status_edit_id IS NOT NULL"
++    t.check_constraint "num_nonnulls(status_id, status_edit_id) = 1", name: "wxw_status_settings_owner"
++    t.check_constraint "jsonb_typeof(settings) = 'object' AND settings <> '{}'::jsonb", name: "wxw_status_settings_object"
+   end
+
+   add_foreign_key "account_aliases", "accounts", on_delete: :cascade
+@@ -1635,6 +1645,8 @@
+   add_foreign_key "web_push_subscriptions", "users", on_delete: :cascade
+   add_foreign_key "web_settings", "users", name: "fk_11910667b2", on_delete: :cascade
+   add_foreign_key "webauthn_credentials", "users", on_delete: :cascade
++  add_foreign_key "wxw_status_settings", "status_edits", on_delete: :cascade
++  add_foreign_key "wxw_status_settings", "statuses", on_delete: :cascade
+
+   create_view "instances", materialized: true, sql_definition: <<-SQL
+       WITH domain_counts(domain, accounts_count) AS (
