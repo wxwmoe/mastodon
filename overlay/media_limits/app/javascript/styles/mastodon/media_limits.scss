@@ -1,0 +1,5 @@
+.compose-form__uploads:has(> .compose-form__upload:nth-child(5)) {
+  aspect-ratio: auto;
+  grid-template-rows: none;
+  grid-auto-rows: 120px;
+}

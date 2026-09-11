@@ -1,0 +1,564 @@
+diff --git a/app/controllers/admin/custom_emojis_controller.rb b/app/controllers/admin/custom_emojis_controller.rb
+--- a/app/controllers/admin/custom_emojis_controller.rb
++++ b/app/controllers/admin/custom_emojis_controller.rb
+@@ -43,6 +43,8 @@ module Admin
+       flash[:alert] = I18n.t('admin.custom_emojis.no_emoji_selected')
+     rescue Mastodon::NotPermittedError
+       flash[:alert] = I18n.t('admin.custom_emojis.not_permitted')
++    rescue ActiveRecord::RecordInvalid => e
++      flash[:alert] = e.message
+     ensure
+       redirect_to admin_custom_emojis_path(filter_params)
+     end
+diff --git a/app/javascript/mastodon/components/status.jsx b/app/javascript/mastodon/components/status.jsx
+--- a/app/javascript/mastodon/components/status.jsx
++++ b/app/javascript/mastodon/components/status.jsx
+@@ -252,7 +252,7 @@ class Status extends ImmutablePureComponent {
+ 
+     if (status.get('media_attachments').size > 0) {
+       const lang = status.getIn(['translation', 'language']) || status.get('language');
+-      if (status.getIn(['media_attachments', 0, 'type']) === 'video') {
++      if (status.get('media_attachments').size === 1 && status.getIn(['media_attachments', 0, 'type']) === 'video') {
+         onOpenVideo(status.get('id'), status.getIn(['media_attachments', 0]), lang, { startTime: 0 });
+       } else {
+         onOpenMedia(status.get('id'), status.get('media_attachments'), 0, lang);
+diff --git a/app/javascript/mastodon/features/account_gallery/index.tsx b/app/javascript/mastodon/features/account_gallery/index.tsx
+--- a/app/javascript/mastodon/features/account_gallery/index.tsx
++++ b/app/javascript/mastodon/features/account_gallery/index.tsx
+@@ -126,8 +126,12 @@ export const AccountGallery: React.FC<{
+     (attachment: MediaAttachment) => {
+       const statusId = attachment.getIn(['status', 'id']);
+       const lang = attachment.getIn(['status', 'language']);
++      const media = attachment.getIn([
++        'status',
++        'media_attachments',
++      ]) as ImmutableList<MediaAttachment>;
+ 
+-      if (attachment.get('type') === 'video') {
++      if (media.size === 1 && attachment.get('type') === 'video') {
+         dispatch(
+           openModal({
+             modalType: 'VIDEO',
+@@ -139,7 +143,7 @@ export const AccountGallery: React.FC<{
+             },
+           }),
+         );
+-      } else if (attachment.get('type') === 'audio') {
++      } else if (media.size === 1 && attachment.get('type') === 'audio') {
+         dispatch(
+           openModal({
+             modalType: 'AUDIO',
+@@ -152,10 +156,6 @@ export const AccountGallery: React.FC<{
+           }),
+         );
+       } else {
+-        const media = attachment.getIn([
+-          'status',
+-          'media_attachments',
+-        ]) as ImmutableList<MediaAttachment>;
+         const index = media.findIndex(
+           (x) => x.get('id') === attachment.get('id'),
+         );
+diff --git a/app/javascript/mastodon/locales/en.json b/app/javascript/mastodon/locales/en.json
+--- a/app/javascript/mastodon/locales/en.json
++++ b/app/javascript/mastodon/locales/en.json
+@@ -896,7 +896,9 @@
+   "lists.show_replies_to": "Include replies from list members to",
+   "load_pending": "{count, plural, one {# new item} other {# new items}}",
+   "loading_indicator.label": "Loading…",
++  "media_gallery.audio": "Audio",
+   "media_gallery.hide": "Hide",
++  "media_gallery.show_more": "Show {count} more attachments",
+   "moved_to_account_banner.text": "Your account {disabledAccount} is currently disabled because you moved to {movedToAccount}.",
+   "mute_modal.hide_from_notifications": "Hide from notifications",
+   "mute_modal.hide_options": "Hide options",
+@@ -1360,6 +1362,7 @@
+   "upload_form.drag_and_drop.on_drag_over": "Media attachment {item} was moved.",
+   "upload_form.drag_and_drop.on_drag_start": "Picked up media attachment {item}.",
+   "upload_form.edit": "Edit",
++  "upload_form.federation_limit": "Other servers may only show the first 4 attachments.",
+   "upload_progress.label": "Uploading...",
+   "upload_progress.processing": "Processing…",
+   "username.taken": "That username is taken. Try another",
+diff --git a/app/javascript/mastodon/locales/ja.json b/app/javascript/mastodon/locales/ja.json
+--- a/app/javascript/mastodon/locales/ja.json
++++ b/app/javascript/mastodon/locales/ja.json
+@@ -618,7 +618,9 @@
+   "lists.show_replies_to": "メンバーの返信投稿の表示基準",
+   "load_pending": "{count}件の新着",
+   "loading_indicator.label": "読み込み中…",
++  "media_gallery.audio": "音声",
+   "media_gallery.hide": "隠す",
++  "media_gallery.show_more": "残り {count} 件の添付ファイルを表示",
+   "moved_to_account_banner.text": "あなたのアカウント『{disabledAccount}』は『{movedToAccount}』に移動したため現在無効になっています。",
+   "mute_modal.hide_from_notifications": "通知をオフにする",
+   "mute_modal.hide_options": "オプションを閉じる",
+@@ -1026,6 +1028,7 @@
+   "upload_form.drag_and_drop.on_drag_over": "メディア添付ファイル {item} が移動されました。",
+   "upload_form.drag_and_drop.on_drag_start": "メディア添付ファイル {item} を選択しました。",
+   "upload_form.edit": "編集",
++  "upload_form.federation_limit": "他のサーバーでは、最初の4件の添付ファイルのみ表示される場合があります。",
+   "upload_progress.label": "アップロード中...",
+   "upload_progress.processing": "処理中…",
+   "username.taken": "このユーザー名はすでに使用されています。ほかのユーザー名を入力してください",
+diff --git a/app/javascript/mastodon/locales/zh-CN.json b/app/javascript/mastodon/locales/zh-CN.json
+--- a/app/javascript/mastodon/locales/zh-CN.json
++++ b/app/javascript/mastodon/locales/zh-CN.json
+@@ -896,7 +896,9 @@
+   "lists.show_replies_to": "列表成员回复的显示范围",
+   "load_pending": "{count} 项",
+   "loading_indicator.label": "加载中…",
++  "media_gallery.audio": "音频",
+   "media_gallery.hide": "隐藏",
++  "media_gallery.show_more": "查看其余 {count} 个附件",
+   "moved_to_account_banner.text": "你的账号 {disabledAccount} 已禁用，因为你已迁移到 {movedToAccount}。",
+   "mute_modal.hide_from_notifications": "从通知中隐藏",
+   "mute_modal.hide_options": "隐藏选项",
+@@ -1360,6 +1362,7 @@
+   "upload_form.drag_and_drop.on_drag_over": "媒体附件 {item} 已被移动。",
+   "upload_form.drag_and_drop.on_drag_start": "已选中媒体附件 {item}。",
+   "upload_form.edit": "编辑",
++  "upload_form.federation_limit": "其他服务器可能只显示前 4 个附件。",
+   "upload_progress.label": "上传中…",
+   "upload_progress.processing": "正在处理…",
+   "username.taken": "此用户名已被占用。请换用其他用户名",
+diff --git a/app/javascript/mastodon/locales/zh-HK.json b/app/javascript/mastodon/locales/zh-HK.json
+--- a/app/javascript/mastodon/locales/zh-HK.json
++++ b/app/javascript/mastodon/locales/zh-HK.json
+@@ -477,7 +477,9 @@
+   "lists.search": "搜尋",
+   "load_pending": "{count, plural, other {# 個新項目}}",
+   "loading_indicator.label": "載入中…",
++  "media_gallery.audio": "音訊",
+   "media_gallery.hide": "隱藏",
++  "media_gallery.show_more": "查看其餘 {count} 個附件",
+   "moved_to_account_banner.text": "您的帳號 {disabledAccount} 目前已停用，因為您已搬家至 {movedToAccount}。",
+   "mute_modal.hide_from_notifications": "隱藏通知",
+   "mute_modal.hide_options": "隱藏選項",
+@@ -788,6 +790,7 @@
+   "upload_error.limit": "已達到檔案上傳限制。",
+   "upload_error.poll": "不允許在投票上傳檔案。",
+   "upload_form.edit": "編輯",
++  "upload_form.federation_limit": "其他伺服器可能只會顯示首 4 個附件。",
+   "upload_progress.label": "上載中……",
+   "upload_progress.processing": "處理中...",
+   "username.taken": "這個使用者名稱已被使用。試試另一個",
+diff --git a/app/javascript/mastodon/locales/zh-TW.json b/app/javascript/mastodon/locales/zh-TW.json
+--- a/app/javascript/mastodon/locales/zh-TW.json
++++ b/app/javascript/mastodon/locales/zh-TW.json
+@@ -896,7 +896,9 @@
+   "lists.show_replies_to": "包含來自列表成員的回覆至",
+   "load_pending": "{count, plural, other {# 個新項目}}",
+   "loading_indicator.label": "正在載入...",
++  "media_gallery.audio": "音訊",
+   "media_gallery.hide": "隱藏",
++  "media_gallery.show_more": "查看其餘 {count} 個附件",
+   "moved_to_account_banner.text": "您的帳號 {disabledAccount} 目前已停用，因為您已搬家至 {movedToAccount}。",
+   "mute_modal.hide_from_notifications": "於推播通知中隱藏",
+   "mute_modal.hide_options": "隱藏選項",
+@@ -1360,6 +1362,7 @@
+   "upload_form.drag_and_drop.on_drag_over": "多媒體附加檔案 {item} 已被移動。",
+   "upload_form.drag_and_drop.on_drag_start": "多媒體附加檔案 {item} 已被選取。",
+   "upload_form.edit": "編輯",
++  "upload_form.federation_limit": "其他伺服器可能只會顯示前 4 個附件。",
+   "upload_progress.label": "上傳中...",
+   "upload_progress.processing": "處理中...",
+   "username.taken": "這個帳號已經被註冊過囉。請嘗試其他帳號",
+diff --git a/app/models/concerns/account/avatar.rb b/app/models/concerns/account/avatar.rb
+--- a/app/models/concerns/account/avatar.rb
++++ b/app/models/concerns/account/avatar.rb
+@@ -23,8 +23,8 @@ module Account::Avatar
+     # Avatar upload
+     has_attached_file :avatar, styles: ->(f) { avatar_styles(f) }, convert_options: { all: '+profile "!icc,*" +set date:modify +set date:create +set date:timestamp' }, processors: [:lazy_thumbnail]
+     validates_attachment_content_type :avatar, content_type: AVATAR_IMAGE_MIME_TYPES
+-    validates_attachment_size :avatar, less_than: AVATAR_LIMIT
+-    remotable_attachment :avatar, AVATAR_LIMIT, suppress_errors: false
++    validates_attachment_size :avatar, less_than: ->(account) { Wxw::MediaLimits.account_image_size(account, AVATAR_LIMIT) }
++    remotable_attachment :avatar, Wxw::MediaLimits::REMOTE_ACCOUNT_IMAGE_SIZE, suppress_errors: false
+ 
+     validates :avatar_description, length: { maximum: MAX_DESCRIPTION_LENGTH }, if: -> { local? && will_save_change_to_avatar_description? }
+   end
+diff --git a/app/models/concerns/account/header.rb b/app/models/concerns/account/header.rb
+--- a/app/models/concerns/account/header.rb
++++ b/app/models/concerns/account/header.rb
+@@ -23,8 +23,8 @@ module Account::Header
+     # Header upload
+     has_attached_file :header, styles: ->(f) { header_styles(f) }, convert_options: { all: '+profile "!icc,*" +set date:modify +set date:create +set date:timestamp' }, processors: [:lazy_thumbnail]
+     validates_attachment_content_type :header, content_type: HEADER_IMAGE_MIME_TYPES
+-    validates_attachment_size :header, less_than: HEADER_LIMIT
+-    remotable_attachment :header, HEADER_LIMIT, suppress_errors: false
++    validates_attachment_size :header, less_than: ->(account) { Wxw::MediaLimits.account_image_size(account, HEADER_LIMIT) }
++    remotable_attachment :header, Wxw::MediaLimits::REMOTE_ACCOUNT_IMAGE_SIZE, suppress_errors: false
+ 
+     validates :header_description, length: { maximum: MAX_DESCRIPTION_LENGTH }, if: -> { local? && will_save_change_to_header_description? }
+   end
+diff --git a/app/models/custom_emoji.rb b/app/models/custom_emoji.rb
+--- a/app/models/custom_emoji.rb
++++ b/app/models/custom_emoji.rb
+@@ -46,7 +46,7 @@ class CustomEmoji < ApplicationRecord
+ 
+   normalizes :domain, with: ->(domain) { domain.downcase.strip }
+ 
+-  validates_attachment :image, content_type: { content_type: IMAGE_MIME_TYPES }, presence: true, size: { less_than: LIMIT }
++  validates_attachment :image, content_type: { content_type: IMAGE_MIME_TYPES }, presence: true, size: { less_than: ->(emoji) { Wxw::MediaLimits.emoji_size(emoji) } }
+   validates :shortcode, uniqueness: { scope: :domain }, format: { with: SHORTCODE_ONLY_RE }, length: { minimum: MINIMUM_SHORTCODE_SIZE, maximum: MAX_FEDERATED_SHORTCODE_SIZE }
+   validates :shortcode, length: { maximum: MAX_SHORTCODE_SIZE }, if: :local?
+ 
+@@ -57,7 +57,7 @@ class CustomEmoji < ApplicationRecord
+   scope :by_domain_and_subdomains, ->(domain) { where(domain: domain).or(where(arel_table[:domain].matches("%.#{domain}"))) }
+   scope :listed, -> { local.enabled.where(visible_in_picker: true) }
+ 
+-  remotable_attachment :image, LIMIT
++  remotable_attachment :image, Wxw::MediaLimits::REMOTE_EMOJI_SIZE
+ 
+   after_commit :remove_entity_cache
+ 
+diff --git a/app/models/status.rb b/app/models/status.rb
+--- a/app/models/status.rb
++++ b/app/models/status.rb
+@@ -59,7 +59,7 @@ class Status < ApplicationRecord
+     quote: { status: { account: [:account_stat, user: :role] } },
+   ].freeze
+ 
+-  MEDIA_ATTACHMENTS_LIMIT = 4
++  MEDIA_ATTACHMENTS_LIMIT = 16
+ 
+   rate_limit by: :account, family: :statuses
+ 
+diff --git a/app/views/admin/shared/_status_attachments.html.haml b/app/views/admin/shared/_status_attachments.html.haml
+--- a/app/views/admin/shared/_status_attachments.html.haml
++++ b/app/views/admin/shared/_status_attachments.html.haml
+@@ -18,9 +18,9 @@
+   = render partial: 'admin/shared/preview_card', locals: { preview_card: status.preview_card }
+ 
+ - if status.with_media?
+-  - if status.ordered_media_attachments.first.video?
++  - if status.ordered_media_attachments.size == 1 && status.ordered_media_attachments.first.video?
+     = render_video_component(status, visible: false)
+-  - elsif status.ordered_media_attachments.first.audio?
++  - elsif status.ordered_media_attachments.size == 1 && status.ordered_media_attachments.first.audio?
+     = render_audio_component(status)
+   - else
+     = render_media_gallery_component(status, visible: false)
+diff --git a/app/javascript/styles/application.scss b/app/javascript/styles/application.scss
+--- a/app/javascript/styles/application.scss
++++ b/app/javascript/styles/application.scss
+@@ -15,6 +15,7 @@
+ @use 'mastodon/forms';
+ @use 'mastodon/accounts';
+ @use 'mastodon/components';
++@use 'mastodon/media_limits';
+ @use 'mastodon/polls';
+ @use 'mastodon/modal';
+ @use 'mastodon/emoji_picker';
+diff --git a/app/javascript/mastodon/features/compose/components/upload_form.tsx b/app/javascript/mastodon/features/compose/components/upload_form.tsx
+--- a/app/javascript/mastodon/features/compose/components/upload_form.tsx
++++ b/app/javascript/mastodon/features/compose/components/upload_form.tsx
+@@ -36,6 +36,7 @@ import { useAppSelector, useAppDispatch } from 'mastodon/store';
+ 
+ import { Upload } from './upload';
+ import { UploadProgress } from './upload_progress';
++import { WxwMediaWarning } from './wxw_media_warning';
+ 
+ const messages = defineMessages({
+   screenReaderInstructions: {
+@@ -158,6 +159,8 @@ export const UploadForm: React.FC = () => {
+         isProcessing={isProcessing}
+       />
+ 
++      <WxwMediaWarning count={mediaIds.size} />
++
+       {mediaIds.size > 0 && (
+         <div
+           className={`compose-form__uploads media-gallery media-gallery--layout-${mediaIds.size}`}
+diff --git a/app/javascript/mastodon/components/media_attachments.jsx b/app/javascript/mastodon/components/media_attachments.jsx
+--- a/app/javascript/mastodon/components/media_attachments.jsx
++++ b/app/javascript/mastodon/components/media_attachments.jsx
+@@ -2,13 +2,15 @@ import PropTypes from 'prop-types';
+ 
+ import ImmutablePropTypes from 'react-immutable-proptypes';
+ import ImmutablePureComponent from 'react-immutable-pure-component';
++import { connect } from 'react-redux';
+ 
+ import noop from 'lodash/noop';
+ 
++import { openModal } from 'mastodon/actions/modal';
+ import Bundle from 'mastodon/features/ui/components/bundle';
+ import { MediaGallery, Video, Audio } from 'mastodon/features/ui/util/async-components';
+ 
+-export default class MediaAttachments extends ImmutablePureComponent {
++class MediaAttachments extends ImmutablePureComponent {
+ 
+   static propTypes = {
+     status: ImmutablePropTypes.map.isRequired,
+@@ -16,6 +18,7 @@ export default class MediaAttachments extends ImmutablePureComponent {
+     height: PropTypes.number,
+     width: PropTypes.number,
+     visible: PropTypes.bool,
++    onOpenMedia: PropTypes.func.isRequired,
+   };
+ 
+   static defaultProps = {
+@@ -60,7 +63,7 @@ export default class MediaAttachments extends ImmutablePureComponent {
+       return null;
+     }
+ 
+-    if (mediaAttachments.getIn([0, 'type']) === 'audio') {
++    if (mediaAttachments.size === 1 && mediaAttachments.getIn([0, 'type']) === 'audio') {
+       const audio = mediaAttachments.get(0);
+       const description = audio.getIn(['translation', 'description']) || audio.get('description');
+ 
+@@ -82,7 +85,7 @@ export default class MediaAttachments extends ImmutablePureComponent {
+           )}
+         </Bundle>
+       );
+-    } else if (mediaAttachments.getIn([0, 'type']) === 'video') {
++    } else if (mediaAttachments.size === 1 && mediaAttachments.getIn([0, 'type']) === 'video') {
+       const video = mediaAttachments.get(0);
+       const description = video.getIn(['translation', 'description']) || video.get('description');
+ 
+@@ -117,7 +120,7 @@ export default class MediaAttachments extends ImmutablePureComponent {
+               defaultWidth={width}
+               visible={visible}
+               height={height}
+-              onOpenMedia={noop}
++              onOpenMedia={this.props.onOpenMedia}
+             />
+           )}
+         </Bundle>
+@@ -126,3 +129,7 @@ export default class MediaAttachments extends ImmutablePureComponent {
+   }
+ 
+ }
++
++export default connect(null, {
++  onOpenMedia: (media, index, lang) => openModal({ modalType: 'MEDIA', modalProps: { media, index, lang } }),
++})(MediaAttachments);
+diff --git a/app/javascript/mastodon/components/media_gallery.jsx b/app/javascript/mastodon/components/media_gallery.jsx
+--- a/app/javascript/mastodon/components/media_gallery.jsx
++++ b/app/javascript/mastodon/components/media_gallery.jsx
+@@ -13,6 +13,7 @@ import { debounce } from 'lodash';
+ import { AltTextBadge } from 'mastodon/components/alt_text_badge';
+ import { Blurhash } from 'mastodon/components/blurhash';
+ import { SpoilerButton } from 'mastodon/components/spoiler_button';
++import { WxwMediaThumbnail, WxwMoreMediaButton } from 'mastodon/components/wxw_media_gallery';
+ import { formatTime } from 'mastodon/features/video';
+ 
+ import { autoPlayGif, displayMedia, useBlurhash } from '../initial_state';
+@@ -109,19 +110,7 @@ class Item extends PureComponent {
+       badges.push(<AltTextBadge key='alt' description={description} />);
+     }
+ 
+-    if (attachment.get('type') === 'unknown') {
+-      return (
+-        <div className={classNames('media-gallery__item', { standalone, 'media-gallery__item--tall': height === 100, 'media-gallery__item--wide': width === 100 })} key={attachment.get('id')}>
+-          <a className='media-gallery__item-thumbnail' href={attachment.get('remote_url') || attachment.get('url')} style={{ cursor: 'pointer' }} title={description} lang={lang} target='_blank' rel='noopener'>
+-            <Blurhash
+-              hash={attachment.get('blurhash')}
+-              className='media-gallery__preview'
+-              dummy={!useBlurhash}
+-            />
+-          </a>
+-        </div>
+-      );
+-    } else if (attachment.get('type') === 'image') {
++    if (attachment.get('type') === 'image') {
+       const previewUrl   = attachment.get('preview_url');
+       const previewWidth = attachment.getIn(['meta', 'small', 'width']);
+ 
+@@ -187,6 +176,8 @@ class Item extends PureComponent {
+           />
+         </div>
+       );
++    } else {
++      thumbnail = <WxwMediaThumbnail attachment={attachment} lang={lang} description={description} onClick={this.handleClick} onLoad={this.handleImageLoad} onError={this.handleImageError} />;
+     }
+ 
+     return (
+@@ -311,24 +302,25 @@ class MediaGallery extends PureComponent {
+       style.aspectRatio = '3 / 2';
+     }
+ 
+-    const size     = media.size;
++    const size     = Math.min(media.size, 4);
+     const uncached = media.every(attachment => attachment.get('type') === 'unknown');
+ 
+     if (this.isFullSizeEligible()) {
+       children = <Item standalone autoplay={autoplay} onClick={this.handleClick} attachment={media.get(0)} lang={lang} displayWidth={width} visible={visible} />;
+     } else {
+-      children = media.map((attachment, i) => <Item key={attachment.get('id')} autoplay={autoplay} onClick={this.handleClick} attachment={attachment} index={i} lang={lang} size={size} displayWidth={width} visible={visible || uncached} />);
++      children = media.take(4).map((attachment, i) => <Item key={attachment.get('id')} autoplay={autoplay} onClick={this.handleClick} attachment={attachment} index={i} lang={lang} size={size} displayWidth={width} visible={visible} />);
+     }
+ 
+     return (
+       <div className={`media-gallery media-gallery--layout-${size}`} style={style} ref={this.handleRef}>
+         {children}
+ 
+-        {(!visible || uncached) && <SpoilerButton uncached={uncached} sensitive={sensitive} onClick={this.handleOpen} matchedFilters={matchedFilters} />}
++        {(!visible || uncached) && <SpoilerButton uncached={uncached && visible} sensitive={sensitive} onClick={this.handleOpen} matchedFilters={matchedFilters} />}
+ 
+-        {(visible && !uncached) && (
++        {visible && (
+           <div className='media-gallery__actions'>
+-            <button className='media-gallery__actions__pill' onClick={this.handleOpen}><FormattedMessage id='media_gallery.hide' defaultMessage='Hide' /></button>
++            {!uncached && <button type='button' className='media-gallery__actions__pill' onClick={this.handleOpen}><FormattedMessage id='media_gallery.hide' defaultMessage='Hide' /></button>}
++            <WxwMoreMediaButton count={media.size} onOpen={this.handleClick} />
+           </div>
+         )}
+       </div>
+diff --git a/app/javascript/mastodon/features/ui/components/media_modal.tsx b/app/javascript/mastodon/features/ui/components/media_modal.tsx
+--- a/app/javascript/mastodon/features/ui/components/media_modal.tsx
++++ b/app/javascript/mastodon/features/ui/components/media_modal.tsx
+@@ -24,6 +24,10 @@ import { IconButton } from 'mastodon/components/icon_button';
+ import { Footer } from 'mastodon/features/picture_in_picture/components/footer';
+ import { Video } from 'mastodon/features/video';
+ 
++import {
++  renderExtraMediaSlide,
++  useMediaPlaybackCleanup,
++} from './wxw_media_modal';
+ import { ZoomableImage } from './zoomable_image';
+ 
+ const messages = defineMessages({
+@@ -66,6 +70,8 @@ export const MediaModal = forwardRef<HTMLDivElement, MediaModalProps>(
+   ) => {
+     const [index, setIndex] = useState(startIndex);
+     const [zoomedIn, setZoomedIn] = useState(false);
++    const [navigationHidden, setNavigationHidden] = useState(false);
++    const modalRef = useMediaPlaybackCleanup(index, media);
+     const currentMedia = media.get(index);
+ 
+     const sign = isLtrDir ? '-' : '';
+@@ -83,6 +89,7 @@ export const MediaModal = forwardRef<HTMLDivElement, MediaModalProps>(
+         }
+         setIndex(newIndex);
+         setZoomedIn(false);
++        setNavigationHidden(false);
+         if (animate) {
+           void api.start({
+             x: `calc(${sign}${newIndex * 100}% + 0px)`,
+@@ -168,6 +175,7 @@ export const MediaModal = forwardRef<HTMLDivElement, MediaModalProps>(
+     }>({ width: 0, height: 0 });
+     const handleRef: RefCallback<HTMLDivElement> = useCallback(
+       (ele) => {
++        modalRef.current = ele;
+         if (typeof _ref === 'function') {
+           _ref(ele);
+         } else if (_ref) {
+@@ -181,7 +189,7 @@ export const MediaModal = forwardRef<HTMLDivElement, MediaModalProps>(
+           });
+         }
+       },
+-      [_ref],
++      [_ref, modalRef],
+     );
+ 
+     const zoomable =
+@@ -194,7 +202,6 @@ export const MediaModal = forwardRef<HTMLDivElement, MediaModalProps>(
+       setZoomedIn((prev) => !prev);
+     }, []);
+ 
+-    const [navigationHidden, setNavigationHidden] = useState(false);
+     const handleToggleNavigation = useCallback(() => {
+       setNavigationHidden((prev) => !prev);
+     }, []);
+@@ -202,6 +209,17 @@ export const MediaModal = forwardRef<HTMLDivElement, MediaModalProps>(
+     const content = useMemo(
+       () =>
+         media.map((item, idx) => {
++          const extraSlide = renderExtraMediaSlide(item, idx - index, {
++            lang,
++            startTime: idx === startIndex ? (currentTime ?? 0) : 0,
++            startPlaying: idx === startIndex && (autoPlay ?? false),
++            startVolume: volume,
++          });
++          if (extraSlide !== undefined) {
++            return extraSlide;
++          }
++
++          const key = item.get('id') as string;
+           const url = item.get('url') as string;
+           const blurhash = item.get('blurhash') as string;
+           const width = item.getIn(['meta', 'original', 'width'], 0) as number;
+@@ -222,7 +240,7 @@ export const MediaModal = forwardRef<HTMLDivElement, MediaModalProps>(
+                 height={height}
+                 alt={description}
+                 lang={lang}
+-                key={url}
++                key={key}
+                 onClick={handleToggleNavigation}
+                 onDoubleClick={handleZoomClick}
+                 onClose={onClose}
+@@ -242,21 +260,21 @@ export const MediaModal = forwardRef<HTMLDivElement, MediaModalProps>(
+                     | undefined
+                 }
+                 aspectRatio={`${width} / ${height}`}
+-                startTime={currentTime ?? 0}
+-                startPlaying={autoPlay ?? false}
++                startTime={idx === startIndex ? (currentTime ?? 0) : 0}
++                startPlaying={idx === startIndex && (autoPlay ?? false)}
+                 startVolume={volume ?? 1}
+                 onCloseVideo={onClose}
+                 detailed
+                 alt={description}
+                 lang={lang}
+-                key={url}
++                key={key}
+               />
+             );
+           } else if (item.get('type') === 'gifv') {
+             return (
+               <GIFV
+                 src={url}
+-                key={url}
++                key={key}
+                 alt={description}
+                 lang={lang}
+                 onClick={handleToggleNavigation}
+@@ -275,6 +293,7 @@ export const MediaModal = forwardRef<HTMLDivElement, MediaModalProps>(
+         lang,
+         media,
+         onClose,
++        startIndex,
+         volume,
+         zoomedIn,
+       ],
+@@ -365,7 +384,7 @@ MediaModal.displayName = 'MediaModal';
+ interface MediaPaginationProps {
+   itemsCount: number;
+   index: number;
+-  onChangeIndex: (newIndex: number) => void;
++  onChangeIndex: (newIndex: number, animate?: boolean) => void;
+ }
+ 
+ const MediaPagination: FC<MediaPaginationProps> = ({
+@@ -376,7 +395,7 @@ const MediaPagination: FC<MediaPaginationProps> = ({
+   const handleChangeIndex = useCallback(
+     (curIndex: number) => {
+       return () => {
+-        onChangeIndex(curIndex);
++        onChangeIndex(curIndex, true);
+       };
+     },
+     [onChangeIndex],
+diff --git a/app/models/media_attachment.rb b/app/models/media_attachment.rb
+--- a/app/models/media_attachment.rb
++++ b/app/models/media_attachment.rb
+@@ -43,7 +43,7 @@ class MediaAttachment < ApplicationRecord
+   MAX_DESCRIPTION_LENGTH = 10_000
+   MAX_DESCRIPTION_HARD_LENGTH_LIMIT = 10_000
+ 
+-  IMAGE_LIMIT = 16.megabytes
++  IMAGE_LIMIT = 99.megabytes
+   VIDEO_LIMIT = 99.megabytes
+ 
+   MAX_VIDEO_MATRIX_LIMIT = 8_294_400 # 3840x2160px
+@@ -74,7 +74,7 @@ class MediaAttachment < ApplicationRecord
+ 
+   IMAGE_STYLES = {
+     original: {
+-      pixels: 8_294_400, # 3840x2160px
++      pixels: 9_999_999, # 3840x2160px
+       file_geometry_parser: FastGeometryParser,
+     }.freeze,
+ 
