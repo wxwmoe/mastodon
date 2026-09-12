@@ -3,13 +3,30 @@ en:
     title: Emoji packs
     no_section: No section
     reorder_handle: Drag to reorder
+    select_all: Select all items on this page
     preferences:
       packs_hint: Choose the emoji packs shown in your picker and arrange their order.
       numbered_action: Show numbers
       unnumbered_action: Hide numbers
+      numbered_hint: When numbers are hidden, the picker sorts packs by name.
       show: Show
       hide: Hide
       reset: Restore defaults
+    favorites:
+      title: Personal favorites
+      refresh_icons: Refresh icons
+      add_new: New collection
+      edit: Edit collection
+      delete: Delete collections
+      add: Add to favorites
+      remove: Remove from favorites
+      choose: Choose a collection
+      shortcodes: Shortcodes
+      shortcodes_hint: Separate multiple local shortcodes with spaces or line breaks.
+      selected_count: "%{count} emoji selected."
+      no_selection: Select at least one emoji
+      invalid_shortcodes: "These shortcodes do not exist or cannot be added to favorites: %{shortcodes}"
+      empty_packs: Create a collection first
     admin:
       sections:
         title: Emoji sections
@@ -22,6 +39,7 @@ en:
         edit: Edit emoji pack
         publish: Refresh cache
         refresh: Sync list
+        refreshed: "List synced. Removed %{packs} collections belonging to %{users} users."
         reorder: Reorder
         set_section: Set section
         no_selection: Select at least one emoji pack
@@ -51,13 +69,30 @@ ja:
     title: 絵文字パック
     no_section: グループなし
     reorder_handle: ドラッグして並べ替え
+    select_all: このページの項目をすべて選択
     preferences:
       packs_hint: 絵文字ピッカーに表示するパックを選び、順番を並べ替えます。
       numbered_action: 番号を表示
       unnumbered_action: 番号を隠す
+      numbered_hint: 番号を非表示にすると、ピッカーはパックを名前順に並べます。
       show: 表示
       hide: 隠す
       reset: デフォルトに戻す
+    favorites:
+      title: 個人のお気に入り
+      refresh_icons: アイコンを更新
+      add_new: お気に入りコレクションを作成
+      edit: お気に入りコレクションを編集
+      delete: お気に入りコレクションを削除
+      add: お気に入りに追加
+      remove: お気に入りから削除
+      choose: お気に入りコレクションを選択
+      shortcodes: ショートコード
+      shortcodes_hint: このサーバーのショートコードを空白または改行で区切って入力してください。
+      selected_count: "%{count}個の絵文字を選択しています。"
+      no_selection: 絵文字を1つ以上選択してください
+      invalid_shortcodes: "次のショートコードは存在しないか、お気に入りに追加できません：%{shortcodes}"
+      empty_packs: 先にお気に入りコレクションを作成してください
     admin:
       sections:
         title: 絵文字グループ
@@ -70,6 +105,7 @@ ja:
         edit: 絵文字パックを編集
         publish: キャッシュ更新
         refresh: リスト同期
+        refreshed: "リストを同期し、%{users}人のユーザーの%{packs}個のお気に入りコレクションを削除しました。"
         reorder: 並べ替え
         set_section: グループを設定
         no_selection: 絵文字パックを1つ以上選択してください
@@ -99,13 +135,30 @@ zh-CN:
     title: 表情包
     no_section: 未分组
     reorder_handle: 拖动排序
+    select_all: 选择当前页全部项目
     preferences:
       packs_hint: 选择要在表情选择器中显示的表情包，并调整它们的顺序。
       numbered_action: 显示序号
       unnumbered_action: 隐藏序号
+      numbered_hint: 关闭序号后选择器按名称排序。
       show: 显示
       hide: 隐藏
       reset: 恢复默认
+    favorites:
+      title: 个人收藏
+      refresh_icons: 刷新图标
+      add_new: 新建收藏夹
+      edit: 编辑收藏夹
+      delete: 删除收藏夹
+      add: 加入收藏
+      remove: 取消收藏
+      choose: 选择收藏夹
+      shortcodes: 短代码
+      shortcodes_hint: 多个本站短代码用空格或换行分隔。
+      selected_count: "%{count} 个表情已选择"
+      no_selection: 请选择至少一个表情
+      invalid_shortcodes: "以下短代码不存在或无法收藏：%{shortcodes}"
+      empty_packs: 请先新建收藏夹
     admin:
       sections:
         title: 表情包分组
@@ -118,6 +171,7 @@ zh-CN:
         edit: 编辑表情包
         publish: 刷新缓存
         refresh: 同步列表
+        refreshed: "列表已同步，清理了 %{users} 个用户的 %{packs} 个收藏夹。"
         reorder: 重新排序
         set_section: 设置分组
         no_selection: 请至少选择一个表情包
@@ -147,13 +201,30 @@ zh-HK:
     title: 表情包
     no_section: 未分組
     reorder_handle: 拖曳排序
+    select_all: 選取此頁所有項目
     preferences:
       packs_hint: 選擇要在表情選擇器中顯示的表情包，並調整它們的順序。
       numbered_action: 顯示序號
       unnumbered_action: 隱藏序號
+      numbered_hint: 關閉序號後選擇器按名稱排序。
       show: 顯示
       hide: 隱藏
       reset: 還原預設
+    favorites:
+      title: 個人收藏
+      refresh_icons: 重新整理圖示
+      add_new: 新建收藏夾
+      edit: 編輯收藏夾
+      delete: 刪除收藏夾
+      add: 加入收藏
+      remove: 取消收藏
+      choose: 選擇收藏夾
+      shortcodes: 短代碼
+      shortcodes_hint: 多個本站短代碼以空格或換行分隔。
+      selected_count: "%{count} 個表情已選取"
+      no_selection: 請至少選取一個表情
+      invalid_shortcodes: "以下短代碼不存在或無法收藏：%{shortcodes}"
+      empty_packs: 請先新建收藏夾
     admin:
       sections:
         title: 表情包分組
@@ -166,6 +237,7 @@ zh-HK:
         edit: 編輯表情包
         publish: 重新整理快取
         refresh: 同步列表
+        refreshed: "列表已同步，清理了 %{users} 個用戶的 %{packs} 個收藏夾。"
         reorder: 重新排序
         set_section: 設定分組
         no_selection: 請至少選取一個表情包
@@ -195,13 +267,30 @@ zh-TW:
     title: 表情包
     no_section: 未分組
     reorder_handle: 拖曳排序
+    select_all: 選取此頁所有項目
     preferences:
       packs_hint: 選擇要在表情選擇器中顯示的表情包，並調整它們的順序。
       numbered_action: 顯示序號
       unnumbered_action: 隱藏序號
+      numbered_hint: 關閉序號後選擇器按名稱排序。
       show: 顯示
       hide: 隱藏
       reset: 還原預設
+    favorites:
+      title: 個人收藏
+      refresh_icons: 重新整理圖示
+      add_new: 新增收藏夾
+      edit: 編輯收藏夾
+      delete: 刪除收藏夾
+      add: 加入收藏
+      remove: 取消收藏
+      choose: 選擇收藏夾
+      shortcodes: 短代碼
+      shortcodes_hint: 多個本站短代碼以空格或換行分隔。
+      selected_count: "%{count} 個表情已選取"
+      no_selection: 請至少選取一個表情
+      invalid_shortcodes: "以下短代碼不存在或無法收藏：%{shortcodes}"
+      empty_packs: 請先新增收藏夾
     admin:
       sections:
         title: 表情包分組
@@ -214,6 +303,7 @@ zh-TW:
         edit: 編輯表情包
         publish: 重新整理快取
         refresh: 同步列表
+        refreshed: "列表已同步，清理了 %{users} 個使用者的 %{packs} 個收藏夾。"
         reorder: 重新排序
         set_section: 設定分組
         no_selection: 請至少選取一個表情包

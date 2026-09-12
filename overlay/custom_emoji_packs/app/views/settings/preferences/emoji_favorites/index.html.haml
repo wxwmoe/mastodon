@@ -1,0 +1,36 @@
+- content_for :page_title do
+  = t('wxw_emoji.favorites.title')
+
+- content_for :heading_actions do
+  = button_to t('wxw_emoji.favorites.refresh_icons'), refresh_icons_settings_preferences_emoji_favorites_path, method: :post, class: 'button'
+  = link_to t('wxw_emoji.favorites.add'), choose_settings_preferences_emoji_favorites_path, class: 'button'
+  = link_to t('auth.rules.back'), settings_preferences_emoji_packs_path, class: 'button'
+
+= form_with url: batch_settings_preferences_emoji_favorites_path do |form|
+  .batch-table
+    .batch-table__toolbar
+      %label.batch-table__toolbar__select.batch-checkbox-all
+        = check_box_tag :batch_checkbox_all, nil, false, 'aria-label': t('wxw_emoji.select_all')
+      .batch-table__toolbar__actions
+        = link_to safe_join([material_symbol('add'), t('wxw_emoji.favorites.add_new')]), new_settings_preferences_emoji_favorite_path, class: 'table-action-link'
+        = form.button safe_join([material_symbol('close'), t('wxw_emoji.favorites.delete')]), name: :delete, class: 'table-action-link', type: :submit, data: { confirm: t('admin.accounts.are_you_sure') }
+
+    .batch-table__body
+      - if @packs.empty?
+        = nothing_here 'nothing-here--under-tabs'
+      - else
+        - @packs.each do |pack|
+          - icon_emoji = @pack_icons[pack.id]
+          .batch-table__row
+            %label.batch-table__row__select.batch-table__row__select--aligned.batch-checkbox
+              = check_box_tag 'pack_ids[]', pack.id, false, id: "pack_ids_#{pack.id}", 'aria-labelledby': "emoji_pack_name_#{pack.id}"
+            .batch-table__row__content.wxw-emoji-pack-list__content
+              = link_to edit_settings_preferences_emoji_favorite_path(pack), class: 'wxw-emoji-pack-list__identity' do
+                .wxw-custom-emoji-frame.wxw-emoji-pack-list__icon
+                  - if icon_emoji
+                    = image_tag full_asset_url(icon_emoji.image.url(:static)), class: 'custom-emoji wxw-custom-emoji-image', alt: ":#{icon_emoji.shortcode}:", data: { original: full_asset_url(icon_emoji.image.url), static: full_asset_url(icon_emoji.image.url(:static)) }
+                  - else
+                    = material_symbol 'mood'
+                .wxw-emoji-pack-list__name{ id: "emoji_pack_name_#{pack.id}" }= pack.name
+              .wxw-emoji-pack-list__meta
+                = link_to material_symbol('search'), search_settings_preferences_emoji_packs_path(pack_id: pack.id), class: 'table-action-link', title: t('wxw_emoji.picker.search'), aria: { label: t('wxw_emoji.picker.search') }

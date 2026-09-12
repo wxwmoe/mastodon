@@ -1,0 +1,21 @@
+= simple_form_for @pack, url: @pack.persisted? ? settings_preferences_emoji_favorite_path(@pack) : settings_preferences_emoji_favorites_path do |form|
+  = render 'shared/error_messages', object: @pack
+
+  - if !@pack.persisted? && params[:return_to_choose] == '1'
+    = hidden_field_tag :return_to_choose, '1'
+    = hidden_field_tag :operation, params[:operation].to_s
+    = hidden_field_tag :shortcodes, params[:shortcodes].to_s
+    - @emoji_ids.each do |id|
+      = hidden_field_tag 'emoji_ids[]', id, id: nil
+
+  .fields-group
+    = form.input :name,
+                 required: true,
+                 input_html: { maxlength: Wxw::Named::NAME_LIMIT },
+                 wrapper: :with_block_label
+    = form.input :featured_shortcode,
+                 required: false,
+                 wrapper: :with_block_label
+
+  .actions
+    = form.button :button, t('generic.save_changes'), type: :submit

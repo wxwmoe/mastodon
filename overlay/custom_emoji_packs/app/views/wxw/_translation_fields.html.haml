@@ -13,6 +13,6 @@
 
     .fields-group
       = f.input :name,
-                label: false,
+                label: t('activerecord.attributes.wxw/emoji_pack.name'),
                 input_html: { lang: f.object&.language, maxlength: Wxw::Named::NAME_LIMIT },
                 wrapper: :with_block_label

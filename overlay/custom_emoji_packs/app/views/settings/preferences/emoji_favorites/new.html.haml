@@ -1,0 +1,7 @@
+- content_for :page_title do
+  = t('wxw_emoji.favorites.add_new')
+
+- content_for :heading_actions do
+  = link_to t('auth.rules.back'), settings_preferences_emoji_favorites_path, class: 'button'
+
+= render 'form'

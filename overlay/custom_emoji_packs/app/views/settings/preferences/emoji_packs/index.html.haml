@@ -2,19 +2,22 @@
   = t('wxw_emoji.title')
 
 - content_for :heading_actions do
+  = link_to t('wxw_emoji.favorites.title'), settings_preferences_emoji_favorites_path, class: 'button'
   = link_to t('admin.accounts.search'), search_settings_preferences_emoji_packs_path, class: 'button'
 
 = form_with model: current_user, url: settings_preferences_emoji_packs_path do |form|
   = render 'shared/error_messages', object: current_user
 
   %p.hint.wxw-emoji-pack-list__hint= t('wxw_emoji.preferences.packs_hint')
+  %p.hint.wxw-emoji-pack-list__hint= t('wxw_emoji.preferences.numbered_hint') unless @numbered
+  %span.sr-only#wxw-sortable-label= t('wxw_emoji.reorder_handle')
 
   = hidden_field_tag 'user[emoji_ids][]', ''
 
   .batch-table
     .batch-table__toolbar
       %label.batch-table__toolbar__select.batch-checkbox-all
-        = check_box_tag :batch_checkbox_all, nil, false
+        = check_box_tag :batch_checkbox_all, nil, false, 'aria-label': t('wxw_emoji.select_all')
       .batch-table__toolbar__actions
         = form.button safe_join([material_symbol('save'), t('generic.save_changes')]), name: :save_order, class: 'table-action-link', type: :submit
         = form.button safe_join([material_symbol('refresh'), t('wxw_emoji.preferences.reset')]), name: :reset, class: 'table-action-link', type: :submit
@@ -36,13 +39,13 @@
           - icon_emoji = @pack_icons[pack.id]
           - pack_name = pack.name_for(I18n.locale)
           - pack_label = @numbered && picker_index ? "#{format('%0*d.', @number_width, picker_index + 1)} #{pack_name}" : pack_name
-          - section_label = pack.section&.name_for(I18n.locale) || t('wxw_emoji.no_section')
+          - section_label = pack.favorite? ? t('wxw_emoji.favorites.title') : pack.section&.name_for(I18n.locale) || t('wxw_emoji.no_section')
           - status_label = @picked_lookup.key?(pack.id) ? t('wxw_emoji.preferences.show') : t('wxw_emoji.preferences.hide')
 
           .batch-table__row.wxw-sortable__item{ data: { wxw_sortable_item: true } }
             = hidden_field_tag 'user[emoji_order][]', pack.id
             %label.batch-table__row__select.batch-table__row__select--aligned.batch-checkbox
-              = check_box_tag 'user[emoji_ids][]', pack.id, false, id: "user_emoji_ids_#{pack.id}"
+              = check_box_tag 'user[emoji_ids][]', pack.id, false, id: "user_emoji_ids_#{pack.id}", 'aria-labelledby': "emoji_pack_name_#{pack.id}"
             .batch-table__row__content.wxw-emoji-pack-list__content
               = link_to search_settings_preferences_emoji_packs_path(pack_id: pack.id), class: 'wxw-emoji-pack-list__identity' do
                 .wxw-custom-emoji-frame.wxw-emoji-pack-list__icon
@@ -51,8 +54,8 @@
                   - else
                     = material_symbol 'mood'
                 .wxw-emoji-pack-list__names
-                  .wxw-emoji-pack-list__name= pack_label
+                  .wxw-emoji-pack-list__name{ id: "emoji_pack_name_#{pack.id}" }= pack_label
                   .wxw-emoji-pack-list__section-name= "#{section_label} · #{status_label}"
               .wxw-emoji-pack-list__meta
                 .wxw-emoji-pack-list__moves
-                  = form.button material_symbol('drag_indicator'), type: :button, class: 'wxw-sortable__handle', title: t('wxw_emoji.reorder_handle'), aria: { label: t('wxw_emoji.reorder_handle') }, data: { wxw_sortable_handle: true }
+                  = form.button material_symbol('drag_indicator'), type: :button, class: 'wxw-sortable__handle', title: t('wxw_emoji.reorder_handle'), aria: { labelledby: "wxw-sortable-label emoji_pack_name_#{pack.id}" }, data: { wxw_sortable_handle: true }

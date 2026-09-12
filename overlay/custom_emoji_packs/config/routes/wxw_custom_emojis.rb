@@ -2,6 +2,14 @@
 
 namespace :settings do
   namespace :preferences do
+    resources :emoji_favorites, path: 'emoji_packs/favorites', except: [:show, :destroy] do
+      collection do
+        get :choose
+        post :apply
+        post :batch
+        post :refresh_icons
+      end
+    end
     resources :emoji_packs, only: :index do
       get :search, on: :collection
     end

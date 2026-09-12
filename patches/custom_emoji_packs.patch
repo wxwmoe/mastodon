@@ -1,0 +1,126 @@
+--- a/app/javascript/entrypoints/admin.tsx
++++ b/app/javascript/entrypoints/admin.tsx
+@@ -4,6 +4,7 @@
+ import { on } from 'delegated-events';
+ 
+ import ready from '../mastodon/ready';
++import '../wxw_custom_emojis';
+ 
+ const setAnnouncementEndsAttributes = (target: HTMLInputElement) => {
+   const valid = target.value && target.validity.valid;
+--- a/app/javascript/styles/application.scss
++++ b/app/javascript/styles/application.scss
+@@ -21,6 +21,7 @@
+ @use 'mastodon/about';
+ @use 'mastodon/tables';
+ @use 'mastodon/admin';
++@use 'mastodon/wxw_custom_emojis';
+ @use 'mastodon/dashboard';
+ @use 'mastodon/rtl';
+ @use 'mastodon/rich_text';
+--- a/app/models/user_settings.rb
++++ b/app/models/user_settings.rb
+@@ -6,6 +6,7 @@
+ 
+   include UserSettings::DSL
+   include UserSettings::Glue
++  include Wxw::EmojiSettingsConcern
+ 
+   setting :always_send_emails, default: false
+   setting :aggregate_reblogs, default: true
+--- a/config/navigation.rb
++++ b/config/navigation.rb
+@@ -19,6 +19,7 @@
+ 
+     n.item :preferences, safe_join([material_symbol('settings'), t('settings.preferences')]), settings_preferences_path, if: -> { current_user.functional? && !self_destruct } do |s|
+       s.item :appearance, safe_join([material_symbol('computer'), t('settings.appearance')]), settings_preferences_appearance_path
++      wxw_emoji_preferences_navigation(s)
+       s.item :posting_defaults, safe_join([material_symbol('edit_square'), t('preferences.posting_defaults')]), settings_preferences_posting_defaults_path
+       s.item :notifications, safe_join([material_symbol('mail'), t('settings.notifications')]), settings_preferences_notifications_path
+       s.item :other, safe_join([material_symbol('tune'), t('preferences.other')]), settings_preferences_other_path
+@@ -78,6 +79,7 @@
+       s.item :announcements, safe_join([material_symbol('campaign'), t('admin.announcements.title')]), admin_announcements_path, highlights_on: %r{/admin/announcements}, if: -> { current_user.can?(:manage_announcements) }
+       s.item :email_subscriptions, safe_join([material_symbol('mail'), t('admin.email_subscriptions.index.title')]), admin_email_subscriptions_path, highlights_on: %r{/admin/email_subscriptions}, if: -> { current_user.can?(:manage_settings) }
+       s.item :custom_emojis, safe_join([material_symbol('mood'), t('admin.custom_emojis.title')]), admin_custom_emojis_path, highlights_on: %r{/admin/custom_emojis}, if: -> { current_user.can?(:manage_custom_emojis) }
++      wxw_emoji_admin_navigation(s)
+       s.item :webhooks, safe_join([material_symbol('inbox'), t('admin.webhooks.title')]), admin_webhooks_path, highlights_on: %r{/admin/webhooks}, if: -> { current_user.can?(:manage_webhooks) }
+       s.item :fasp, safe_join([material_symbol('extension'), t('admin.fasp.title')]), admin_fasp_providers_path, highlights_on: %r{/admin/fasp}, if: -> { current_user.can?(:manage_federation) } if Mastodon::Feature.fasp_enabled?
+       s.item :relays, safe_join([material_symbol('captive_portal'), t('admin.relays.title')]), admin_relays_path, highlights_on: %r{/admin/relays}, if: -> { !limited_federation_mode? && current_user.can?(:manage_federation) }
+--- a/config/routes.rb
++++ b/config/routes.rb
+@@ -232,6 +232,7 @@
+   resource :share, only: [:show]
+ 
+   draw(:admin)
++  draw(:wxw_custom_emojis)
+ 
+   get '/admin', to: redirect('/admin/dashboard', status: 302)
+ 
+--- a/config/routes/api.rb
++++ b/config/routes/api.rb
+@@ -75,7 +75,7 @@
+       get '/streaming/(*any)'
+     end
+ 
+-    resources :custom_emojis, only: [:index]
++    resources :custom_emojis, only: [:index], controller: 'wxw_custom_emojis'
+     resources :suggestions, only: [:index, :destroy]
+     resources :scheduled_statuses, only: [:index, :show, :update, :destroy]
+     resources :preferences, only: [:index]
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -1683,4 +1683,54 @@
+             WHERE (login_activities.success = true)) t0
+     GROUP BY user_id, ip;
+   SQL
++
++  create_table "wxw_emoji_packs", force: :cascade do |t|
++    t.datetime "created_at", null: false
++    t.bigint "custom_emoji_category_id"
++    t.boolean "default_enabled", default: false, null: false
++    t.bigint "featured_emoji_id"
++    t.string "name", default: "", null: false
++    t.integer "position", default: 0, null: false
++    t.bigint "section_id"
++    t.datetime "updated_at", null: false
++    t.bigint "user_id"
++    t.index ["custom_emoji_category_id"], name: "index_wxw_emoji_packs_on_custom_emoji_category_id", unique: true
++    t.index ["featured_emoji_id"], name: "index_wxw_emoji_packs_on_featured_emoji_id"
++    t.index ["section_id"], name: "index_wxw_emoji_packs_on_section_id"
++    t.index ["user_id"], name: "index_wxw_emoji_packs_on_user_id"
++    t.check_constraint "(user_id IS NULL AND custom_emoji_category_id IS NOT NULL) OR (user_id IS NOT NULL AND custom_emoji_category_id IS NULL AND section_id IS NULL)", name: "wxw_emoji_packs_owner_and_category"
++  end
++
++  create_table "wxw_emoji_favorites", force: :cascade do |t|
++    t.datetime "created_at", null: false
++    t.bigint "custom_emoji_id", null: false
++    t.bigint "pack_id", null: false
++    t.datetime "updated_at", null: false
++    t.bigint "user_id", null: false
++    t.index ["custom_emoji_id"], name: "index_wxw_emoji_favorites_on_custom_emoji_id"
++    t.index ["pack_id"], name: "index_wxw_emoji_favorites_on_pack_id"
++    t.index ["user_id", "custom_emoji_id"], name: "index_wxw_emoji_favorites_on_user_id_and_custom_emoji_id", unique: true
++  end
++
++  create_table "wxw_emoji_sections", force: :cascade do |t|
++    t.datetime "created_at", null: false
++    t.string "name", default: "", null: false
++    t.integer "position", default: 0, null: false
++    t.datetime "updated_at", null: false
++  end
++
++  create_table "wxw_emoji_translations", force: :cascade do |t|
++    t.datetime "created_at", null: false
++    t.string "language", null: false
++    t.string "name", default: "", null: false
++    t.bigint "translatable_id", null: false
++    t.string "translatable_type", null: false
++    t.datetime "updated_at", null: false
++    t.index ["translatable_type", "translatable_id", "language"], name: "index_wxw_emoji_translations_on_owner_and_language", unique: true
++  end
++  add_foreign_key "wxw_emoji_packs", "users", on_delete: :cascade
++  add_foreign_key "wxw_emoji_packs", "custom_emojis", column: "featured_emoji_id", on_delete: :nullify
++  add_foreign_key "wxw_emoji_favorites", "wxw_emoji_packs", column: "pack_id", on_delete: :cascade
++  add_foreign_key "wxw_emoji_favorites", "custom_emojis", on_delete: :cascade
++  add_foreign_key "wxw_emoji_favorites", "users", on_delete: :cascade
+ end

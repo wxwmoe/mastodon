@@ -9,10 +9,12 @@
 = render 'shared/error_messages', object: @section if @section&.errors&.any?
 
 = form_with url: batch_admin_emoji_sections_path do |form|
+  %span.sr-only#wxw-sortable-label= t('wxw_emoji.reorder_handle')
+
   .batch-table
     .batch-table__toolbar
       %label.batch-table__toolbar__select.batch-checkbox-all
-        = check_box_tag :batch_checkbox_all, nil, false
+        = check_box_tag :batch_checkbox_all, nil, false, 'aria-label': t('wxw_emoji.select_all')
       .batch-table__toolbar__actions
         = form.button safe_join([material_symbol('save'), t('generic.save_changes')]), name: :save_order, class: 'table-action-link', type: :submit if can?(:update, :custom_emoji)
         = link_to safe_join([material_symbol('add'), t('wxw_emoji.admin.sections.add_new')]), new_admin_emoji_section_path, class: 'table-action-link' if can?(:create, :custom_emoji)
@@ -29,10 +31,10 @@
             = hidden_field_tag 'order[]', section.id
             %label.batch-table__row__select.batch-table__row__select--aligned.batch-checkbox
               = hidden_field_tag "emoji_sections[#{section.id}][selected]", '0', id: nil
-              = check_box_tag "emoji_sections[#{section.id}][selected]", '1', false, id: "emoji_section_#{section.id}_selected"
+              = check_box_tag "emoji_sections[#{section.id}][selected]", '1', false, id: "emoji_section_#{section.id}_selected", 'aria-labelledby': "emoji_section_name_#{section.id}"
             .batch-table__row__content.wxw-emoji-pack-list__content
               = link_to edit_admin_emoji_section_path(section), class: 'wxw-emoji-pack-list__identity', title: translations.presence do
-                .wxw-emoji-pack-list__name= section.name_for(I18n.locale)
+                .wxw-emoji-pack-list__name{ id: "emoji_section_name_#{section.id}" }= section.name_for(I18n.locale)
               .wxw-emoji-pack-list__meta
                 .wxw-emoji-pack-list__moves
-                  = form.button material_symbol('drag_indicator'), type: :button, class: 'wxw-sortable__handle', title: t('wxw_emoji.reorder_handle'), aria: { label: t('wxw_emoji.reorder_handle') }, data: { wxw_sortable_handle: true } if can?(:update, :custom_emoji)
+                  = form.button material_symbol('drag_indicator'), type: :button, class: 'wxw-sortable__handle', title: t('wxw_emoji.reorder_handle'), aria: { labelledby: "wxw-sortable-label emoji_section_name_#{section.id}" }, data: { wxw_sortable_handle: true } if can?(:update, :custom_emoji)

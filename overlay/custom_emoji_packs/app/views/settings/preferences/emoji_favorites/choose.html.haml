@@ -1,0 +1,34 @@
+- content_for :page_title do
+  = t("wxw_emoji.favorites.#{@operation}")
+
+- content_for :heading_actions do
+  = link_to t('wxw_emoji.favorites.add_new'), new_settings_preferences_emoji_favorite_path(return_to_choose: '1', emoji_ids: @emoji_ids, operation: @operation, shortcodes: @shortcodes), class: 'button'
+  = link_to t('auth.rules.back'), search_settings_preferences_emoji_packs_path, class: 'button'
+
+- if @packs.empty?
+  %p.hint= t('wxw_emoji.favorites.empty_packs')
+- else
+  = simple_form_for :favorite, url: apply_settings_preferences_emoji_favorites_path do |form|
+    = hidden_field_tag :operation, @operation
+    - @emoji_ids.each do |id|
+      = hidden_field_tag 'emoji_ids[]', id, id: nil
+
+    - if @selection_error
+      .flash-message.alert= @selection_error
+
+    %p.hint= t('wxw_emoji.favorites.selected_count', count: @emoji_ids.size)
+
+    .fields-group
+      .input.select.required
+        .label_input
+          = label_tag :target_pack_id, t('wxw_emoji.favorites.choose')
+          = select_tag :target_pack_id, options_for_select(@packs.map { |pack| [pack.name, pack.id] }, @target_pack_id), required: true, class: 'select required'
+      - if @operation == 'add'
+        .input.text.optional
+          .label_input
+            = label_tag :shortcodes, t('wxw_emoji.favorites.shortcodes')
+            = text_area_tag :shortcodes, @shortcodes, rows: 4, class: 'text optional', 'aria-describedby': 'shortcodes_hint'
+          %p.hint#shortcodes_hint= t('wxw_emoji.favorites.shortcodes_hint')
+
+    .actions
+      = form.button :button, t("wxw_emoji.favorites.#{@operation}"), type: :submit

@@ -1,40 +1,55 @@
 # frozen_string_literal: true
 
 class Settings::Preferences::EmojiPacksController < Settings::Preferences::BaseController
-  before_action :set_packs, only: [:index, :update]
+  before_action :set_packs, only: :index
 
   def index; end
 
   def search
-    @packs = ::Wxw::EmojiPack.ordered.to_a
+    @packs = ordered_packs(::Wxw::EmojiPack.management_packs(current_user), ::Wxw::EmojiPack.order_ids(current_user))
     @selected_pack_id = params[:pack_id].to_s
     pack_id = Integer(@selected_pack_id, exception: false)
     @reset_params = { pack_id: @selected_pack_id }
     @shortcode = params[:shortcode].to_s.strip
     @emojis = CustomEmoji.listed
     if pack_id == 0
-      category_ids = ::Wxw::EmojiPack.selection_for(current_user).map(&:custom_emoji_category_id)
-      @emojis = @emojis.where(category_id: category_ids)
+      selected = ::Wxw::EmojiPack.selection_for(current_user)
+      category_ids = selected.reject(&:favorite?).map(&:custom_emoji_category_id)
+      favorite_ids = ::Wxw::EmojiFavorite.where(pack_id: selected.select(&:favorite?).map(&:id)).select(:custom_emoji_id)
+      @emojis = @emojis.where(category_id: category_ids).or(@emojis.where(id: favorite_ids))
     elsif @selected_pack_id.present?
       @pack = @packs.find { |pack| pack.id == pack_id }
-      @emojis = @pack ? @emojis.where(category_id: @pack.custom_emoji_category_id) : @emojis.none
+      @emojis = if @pack&.favorite?
+                  @pack.custom_emojis
+                elsif @pack
+                  @emojis.where(category_id: @pack.custom_emoji_category_id)
+                else
+                  @emojis.none
+                end
     end
     @emojis = @emojis.merge(CustomEmoji.search(@shortcode)) if @shortcode.present?
-    @emojis = @emojis.order(:shortcode).page(params[:page])
+    category_order = @packs.filter_map(&:custom_emoji_category_id)
+    @emojis = @emojis.in_order_of(:category_id, category_order, filter: false) if @pack.nil? && category_order.any?
+    @emojis = @emojis.order(:shortcode, :id)
+    @emojis = @emojis.page(params[:page])
   end
 
   def update
-    return render_invalid_submission unless valid_submission?
+    saved = current_user.with_lock do
+      set_packs
+      return render_invalid_submission unless valid_submission?
 
-    case action_from_button
-    when 'reset'
-      current_user.settings[::Wxw::EmojiPack::PICKS_KEY] = nil
-      current_user.settings[::Wxw::EmojiPack::ORDER_KEY] = nil
-    when 'save_order'
-      current_user.settings[::Wxw::EmojiPack::ORDER_KEY] = submitted_order_ids == @management_order ? nil : ::Wxw::EmojiPack.dump_ids(submitted_order_ids)
+      case action_from_button
+      when 'reset'
+        current_user.settings[::Wxw::EmojiPack::PICKS_KEY] = nil
+        current_user.settings[::Wxw::EmojiPack::ORDER_KEY] = nil
+      when 'save_order'
+        current_user.settings[::Wxw::EmojiPack::ORDER_KEY] = ::Wxw::EmojiPack.dump_ids(submitted_order_ids)
+      end
+      current_user.settings_will_change!
+      current_user.update(user_params)
     end
-    current_user.settings_will_change!
-    if current_user.update(user_params)
+    if saved
       I18n.locale = current_user.locale
       redirect_to after_update_redirect_path, notice: I18n.t('generic.changes_saved_msg')
     else
@@ -45,9 +60,9 @@ class Settings::Preferences::EmojiPacksController < Settings::Preferences::BaseC
   private
 
   def set_packs
-    all_packs = ::Wxw::EmojiPack.ordered.includes(section: :translations, custom_emoji_category: :featured_emoji).to_a
+    all_packs = ::Wxw::EmojiPack.management_packs(current_user)
     @management_order = all_packs.map(&:id)
-    @default_picks = ::Wxw::EmojiPack.default_selection.map(&:id)
+    @default_picks = all_packs.filter_map { |pack| pack.id if pack.favorite? || pack.default_enabled? }
     @saved_picks = ::Wxw::EmojiPack.picked_ids(current_user)
     picked_ids = @saved_picks || @default_picks
     @numbered = ::Wxw::EmojiPack.numbered?(current_user)
@@ -139,8 +154,8 @@ class Settings::Preferences::EmojiPacksController < Settings::Preferences::BaseC
   def ordered_packs(all_packs, order_ids)
     return all_packs unless order_ids
 
-    order_index = order_ids.each_with_index.to_h
-    all_packs.sort_by { |pack| [order_index.fetch(pack.id, order_index.length), pack.position, pack.id] }
+    by_id = all_packs.index_by(&:id)
+    order_ids.filter_map { |id| by_id.delete(id) } + by_id.values
   end
 
   def normalize(ids)
@@ -151,7 +166,7 @@ class Settings::Preferences::EmojiPacksController < Settings::Preferences::BaseC
   def valid_submission?
     case action_from_button
     when 'enable', 'disable'
-      !submitted_ids.nil?
+      !submitted_ids.nil? && (submitted_ids - @management_order).empty?
     when 'save_order'
       !submitted_order_ids.nil?
     when 'numbered', 'reset'

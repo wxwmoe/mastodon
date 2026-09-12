@@ -6,7 +6,6 @@ const handleSelector = '[data-wxw-sortable-handle]';
 const setupSortable = (container: HTMLElement) => {
   let active:
     | {
-        handle: HTMLButtonElement;
         item: HTMLElement;
         pointerId: number;
       }
@@ -16,8 +15,8 @@ const setupSortable = (container: HTMLElement) => {
     if (!active || active.pointerId !== event.pointerId) return;
 
     active.item.classList.remove('wxw-sortable__item--dragging');
-    if (active.handle.hasPointerCapture(event.pointerId)) {
-      active.handle.releasePointerCapture(event.pointerId);
+    if (container.hasPointerCapture(event.pointerId)) {
+      container.releasePointerCapture(event.pointerId);
     }
     active = undefined;
   };
@@ -35,9 +34,9 @@ const setupSortable = (container: HTMLElement) => {
     if (!handle || !item || item.parentElement !== container) return;
 
     event.preventDefault();
-    active = { handle, item, pointerId: event.pointerId };
+    active = { item, pointerId: event.pointerId };
     item.classList.add('wxw-sortable__item--dragging');
-    handle.setPointerCapture(event.pointerId);
+    container.setPointerCapture(event.pointerId);
   });
 
   container.addEventListener('pointermove', (event) => {
@@ -64,6 +63,7 @@ const setupSortable = (container: HTMLElement) => {
 
   container.addEventListener('pointerup', finish);
   container.addEventListener('pointercancel', finish);
+  container.addEventListener('lostpointercapture', finish);
 
   container
     .querySelectorAll<HTMLButtonElement>(handleSelector)

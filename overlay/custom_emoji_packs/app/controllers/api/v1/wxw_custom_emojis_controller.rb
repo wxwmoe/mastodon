@@ -6,10 +6,14 @@ class Api::V1::WxwCustomEmojisController < Api::BaseController
   def index
     return unless stale?(etag: emoji_etag, public: false, template: false)
 
-    render json: emojis, each_serializer: REST::WxwCustomEmojiSerializer, category_names: category_names
+    render json: serialized_emojis
   end
 
   private
+
+  def current_resource_owner
+    super if doorkeeper_token&.accessible?
+  end
 
   def emoji_tables_unavailable(error)
     raise error unless error.cause.is_a?(PG::UndefinedTable)
@@ -32,43 +36,58 @@ class Api::V1::WxwCustomEmojisController < Api::BaseController
     @packs ||= anonymous? ? ::Wxw::EmojiPack.default_selection : ::Wxw::EmojiPack.selection_for(current_user)
   end
 
-  def emojis
-    @emojis ||= begin
-      category_ids = packs.map(&:custom_emoji_category_id)
-      rows = if category_ids.empty?
-               []
-             else
-               CustomEmoji.listed.where(category_id: category_ids).includes(:category).order(shortcode: :asc).to_a
-             end
-      by_category = rows.group_by(&:category_id)
-      packs.flat_map { |pack| by_category[pack.custom_emoji_category_id] || [] }
+  def emoji_entries
+    @emoji_entries ||= ::Wxw::EmojiPack.picker_entries(packs)
+  end
+
+  def emoji_groups
+    @emoji_groups ||= begin
+      by_pack = emoji_entries.group_by(&:first)
+      packs.filter_map { |pack| [pack, by_pack[pack].map(&:last)] if by_pack.key?(pack) }
     end
   end
 
-  def category_names
-    @category_names ||= begin
-      width = [picker_packs.size, 1].max.to_s.length
-      picker_packs.each_with_index.to_h do |pack, index|
-        name = anonymous? ? pack.name : pack.name_for(I18n.locale)
-        # Picker category order is lexical.
-        name = format('%0*d. ', width, index + 1) + name if numbered?
-        [pack.custom_emoji_category_id, name]
+  def serialized_emojis
+    width = [emoji_groups.size, 1].max.to_s.length
+    emoji_groups.each_with_index.flat_map do |(pack, rows), pack_index|
+      name = anonymous? ? pack.name : pack.name_for(I18n.locale)
+      # The native picker sorts category names and shortcodes lexically.
+      name = format('%0*d. ', width, pack_index + 1) + name if numbered?
+
+      rows.map do |emoji|
+        REST::WxwCustomEmojiSerializer.new(emoji, category: name, featured_emoji_id: pack.featured_emoji_id).as_json
       end
     end
   end
 
-  def picker_packs
-    @picker_packs ||= ::Wxw::EmojiPack.picker_packs(packs, category_ids: emojis.map(&:category_id))
+  def favorites_cache_key
+    return if anonymous?
+
+    personal_packs = ::Wxw::EmojiPack.favorites.where(user_id: current_user.id)
+    picked_ids = ::Wxw::EmojiPack.picked_ids(current_user)
+    personal_packs = personal_packs.where(id: picked_ids) unless picked_ids.nil?
+    values = personal_packs.order(:id).pluck(:id, :featured_emoji_id, :updated_at)
+      .map { |pack_id, emoji_id, updated_at| [pack_id, emoji_id, updated_at.utc.to_fs(:usec)] }
+    return if values.empty?
+
+    # FK deletions/nullification do not touch the parent pack's updated_at.
+    members = ::Wxw::EmojiFavorite.joins(:custom_emoji).merge(CustomEmoji.listed)
+      .where(pack_id: values.map(&:first)).order(:pack_id, :custom_emoji_id)
+      .pluck(:pack_id, :custom_emoji_id, 'custom_emojis.updated_at')
+      .map { |pack_id, emoji_id, updated_at| [pack_id, emoji_id, updated_at.utc.to_fs(:usec)] }
+    Digest::SHA256.hexdigest(JSON.generate([values, members]))
   end
 
   def emoji_etag
     [
       anonymous? ? nil : I18n.locale,
       anonymous?,
+      current_user&.id,
       ::Wxw::EmojiPack.publish_version,
       anonymous? ? nil : ::Wxw::EmojiPack.picked_ids(current_user),
       anonymous? ? nil : ::Wxw::EmojiPack.order_ids(current_user),
       numbered?,
+      favorites_cache_key,
     ]
   end
 end

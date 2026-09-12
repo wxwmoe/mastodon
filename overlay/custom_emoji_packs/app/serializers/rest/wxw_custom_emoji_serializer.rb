@@ -2,16 +2,14 @@
 
 class REST::WxwCustomEmojiSerializer < REST::CustomEmojiSerializer
   def category
-    category_names[object.category_id]
+    instance_options[:category]
   end
 
   def category_loaded?
-    category_names.key?(object.category_id)
+    true
   end
 
-  private
-
-  def category_names
-    instance_options[:category_names]
+  def featured
+    object.id == instance_options[:featured_emoji_id]
   end
 end

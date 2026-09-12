@@ -1,0 +1,8 @@
+- content_for :page_title do
+  = t('wxw_emoji.favorites.edit')
+
+- content_for :heading_actions do
+  = link_to t('wxw_emoji.picker.search'), search_settings_preferences_emoji_packs_path(pack_id: @pack.id), class: 'button'
+  = link_to t('auth.rules.back'), settings_preferences_emoji_favorites_path, class: 'button'
+
+= render 'form'

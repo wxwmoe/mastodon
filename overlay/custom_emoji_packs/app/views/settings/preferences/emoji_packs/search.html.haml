@@ -2,6 +2,8 @@
   = t('wxw_emoji.picker.search')
 
 - content_for :heading_actions do
+  = link_to t('wxw_emoji.favorites.title'), settings_preferences_emoji_favorites_path, class: 'button'
+  = link_to t('wxw_emoji.favorites.add'), choose_settings_preferences_emoji_favorites_path(target_pack_id: @pack.id), class: 'button' if @pack&.favorite?
   = link_to t('auth.rules.back'), settings_preferences_emoji_packs_path, class: 'button'
 
 = form_with url: search_settings_preferences_emoji_packs_path, method: :get, class: :simple_form do |form|
@@ -18,7 +20,8 @@
         = form.text_field :shortcode,
                           value: @shortcode,
                           class: 'string optional',
-                          placeholder: t('admin.custom_emojis.shortcode')
+                          placeholder: t('admin.custom_emojis.shortcode'),
+                          'aria-label': t('admin.custom_emojis.shortcode')
 
   .actions
     %button.button= t('admin.accounts.search')
@@ -26,22 +29,33 @@
 
 %hr.spacer/
 
-.batch-table.batch-table--no-toolbar
-  .batch-table__toolbar
-  .batch-table__body
-    - if @emojis.empty?
-      = nothing_here 'nothing-here--under-tabs nothing-here--no-toolbar'
-    - else
-      - @emojis.each do |emoji|
-        - shortcode = emoji.shortcode
-        .batch-table__row
-          .batch-table__row__content.wxw-emoji-picker__content
-            .wxw-custom-emoji-frame.wxw-emoji-picker__icon
-              = image_tag full_asset_url(emoji.image.url(:static)), class: 'custom-emoji wxw-custom-emoji-image', alt: ":#{shortcode}:", data: { original: full_asset_url(emoji.image.url), static: full_asset_url(emoji.image.url(:static)) }
-            %samp.wxw-emoji-picker__label :#{shortcode}:
-            .input-copy.wxw-emoji-picker__copy
-              .input-copy__wrapper{ hidden: true }
-                = copyable_input value: ":#{shortcode}:"
-              %button.wxw-emoji-picker__copy-button{ type: :button }= safe_join([material_symbol('content_copy'), t('generic.copy')])
+= form_with url: choose_settings_preferences_emoji_favorites_path, method: :get do |form|
+  = hidden_field_tag :target_pack_id, @pack.id if @pack&.favorite?
+
+  .batch-table
+    .batch-table__toolbar
+      %label.batch-table__toolbar__select.batch-checkbox-all
+        = check_box_tag :batch_checkbox_all, nil, false, 'aria-label': t('wxw_emoji.select_all')
+      .batch-table__toolbar__actions
+        = form.button safe_join([material_symbol('star'), t('wxw_emoji.favorites.add')]), name: :add, class: 'table-action-link', type: :submit
+        = form.button safe_join([material_symbol('close'), t('wxw_emoji.favorites.remove')]), name: :remove, class: 'table-action-link', type: :submit
+
+    .batch-table__body
+      - if @emojis.empty?
+        = nothing_here 'nothing-here--under-tabs'
+      - else
+        - @emojis.each do |emoji|
+          - shortcode = emoji.shortcode
+          .batch-table__row
+            %label.batch-table__row__select.batch-table__row__select--aligned.batch-checkbox
+              = check_box_tag 'emoji_ids[]', emoji.id, false, id: "emoji_ids_#{emoji.id}", 'aria-labelledby': "emoji_name_#{emoji.id}"
+            .batch-table__row__content.wxw-emoji-picker__content
+              .wxw-custom-emoji-frame.wxw-emoji-picker__icon
+                = image_tag full_asset_url(emoji.image.url(:static)), class: 'custom-emoji wxw-custom-emoji-image', alt: ":#{shortcode}:", data: { original: full_asset_url(emoji.image.url), static: full_asset_url(emoji.image.url(:static)) }
+              %samp.wxw-emoji-picker__label{ id: "emoji_name_#{emoji.id}" } :#{shortcode}:
+              .input-copy.wxw-emoji-picker__copy
+                .input-copy__wrapper{ hidden: true }
+                  = copyable_input value: ":#{shortcode}:"
+                %button.wxw-emoji-picker__copy-button{ type: :button }= safe_join([material_symbol('content_copy'), t('generic.copy')])
 
 = paginate @emojis

@@ -58,7 +58,7 @@ module Admin
       @pack_ids = submitted_group_ids
       return head :unprocessable_entity unless @pack_ids&.any?
 
-      @packs = Wxw::EmojiPack.where(id: @pack_ids).to_a
+      @packs = Wxw::EmojiPack.public_packs.where(id: @pack_ids).to_a
       return head :unprocessable_entity unless @packs.size == @pack_ids.size
 
       section_id = params.dig(:emoji_packs, :section_id)
@@ -81,14 +81,14 @@ module Admin
 
     def refresh
       authorize :custom_emoji, :update?
-      Wxw::EmojiPack.refresh!
-      redirect_to admin_emoji_packs_path
+      cleaned = Wxw::EmojiPack.refresh!
+      redirect_to admin_emoji_packs_path, notice: I18n.t('wxw_emoji.admin.packs.refreshed', **cleaned)
     end
 
     private
 
     def set_pack
-      @pack = Wxw::EmojiPack.find(params[:id])
+      @pack = Wxw::EmojiPack.public_packs.find(params[:id])
     end
 
     def set_sections
@@ -96,7 +96,7 @@ module Admin
     end
 
     def load_index
-      @packs = Wxw::EmojiPack.ordered.includes(section: :translations, custom_emoji_category: :featured_emoji).to_a
+      @packs = Wxw::EmojiPack.public_packs.ordered.includes(:featured_emoji, section: :translations).to_a
       @pack_icons = Wxw::EmojiPack.icon_emojis_for(@packs)
     end
 
