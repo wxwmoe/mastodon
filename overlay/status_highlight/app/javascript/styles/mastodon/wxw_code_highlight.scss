@@ -1,0 +1,22 @@
+@mixin code-theme($theme) {
+  .wxw-code-highlight > span {
+    color: var(--shiki-#{$theme});
+    font-style: var(--shiki-#{$theme}-font-style, normal);
+    font-weight: var(--shiki-#{$theme}-font-weight, normal);
+    text-decoration: var(--shiki-#{$theme}-text-decoration, none);
+  }
+}
+
+@include code-theme(dark);
+
+:root[data-color-scheme='light'] {
+  @include code-theme(light);
+}
+
+:root[data-contrast='high'] {
+  @include code-theme(dark-high);
+}
+
+:root[data-color-scheme='light'][data-contrast='high'] {
+  @include code-theme(light-high);
+}
