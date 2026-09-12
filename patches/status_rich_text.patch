@@ -1620,7 +1620,15 @@
    end
 --- a/app/serializers/activitypub/note_serializer.rb
 +++ b/app/serializers/activitypub/note_serializer.rb
-@@ -13,6 +13,7 @@
+@@ -3,6 +3,7 @@
+ class ActivityPub::NoteSerializer < ActivityPub::Serializer
+   include FormattingHelper
+   include JsonLdHelper
++  include Wxw::RichTextNoteSerializer
+
+   context_extensions :atom_uri, :conversation, :sensitive, :voters_count, :quotes, :interaction_policies
+
+@@ -13,6 +14,7 @@
               :conversation, :context
 
    attribute :content
@@ -1628,10 +1636,11 @@
    attribute :content_map, if: :language?
    attribute :updated, if: :edited?
 
-@@ -52,6 +53,14 @@
+@@ -52,6 +54,14 @@
 
    def content
-     status_content_format(object)
+-    status_content_format(object)
++    wxw_federation_content
 +  end
 +
 +  def source
@@ -1643,6 +1652,16 @@
    end
 
    def content_map
+--- a/app/helpers/context_helper.rb
++++ b/app/helpers/context_helper.rb
+@@ -13,6 +13,7 @@
+     hashtag: { 'Hashtag' => 'as:Hashtag' },
+     moved_to: { 'movedTo' => { '@id' => 'as:movedTo', '@type' => '@id' } },
+     also_known_as: { 'alsoKnownAs' => { '@id' => 'as:alsoKnownAs', '@type' => '@id' } },
++    misskey_content: { '_misskey_content' => 'https://misskey-hub.net/ns#_misskey_content' },
+     emoji: { 'toot' => 'http://joinmastodon.org/ns#', 'Emoji' => 'toot:Emoji' },
+     featured: { 'toot' => 'http://joinmastodon.org/ns#', 'featured' => { '@id' => 'toot:featured', '@type' => '@id' }, 'featuredTags' => { '@id' => 'toot:featuredTags', '@type' => '@id' } },
+     property_value: { 'schema' => 'http://schema.org#', 'PropertyValue' => 'schema:PropertyValue', 'value' => 'schema:value' },
 --- a/app/javascript/styles/mastodon/tokens/theme/_light.scss
 +++ b/app/javascript/styles/mastodon/tokens/theme/_light.scss
 @@ -108,9 +108,9 @@

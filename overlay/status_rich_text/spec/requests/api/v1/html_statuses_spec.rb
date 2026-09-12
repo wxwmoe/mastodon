@@ -74,6 +74,7 @@ RSpec.describe 'HTML statuses' do
       note = serialized_record_json(status, ActivityPub::NoteSerializer, adapter: ActivityPub::Adapter)
       expect(note['type']).to eq type
       expect(note['source']).to eq('content' => original, 'mediaType' => 'text/markdown')
+      expect(note).to_not have_key('_misskey_content')
       expect(note['content']).to eq response.parsed_body[:content]
       expect(Nokogiri::HTML5.fragment(note['content']).at_css('strong').text).to eq '中文'
       expect(note['quote']).to eq ActivityPub::TagManager.instance.uri_for(quoted) if type == 'Note'
@@ -89,13 +90,21 @@ RSpec.describe 'HTML statuses' do
       note = serialized_record_json(status.reload, ActivityPub::NoteSerializer, adapter: ActivityPub::Adapter)
       expect(note['type']).to eq type
       expect(note['source']).to eq('content' => edited, 'mediaType' => 'text/markdown')
-      expect(note['content']).to eq response.parsed_body[:content]
+      expect(note['_misskey_content']).to include('Updated', "```ruby\nline 1\nline 2\n\n```")
       expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre code').text).to eq "line 1\nline 2\n"
-      expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre code')['class']).to eq 'language-ruby'
+      expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre code').attribute_nodes).to be_empty
+      expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre')['class']).to eq 'language-ruby'
+      expect(Nokogiri::HTML5.fragment(response.parsed_body[:content]).at_css('pre code')['class']).to eq 'language-ruby'
       expect(status.text).to eq edited
       activity = serialized_record_json(status, ActivityPub::UpdateNoteSerializer, adapter: ActivityPub::Adapter)
       expect(activity.dig('object', 'source')).to eq note['source']
       expect(activity.dig('object', 'content')).to eq note['content']
+      expect(activity.dig('object', '_misskey_content')).to eq note['_misskey_content']
+
+      get "/@#{user.account.username}/#{status.id}", headers: { 'Accept' => 'application/activity+json' }
+
+      expect(response).to have_http_status(200)
+      expect(JSON.parse(response.body)).to include(note.slice('content', 'contentMap', 'source', '_misskey_content'))
     end
   end
 
@@ -447,7 +456,7 @@ RSpec.describe 'HTML statuses' do
     note = serialized_record_json(status, ActivityPub::NoteSerializer, adapter: ActivityPub::Adapter)
     document = Nokogiri::HTML5.fragment(note['content'])
 
-    expect(note['content']).to eq response.parsed_body[:content]
+    expect(note['content']).to eq response.parsed_body[:content].sub('<pre>pre</pre>', '<pre><code>pre</code></pre>')
     expect(HtmlAwareFormatter.new(note['content'], false).to_s).to eq note['content']
     expect(document.css('*').map(&:name).uniq).to match_array(Sanitize::Config::MASTODON_STRICT[:elements])
     expect(document.at_css('div')['style']).to eq 'text-align: center;'
