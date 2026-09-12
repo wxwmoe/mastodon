@@ -1,0 +1,13 @@
+#!/bin/bash
+set -e
+
+test -f overlay/status_rich_text/app/lib/wxw/html_formatter.rb
+test -f src/app/models/wxw_status_setting.rb
+while IFS= read -r file; do
+  test ! -e "src/$file" || { echo "Refusing to overwrite upstream file: $file" >&2; exit 1; }
+done < <(cd overlay/status_rich_text && find . -type f -printf '%P\n')
+
+patch --dry-run --silent --batch --forward --fuzz=0 -p1 -d src < patches/status_rich_text.patch
+patch --silent --batch --forward --fuzz=0 --no-backup-if-mismatch -p1 -d src < patches/status_rich_text.patch
+cp -R overlay/status_rich_text/. src/
+patch --dry-run --silent --batch --reverse --fuzz=0 -p1 -d src < patches/status_rich_text.patch
