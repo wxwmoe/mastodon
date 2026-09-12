@@ -25,7 +25,7 @@ mv "$source_tmp/src" src
 while read -r patch _; do
   echo "Applying ${patch} patch..."
   bash "patches/${patch}.sh" < /dev/null
-done << 'WXW.MOE MASTODON PATCHES'
+done << WXW.MOE_MASTODON_PATCHES
 replace_icons                                 # 替换图标文件
 status_limit                                  # 修改字数上限
 status_regexp_timeout                         # 修复正则超时
@@ -43,9 +43,8 @@ registration_reason_dedup                     # 拦截重复注册理由
 navigation_entry                              # 替换当前热门入口
 rate_limit_tiers                              # 用户年限放宽限速
 chinese_search                                # 全文搜索中文优化
-version_format                                # 修改版本输出样式
-docker_version_metadata                       # 修改 Mastodon 版本
-WXW.MOE MASTODON PATCHES
+set_version_metadata                          # 修订 Mastodon 版本
+WXW.MOE_MASTODON_PATCHES
 echo "All patches applied."
 
 # 编译 Mastodon 镜像
