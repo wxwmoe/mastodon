@@ -131,7 +131,7 @@ html:not([data-color-scheme]) {
   --color-graph-disabled-fill: #0f2540;
 
   // Legacy tokens
-  --rich-text-container-color: #0b346e;
-  --rich-text-text-color: #7db9de;
-  --rich-text-decorations-color: #2ea9df;
+  --rich-text-container-color: #0a131e;
+  --rich-text-text-color: var(--color-fg);
+  --rich-text-decorations-color: var(--color-cw-panel);
 }

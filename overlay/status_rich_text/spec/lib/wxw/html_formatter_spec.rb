@@ -13,8 +13,13 @@ RSpec.describe Wxw::HtmlFormatter do
     formatter_for(text, **options).to_s
   end
 
-  it 'retains every original Mastodon allowlisted element and no other elements' do
-    source = '<p><b>b</b> <strong>s</strong> <i>i</i> <em>e</em> <u>u</u> <del>d</del> <s>s</s><br><span>span</span> <a href="https://example.com/">link</a> <ruby>字<rt>zi</rt><rp>(</rp></ruby></p><blockquote>quote</blockquote><pre><code>code</code></pre><ul><li>a</li></ul><ol start="3"><li value="4">b</li></ol>'
+  it 'retains every shared Mastodon allowlisted element and no other elements' do
+    source = '<p><b>b</b> <strong>s</strong> <i>i</i> <em>e</em> <u>u</u> <del>d</del> <s>s</s><br><span>span</span> <a href="https://example.com/">link</a> <ruby>字<rt>zi</rt><rp>(</rp></ruby></p><blockquote>quote</blockquote><pre><code>code</code></pre><ul><li>a</li></ul><ol start="3"><li value="4">b</li></ol>' \
+             '<h1>one</h1><h2>two</h2><h3>three</h3><h4>four</h4><h5>five</h5><h6>six</h6><p><abbr title="Hypertext Markup Language">HTML</abbr> H<sub>2</sub>O x<sup>2</sup></p>' \
+             '<p><small>small</small><wbr><time datetime="2026-09-12">time</time><mark>mark</mark><kbd>kbd</kbd><ins>ins</ins></p><hr>' \
+             '<hgroup><h2>group</h2><p>subtitle</p></hgroup><header>header</header><footer>footer</footer>' \
+             '<dl><dt>term</dt><dd>definition</dd></dl><details><summary>summary</summary><p>detail</p></details>' \
+             '<div style="text-align: center;">centered</div>'
     html = format(source)
     document = Nokogiri::HTML5.fragment(html)
 
@@ -22,6 +27,103 @@ RSpec.describe Wxw::HtmlFormatter do
     expect(Sanitize.fragment(html, Sanitize::Config::MASTODON_STRICT)).to eq html
     expect(document.at_css('ol')['start']).to eq '3'
     expect(document.at_css('ol li')['value']).to eq '4'
+    expect(document.at_css('div')['style']).to eq 'text-align: center;'
+    expect(document.at_css('div').text).to eq 'centered'
+  end
+
+  it 'retains only abbreviation titles and keeps the added elements inline' do
+    source = "<p>H<sub style=\"position:fixed\">2</sub>O x<sup onclick=\"bad()\">2</sup> <abbr title=\"Hypertext &amp; Markup\" id=\"label\" class=\"custom\" onclick=\"bad()\">HTML</abbr>\n text</p>"
+    document = Nokogiri::HTML5.fragment(format(source))
+
+    expect(document.at_css('p').text).to eq 'H2O x2 HTML text'
+    expect(document.at_css('abbr').attributes.keys).to eq ['title']
+    expect(document.at_css('abbr')['title']).to eq 'Hypertext & Markup'
+    expect(document.css('sub, sup').flat_map { |node| node.attributes.keys }).to be_empty
+    expect(document.css('br')).to be_empty
+  end
+
+  it 'keeps headings separate from adjacent paragraphs and headings in plain text' do
+    source = '<p>before</p>' + (1..6).map { |level| "<h#{level}>heading#{level}</h#{level}>" }.join + '<p>after</p>'
+    plain = formatter_for(source).plain_text
+
+    expect(plain).to start_with 'before'
+    expect(plain.lines.map(&:strip).reject(&:empty?)).to eq %w(before heading1 heading2 heading3 heading4 heading5 heading6 after)
+  end
+
+  it 'keeps styled line breaks through HTML and Markdown rendering and remote formatting' do
+    source = '<h6>heading</h6><p>one<br style="color:red"><br lang="en">two</p>'
+
+    %w(text/html text/markdown).each do |content_type|
+      formatter = formatter_for(source, content_type: content_type)
+      document = Nokogiri::HTML5.fragment(formatter.to_s)
+      expect(document.at_css('h6').text).to eq 'heading'
+      expect(document.css('br').size).to eq 2
+      expect(document.at_css('br')['style']).to eq 'color: red;'
+      expect(formatter.plain_text).to eq "heading\none\ntwo"
+    end
+
+    remote_html = HtmlAwareFormatter.new(source, false).to_s
+    expect(Nokogiri::HTML5.fragment(remote_html).at_css('h6').text).to eq 'heading'
+    expect(Nokogiri::HTML5.fragment(remote_html).at_css('br')['style']).to eq 'color: red;'
+    expect(PlainTextFormatter.new(remote_html, false).to_s).to eq "heading\none\ntwo"
+  end
+
+  it 'retains plain-text block boundaries after normalizing HTML and Markdown whitespace' do
+    ["- first item\n- second item", "1. first item\n2. second item"].each do |source|
+      expect(formatter_for(source, content_type: 'text/markdown').plain_text).to eq "first item\nsecond item"
+    end
+
+    %w(p h1 h2 h3 h4 h5 h6 blockquote pre ul ol li).each do |tag|
+      source = "before\n<#{tag}>first</#{tag}>\n<#{tag}>second</#{tag}>\nafter"
+      expect(formatter_for(source).plain_text).to eq "before\nfirst\nsecond\nafter"
+    end
+
+    source = "before<pre><code>  first\n\n  second\n</code></pre>after"
+    expect(formatter_for(source).plain_text).to eq "before\n  first\n\n  second\nafter"
+    expect(formatter_for("one<code>  two\nthree  </code>four").plain_text).to eq "one  two\nthree  four"
+  end
+
+  it 'keeps static styles while removing unsafe declarations and event handlers' do
+    source = '<p style="color: RED; background-color: #FFEECC; padding: 4px; position: fixed" onclick="bad()">before ' \
+             '<mark style="font-weight: 700; opacity: 0" onmouseover="bad()">marked</mark></p>'
+
+    %w(text/html text/markdown).each do |content_type|
+      formatter = formatter_for(source.freeze, content_type: content_type)
+      html = formatter.to_s
+      document = Nokogiri::HTML5.fragment(html)
+
+      expect(document.at_css('p')['style']).to eq 'color: red; background-color: #ffeecc; padding: 4px;'
+      expect(document.at_css('mark')['style']).to eq 'font-weight: 700;'
+      expect(document.css('[onclick], [onmouseover]')).to be_empty
+      expect(formatter.text).to eq source
+      expect(formatter.plain_text).to eq 'before marked'
+      expect(HtmlAwareFormatter.new(html, false).to_s).to eq html
+    end
+  end
+
+  it 'keeps time metadata and closed details content without allowing additional attributes' do
+    source = '<details open ontoggle="bad()" style="padding: 4px"><summary id="title">More</summary>' \
+             '<p><time datetime="2026-09-12T10:00:00Z" title="extra" onclick="bad()" style="font-style: italic">today</time> ' \
+             '<ins datetime="2026-09-12">added</ins></p></details>'
+    document = Nokogiri::HTML5.fragment(format(source))
+
+    expect(document.at_css('details').attributes.keys).to eq ['style']
+    expect(document.at_css('details')['style']).to eq 'padding: 4px;'
+    expect(document.at_css('summary').attributes).to be_empty
+    expect(document.at_css('time').attributes.keys).to match_array %w(datetime style)
+    expect(document.at_css('time')['datetime']).to eq '2026-09-12T10:00:00Z'
+    expect(document.at_css('time')['style']).to eq 'font-style: italic;'
+    expect(document.at_css('ins').attributes).to be_empty
+    expect(document.at_css('details p').text).to eq 'today added'
+  end
+
+  it 'separates structural elements and collapsed content in plain text without spacing word breaks' do
+    source = '<p>before</p><header>header</header><hgroup><h2>heading</h2><p>subtitle</p></hgroup>' \
+             '<details><summary>summary</summary>body<dl><dt>term</dt><dd>definition</dd></dl>tail</details>' \
+             'left<hr>right<footer>footer</footer><p>ab<wbr>cd</p>'
+
+    expect(formatter_for(source).plain_text.lines.map(&:strip).reject(&:empty?)).to eq %w(before header heading subtitle summary body term definition tail left right footer abcd)
+    expect(Nokogiri::HTML5.fragment(format(source)).css('p').last.text).to eq 'abcd'
   end
 
   it 'uses the original formatter unchanged for plain text and literal Markdown' do
@@ -31,7 +133,7 @@ RSpec.describe Wxw::HtmlFormatter do
   end
 
   it 'renders and sanitizes HTML without changing its source' do
-    source = '<p style="color:red"><b>safe</b><script>hidden</script></p>'.freeze
+    source = '<p style="position:fixed"><b>safe</b><script>hidden</script></p>'.freeze
     formatter = formatter_for(source)
 
     expect(formatter.to_s).to eq '<p><b>safe</b></p>'
@@ -40,38 +142,108 @@ RSpec.describe Wxw::HtmlFormatter do
     expect(formatter_for('<p><img src="image.png"></p>').plain_text).to eq ''
   end
 
-  it 'filters scripts, event handlers, styles, images and unsafe destinations' do
-    document = Nokogiri::HTML5.fragment(format('<strong onclick="alert(1)" style="color:red">bold</strong><script>alert(1)</script><img src=x onerror=alert(1)><a href="javascript:alert(1)">bad</a><a href="/admin">relative</a><iframe>hidden</iframe>'))
+  it 'filters scripts, event handlers, unsafe styles, images and unsafe destinations' do
+    document = Nokogiri::HTML5.fragment(format('<strong onclick="alert(1)" style="position:fixed">bold</strong><script>alert(1)</script><img src=x onerror=alert(1)><a href="javascript:alert(1)">bad</a><a href="/admin">relative</a><iframe>hidden</iframe>'))
 
     expect(document.css('script, img, iframe, [onclick], [onerror], [style], a')).to be_empty
     expect(document.text).to eq 'boldbadrelative'
   end
 
   it 'keeps explicit HTML breaks without inserting extra breaks between block elements' do
-    document = Nokogiri::HTML5.fragment(format("<strong>a</strong><br>\n<em>b</em><br><br>end\n<p>block</p>\n<ul>\n<li>one</li>\n<li>two</li>\n</ul>"))
+    html = format("<strong>a</strong><br>\n<em>b</em><br><br>end\n<p>block</p>\n<ul>\n<li>one</li>\n<li>two</li>\n</ul>")
+    document = Nokogiri::HTML5.fragment(html)
 
+    expect(html).not_to include "\n"
     expect(document.css('br')).to have_attributes(size: 3)
+    expect(document.at_css('br').next_sibling.name).to eq 'em'
     expect(document.css('ul > br, p > ul')).to be_empty
+    expect(document.at_css('ul').children.map(&:name)).to eq %w(li li)
     expect(document.css('li').map(&:text)).to eq %w(one two)
   end
 
   it 'preserves code whitespace and does not linkify inside code or existing links' do
-    source = "<pre><code>  @alice #topic\n https://example.com/\n</code></pre><a href=\"https://example.net/\">@alice #topic</a>"
+    source = "<pre><code>  @alice #topic\n https://example.com/\n</code></pre><code>inline\n\t code</code><a href=\"https://example.net/\">@alice #topic</a>"
     document = Nokogiri::HTML5.fragment(format(source))
 
-    expect(document.at_css('code').text).to eq "  @alice #topic\n https://example.com/\n"
+    expect(document.css('code').map(&:text)).to eq ["  @alice #topic\n https://example.com/\n", "inline\n\t code"]
     expect(document.css('code a, code br, a a')).to be_empty
     expect(document.css('a')).to have_attributes(size: 1)
   end
 
-  it 'preserves whitespace separating emphasis and links' do
-    { ' ' => ' ', "\n" => "\n", "\t" => "\t", '&nbsp;' => "\u00a0" }.each do |source_space, expected_space|
+  it 'keeps only the first bounded language class on code blocks across local and remote formatting' do
+    classes = {
+      'language-Ruby' => 'language-Ruby',
+      "custom\tlanguage-c++\nlanguage-ruby mention" => 'language-c++',
+      'language-! language-c#' => 'language-c#',
+      'language-Future_Lang.v2' => 'language-Future_Lang.v2',
+      "language-#{'a' * 64}" => "language-#{'a' * 64}",
+      "language-#{'a' * 65}" => nil,
+      'language-' => nil,
+      'language-.ruby' => nil,
+      'language-ruby/path' => nil,
+      'language-ruby:extra' => nil,
+      "language-ruby\u00a0custom" => nil,
+      'mention custom' => nil,
+      '' => nil,
+    }
+    code = "  @alice #topic <tag>\n\n    https://example.com/\n"
+
+    classes.each do |source_class, expected_class|
+      source = "<pre><code class=\"#{source_class}\">#{ERB::Util.h(code)}</code></pre>"
+
+      [format(source), format(source, content_type: 'text/markdown'), HtmlAwareFormatter.new(source, false).to_s].each do |html|
+        document = Nokogiri::HTML5.fragment(html)
+        aggregate_failures(source_class) do
+          expect(document.at_css('pre > code')['class']).to eq expected_class
+          expect(document.at_css('pre > code').text).to eq code
+          expect(document.css('code a, code span')).to be_empty
+          expect(Sanitize.fragment(html, Sanitize::Config::MASTODON_STRICT)).to eq html
+        end
+      end
+    end
+  end
+
+  it 'drops language classes outside direct pre children without changing existing semantic classes' do
+    source = '<p class="mention language-ruby"><code class="language-ruby">inline</code></p>' \
+             '<pre class="language-ruby"><span class="language-ruby"><code class="language-ruby">nested</code></span></pre>' \
+             '<pre><code>unlabelled</code></pre>'
+
+    [format(source), HtmlAwareFormatter.new(source, false).to_s].each do |html|
+      document = Nokogiri::HTML5.fragment(html)
+      expect(document.css('code').map(&:text)).to eq %w(inline nested unlabelled)
+      expect(document.css('code[class], [class*="language-"]')).to be_empty
+      expect(document.at_css('p')['class']).to eq 'mention'
+      expect(Sanitize.fragment(html, Sanitize::Config::MASTODON_STRICT)).to eq html
+    end
+  end
+
+  it 'collapses HTML whitespace separating emphasis and links while retaining nonbreaking spaces' do
+    { ' ' => ' ', "\n" => ' ', "\t" => ' ', " \r\n\t " => ' ', '&nbsp;' => "\u00a0" }.each do |source_space, expected_space|
       source = "<p><strong>one</strong>#{source_space}<em>two</em>#{source_space}<a href=\"https://example.org/\">three</a></p>"
       document = Nokogiri::HTML5.fragment(format(source))
 
       expect(document.at_css('p').text).to eq "one#{expected_space}two#{expected_space}three"
       expect(document.css('br')).to be_empty
     end
+  end
+
+  it 'normalizes Markdown line breaks without changing the source or prose entities' do
+    source = "first\n[link](https://explicit.example/)\n@alice #topic https://example.org/  \nlast\n\nnext".freeze
+    formatter = formatter_for(source, content_type: 'text/markdown')
+    html = formatter.to_s
+    document = Nokogiri::HTML5.fragment(html)
+
+    expect(html).not_to include "\n"
+    expect(document.at_css('p').text).to start_with 'first link @alice #topic '
+    expect(document.css('br')).to have_attributes(size: 1)
+    expect(document.at_css('br').next_sibling.text).to eq 'last'
+    expect(document.css('p').map(&:text).last).to eq 'next'
+    expect(document.css('p')).to have_attributes(size: 2)
+    expect(document.css('a.mention:not(.hashtag)').map(&:text)).to eq ['@alice']
+    expect(document.css('a.hashtag').map(&:text)).to eq ['#topic']
+    expect(formatter.urls.map(&:to_s)).to eq ['https://explicit.example/', 'https://example.org/']
+    expect(formatter.text).to eq source
+    expect(formatter.rewrite_mentions { '@bob' }).to eq source.sub('@alice', '@bob')
   end
 
   it 'keeps native mentions, hashtags, URL shortening and emoji shortcodes in prose' do
@@ -227,8 +399,12 @@ RSpec.describe Wxw::HtmlFormatter do
         'whole element' => ['<b>@alice #topic https://example.org/</b>', true],
         'separate elements' => ['<b>@alice</b> <b>#topic</b> <b>https://example.org/</b>', true],
         'heading' => ['word<h1>@alice #topic https://example.org/</h1>', true],
+        'abbreviation' => ['<abbr title="@attribute #attribute">@alice #topic https://example.org/</abbr>', true],
+        'subscript' => ['<sub>@alice #topic https://example.org/</sub>', true],
+        'superscript' => ['<sup>@alice #topic https://example.org/</sup>', true],
         'division' => ['word<div>@alice #topic https://example.org/</div>', true],
         'internal element' => ['@ali<b>ce</b> #top<b>ic</b> https://exa<b>mple</b>.org/', false],
+        'internal added element' => ['@ali<sub>ce</sub> #top<sup>ic</sup> https://exa<abbr>mple</abbr>.org/', false],
         'empty element' => ['@ali<i></i>ce #top<i></i>ic https://exa<i></i>mple.org/', false],
         'comment' => ['@ali<!-- gap -->ce #top<!-- gap -->ic https://exa<!-- gap -->mple.org/', false],
         'removed element' => ['@ali<font>ce</font> #top<font>ic</font> https://exa<font>mple</font>.org/', false],

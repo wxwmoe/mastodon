@@ -697,3 +697,1035 @@
 +          content_type: 'text/plain',
          })
        end
+--- a/lib/sanitize_ext/sanitize_config.rb
++++ b/lib/sanitize_ext/sanitize_config.rb
+@@ -1,5 +1,8 @@
+ # frozen_string_literal: true
+
++require_relative 'code_language'
++require_relative 'rich_text_styles'
++
+ class Sanitize
+   module Config
+     HTTP_PROTOCOLS = %w(
+@@ -25,6 +28,8 @@
+       node = env[:node]
++      return Sanitize::CodeLanguage.sanitize(node) if env[:node_name] == 'code'
++
+       class_list = node['class']&.split(/[\t\n\f\r ]/)
+
+       return unless class_list
+
+       class_list.keep_if do |e|
+@@ -42,6 +47,18 @@
+       node.remove_attribute('translate') unless node['translate'] == 'no'
+     end
+
++    ALLOWED_STYLE_TRANSFORMER = lambda do |env|
++      node = env[:node]
++      return unless node['style']
++
++      style = Sanitize::RichTextStyles.sanitize(node['style'])
++      if style.empty?
++        node.remove_attribute('style')
++      else
++        node['style'] = style
++      end
++    end
++
+     UNSUPPORTED_HREF_TRANSFORMER = lambda do |env|
+       return unless env[:node_name] == 'a'
+
+@@ -56,15 +73,6 @@
+       current_node.replace(current_node.document.create_text_node(current_node.text)) unless LINK_PROTOCOLS.include?(scheme)
+     end
+
+-    UNSUPPORTED_ELEMENTS_TRANSFORMER = lambda do |env|
+-      return unless %w(h1 h2 h3 h4 h5 h6).include?(env[:node_name])
+-
+-      current_node = env[:node]
+-
+-      current_node.name = 'strong'
+-      current_node.wrap('<p></p>')
+-    end
+-
+     # We assume that incomming <math> nodes are of the form
+     # <math><semantics>...<annotation>...</annotation></semantics></math>
+     # according to the [FEP]. We try to grab the most relevant plain-text
+@@ -107,15 +115,18 @@
+     end
+
+     MASTODON_STRICT = freeze_config(
+-      elements: %w(p br span a del s pre blockquote code b strong u i em ul ol li ruby rt rp),
++      elements: %w(p div br span a abbr del ins s pre blockquote code kbd b strong u sub sup i em small wbr time mark hr hgroup header footer h1 h2 h3 h4 h5 h6 ul ol li dl dt dd details summary ruby rt rp),
+
+       attributes: {
+-        :all => %w(lang),
++        :all => %w(lang style),
+         'a' => %w(href rel class translate),
++        'abbr' => %w(title),
++        'code' => %w(class),
+         'span' => %w(class translate),
+         'ol' => %w(start reversed),
+         'li' => %w(value),
+         'p' => %w(class),
++        'time' => %w(datetime),
+       },
+
+       add_attributes: {
+@@ -127,11 +138,13 @@
+
+       protocols: {},
+
++      css: { properties: Sanitize::RichTextStyles::PROPERTIES, protocols: [] },
++
+       transformers: [
+         ALLOWED_CLASS_TRANSFORMER,
++        ALLOWED_STYLE_TRANSFORMER,
+         TRANSLATE_TRANSFORMER,
+         MATH_TRANSFORMER,
+-        UNSUPPORTED_ELEMENTS_TRANSFORMER,
+         UNSUPPORTED_HREF_TRANSFORMER,
+       ]
+     )
+--- a/app/lib/plain_text_formatter.rb
++++ b/app/lib/plain_text_formatter.rb
+@@ -1,7 +1,8 @@
+ # frozen_string_literal: true
+
+ class PlainTextFormatter
+-  NEWLINE_TAGS_RE = %r{(<br />|<br>|</p>)+}i
++  NEWLINE_TAGS_RE = %r{(<br(?=[\s/>])(?:[^>"']|"[^"]*"|'[^']*')*>|</p>|</h[1-6]>)+}i
++  BLOCK_ELEMENTS = %w(blockquote dd details div dl dt footer h1 h2 h3 h4 h5 h6 header hgroup hr li ol p pre summary ul).freeze
+
+   attr_reader :text, :local
+
+@@ -27,7 +28,7 @@
+
+       # Elements that are entirely removed with our Sanitize config
+       node.xpath('.//iframe|.//math|.//noembed|.//noframes|.//noscript|.//plaintext|.//script|.//style|.//svg|.//xmp').remove
+-      node.text.chomp
++      text_with_block_newlines(node).chomp
+     end
+   end
+
+@@ -36,4 +37,28 @@
+   def insert_newlines
+     text.gsub(NEWLINE_TAGS_RE) { |match| "#{match}\n" }
+   end
++
++  def text_with_block_newlines(node)
++    result = +''
++    pending_newline = false
++
++    visit = lambda do |child|
++      block = BLOCK_ELEMENTS.include?(child.name)
++      pending_newline = true if block
++      if child.text? || %w(pre code).include?(child.name)
++        value = child.text
++        unless value.empty?
++          result << "\n" if pending_newline && !result.empty? && !result.end_with?("\n") && !value.start_with?("\n")
++          result << value
++          pending_newline = false
++        end
++      elsif child.element?
++        child.children.each(&visit)
++      end
++      pending_newline = true if block
++    end
++
++    node.children.each(&visit)
++    result
++  end
+ end
+--- a/spec/lib/sanitize/config_spec.rb
++++ b/spec/lib/sanitize/config_spec.rb
+@@ -6,14 +6,51 @@
+   describe '::MASTODON_STRICT' do
+     subject { described_class::MASTODON_STRICT }
+
+-    it 'converts h1 to p strong' do
+-      expect(Sanitize.fragment('<h1>Foo</h1>', subject)).to eq '<p><strong>Foo</strong></p>'
++    it 'keeps all six heading levels' do
++      (1..6).each do |level|
++        source = "<h#{level}>Heading #{level}</h#{level}>"
++        expect(Sanitize.fragment(source, subject)).to eq source
++      end
+     end
+
+     it 'keeps ul' do
+       expect(Sanitize.fragment('<p>Check out:</p><ul><li>Foo</li><li>Bar</li></ul>', subject)).to eq '<p>Check out:</p><ul><li>Foo</li><li>Bar</li></ul>'
+     end
+
++    it 'keeps global attributes on every allowed tag and limits tag-specific attributes' do
++      specific_attributes = {
++        'a' => %w(href rel class translate target),
++        'abbr' => %w(title),
++        'span' => %w(class translate),
++        'ol' => %w(start reversed),
++        'li' => %w(value),
++        'p' => %w(class),
++        'time' => %w(datetime),
++      }
++      attributes = 'lang="en" style="color:red;position:fixed" href="https://example.com/" rel="tag" class="mention" translate="no" title="label" start="3" reversed value="4" datetime="2026-09-13"'
++
++      subject[:elements].each do |tag|
++        source = "<#{tag} #{attributes}>"
++        source += "text</#{tag}>" unless %w(br hr wbr).include?(tag)
++        node = Nokogiri::HTML5.fragment(Sanitize.fragment(source, subject)).at_css(tag)
++
++        aggregate_failures(tag) do
++          expect(node.attributes.keys).to match_array %w(lang style) + specific_attributes.fetch(tag, [])
++          expect(node['lang']).to eq 'en'
++          expect(node['style']).to eq 'color: red;'
++        end
++      end
++    end
++
++    it 'keeps static styles and disclosure content while removing active attributes' do
++      source = '<details open ontoggle="bad()"><summary style="color:red;position:fixed">Title</summary><p style="background-color:#ff0;padding:8px;animation:spin 1s">Body</p><time datetime="2026-09-12" onclick="bad()">date</time></details>'
++      html = Sanitize.fragment(source, subject)
++
++      expect(html).to eq '<details><summary style="color: red;">Title</summary><p style="background-color: #ff0; padding: 8px;">Body</p><time datetime="2026-09-12">date</time></details>'
++      expect(Sanitize.fragment(html, subject)).to eq html
++      expect(Sanitize.fragment('<p style="margin:-1px;color:var(--outside)">Body</p>', subject)).to eq '<p>Body</p>'
++    end
++
+     it 'keeps start and reversed attributes of ol' do
+       expect(Sanitize.fragment('<p>Check out:</p><ol start="3" reversed=""><li>Foo</li><li>Bar</li></ol>', subject)).to eq '<p>Check out:</p><ol start="3" reversed=""><li>Foo</li><li>Bar</li></ol>'
+     end
+--- a/app/javascript/config/html-tags.json
++++ b/app/javascript/config/html-tags.json
+@@ -4,8 +4,46 @@
+     "id": true,
+     "title": true,
+     "dir": true,
+-    "lang": true
++    "lang": true,
++    "style": true
+   },
++  "styles": [
++    "color",
++    "background-color",
++    "border-color",
++    "font-family",
++    "font-style",
++    "font-weight",
++    "font-size",
++    "line-height",
++    "text-align",
++    "text-decoration-line",
++    "border-style",
++    "border-width",
++    "border-radius",
++    "margin",
++    "margin-top",
++    "margin-right",
++    "margin-bottom",
++    "margin-left",
++    "margin-block",
++    "margin-inline",
++    "margin-block-start",
++    "margin-block-end",
++    "margin-inline-start",
++    "margin-inline-end",
++    "padding",
++    "padding-top",
++    "padding-right",
++    "padding-bottom",
++    "padding-left",
++    "padding-block",
++    "padding-inline",
++    "padding-block-start",
++    "padding-block-end",
++    "padding-inline-start",
++    "padding-inline-end"
++  ],
+   "tags": {
+     "p": {},
+     "br": {
+@@ -24,6 +62,11 @@
+         "target": true
+       }
+     },
++    "abbr": {
++      "attributes": {
++        "title": true
++      }
++    },
+     "del": {},
+     "s": {},
+     "pre": {},
+@@ -32,6 +75,8 @@
+     "b": {},
+     "strong": {},
+     "u": {},
++    "sub": {},
++    "sup": {},
+     "i": {},
+     "img": {
+       "children": false,
+@@ -42,6 +87,12 @@
+       }
+     },
+     "em": {},
++    "h1": {},
++    "h2": {},
++    "h3": {},
++    "h4": {},
++    "h5": {},
++    "h6": {},
+     "ul": {},
+     "ol": {
+       "attributes": {
+@@ -56,6 +107,30 @@
+     },
+     "ruby": {},
+     "rt": {},
+-    "rp": {}
++    "rp": {},
++    "div": {},
++    "small": {},
++    "wbr": {
++      "children": false
++    },
++    "time": {
++      "attributes": {
++        "datetime": "dateTime"
++      }
++    },
++    "mark": {},
++    "kbd": {},
++    "ins": {},
++    "hr": {
++      "children": false
++    },
++    "hgroup": {},
++    "header": {},
++    "footer": {},
++    "dl": {},
++    "dt": {},
++    "dd": {},
++    "details": {},
++    "summary": {}
+   }
+ }
+--- a/app/javascript/styles/mastodon/rich_text.scss
++++ b/app/javascript/styles/mastodon/rich_text.scss
+@@ -2,30 +2,57 @@
+ .e-content,
+ .edit-indicator__content,
+ .reply-indicator__content {
+-  code {
++  code,
++  kbd,
++  pre {
++    font-family: var(--font-monospace);
++  }
++
++  kbd {
+     background: var(--rich-text-container-color);
+-    padding: 4px;
++    padding: 0.1em 0.4em;
++    border: 1px solid var(--rich-text-decorations-color);
++    border-bottom-width: 2px;
+     border-radius: 4px;
+     color: var(--rich-text-text-color);
+     font-size: 0.85em;
+   }
+
++  code {
++    background: var(--rich-text-container-color);
++    margin: 0;
++    padding: 0.2em 0.4em;
++    border-radius: 6px;
++    color: var(--rich-text-text-color);
++    font-size: 0.85em;
++    line-height: normal;
++    white-space: break-spaces;
++  }
++
+   pre {
+     background: var(--rich-text-container-color);
+-    padding: 8px;
++    padding: 16px;
+     border-radius: 4px;
+     color: var(--rich-text-text-color);
++    font-size: 0.85em;
++    line-height: 1.45;
++    overflow: auto;
++    overflow-wrap: normal;
++    white-space: pre;
+
+     code {
+       padding: 0;
+       background: transparent;
++      border-radius: 0;
++      font-size: 100%;
++      line-height: inherit;
++      white-space: inherit;
+     }
+   }
+
+   pre,
+   blockquote {
+-    margin-bottom: 22px;
+-    white-space: pre-wrap;
++    margin: 0 0 16px;
+     unicode-bidi: plaintext;
+
+     &:last-child {
+@@ -34,34 +61,20 @@
+   }
+
+   blockquote {
+-    padding-inline-start: 32px;
++    padding: 0 1em;
++    border-inline-start: 0.25em solid var(--rich-text-decorations-color);
+     color: var(--rich-text-text-color);
+     white-space: normal;
+-    position: relative;
+-
+-    &::before {
+-      display: block;
+-      content: '';
+-      width: 24px;
+-      height: 20px;
+-      mask-image: url('@/images/quote.svg');
+-      background-color: var(--rich-text-decorations-color);
+-      position: absolute;
+-      inset-inline-start: 0;
+-      top: 0;
+-    }
+
+-    blockquote {
+-      margin-top: 4px;
+-      border-inline-start: 3px solid var(--rich-text-decorations-color);
+-      padding-inline-start: 16px;
++    > p:not(:last-child) {
++      margin-bottom: 16px;
++    }
+
+-      &::before {
+-        display: none;
+-      }
++    > :first-child {
++      margin-top: 0;
+     }
+
+-    p:last-of-type {
++    > :last-child {
+       margin-bottom: 0;
+     }
+   }
+@@ -75,6 +88,93 @@
+     }
+   }
+
++  dl,
++  details {
++    margin-bottom: 16px;
++
++    &:last-child {
++      margin-bottom: 0;
++    }
++  }
++
++  dt {
++    font-weight: 600;
++  }
++
++  dd {
++    margin-inline-start: 24px;
++  }
++
++  hr {
++    margin: 16px 0;
++    border: 0;
++    border-top: 1px solid var(--rich-text-decorations-color);
++  }
++
++  summary {
++    cursor: pointer;
++  }
++
++  h1,
++  h2,
++  h3,
++  h4,
++  h5,
++  h6 {
++    margin-top: 20px;
++    margin-bottom: 12px;
++    font-weight: 700;
++    line-height: 1.3;
++
++    &:first-child {
++      margin-top: 0;
++    }
++  }
++
++  h1,
++  h2 {
++    margin-top: 24px;
++    margin-bottom: 16px;
++    padding-bottom: 0.3em;
++    border-bottom: 1px solid var(--color-border-primary);
++  }
++
++  h1 {
++    font-size: 1.6em;
++  }
++
++  h2 {
++    font-size: 1.4em;
++  }
++
++  h3 {
++    font-size: 1.2em;
++  }
++
++  h4 {
++    font-size: 1.1em;
++  }
++
++  h5,
++  h6 {
++    font-weight: 600;
++  }
++
++  h5 {
++    font-size: 1em;
++  }
++
++  h6 {
++    font-size: 0.9em;
++  }
++
++  summary > :is(h1, h2, h3, h4, h5, h6) {
++    display: inline-block;
++    margin: 0;
++    padding: 0;
++    border: 0;
++  }
++
+   b,
+   strong {
+     font-weight: 700;
+@@ -85,6 +185,20 @@
+     font-style: italic;
+   }
+
++  small {
++    font-size: smaller;
++  }
++
++  sub {
++    font-size: smaller;
++    vertical-align: sub;
++  }
++
++  sup {
++    font-size: smaller;
++    vertical-align: super;
++  }
++
+   ul,
+   ol {
+     padding-inline-start: 24px;
+@@ -97,6 +211,10 @@
+       }
+     }
+
++    li + li {
++      margin-top: 0.25em;
++    }
++
+     p {
+       margin: 0;
+     }
+@@ -114,3 +232,20 @@
+     list-style-type: decimal;
+   }
+ }
++
++.detailed-status .status__content .status__content__text {
++  line-height: 1.6;
++
++  p {
++    margin-bottom: 1em;
++
++    &:last-child {
++      margin-bottom: 0;
++    }
++  }
++
++  ul p,
++  ol p {
++    margin-bottom: 0;
++  }
++}
+--- a/Gemfile
++++ b/Gemfile
+@@ -76,6 +76,7 @@
+ gem 'rack-cors', require: 'rack/cors'
+ gem 'rack-proxy', require: 'rack/proxy'
+ gem 'rails-i18n', '~> 8.0'
++gem 'commonmarker', '~> 2.10'
+ gem 'redcarpet', '~> 3.6'
+ gem 'redis', '~> 5'
+ gem 'rqrcode', '~> 3.0'
+--- a/Gemfile.lock
++++ b/Gemfile.lock
+@@ -170,6 +170,8 @@
+     climate_control (1.2.0)
+     cocoon (1.2.15)
+     color_diff (0.2)
++    commonmarker (2.10.0-aarch64-linux)
++    commonmarker (2.10.0-x86_64-linux)
+     concurrent-ruby (1.3.8)
+     connection_pool (3.0.2)
+     cose (1.3.1)
+@@ -246,6 +248,8 @@
+     fast_blank (1.0.1)
+     fastimage (2.4.1)
+     ffi (1.17.4)
++    ffi (1.17.4-aarch64-linux-gnu)
++    ffi (1.17.4-x86_64-linux-gnu)
+     ffi-compiler (1.4.2)
+       ffi (>= 1.15.5)
+       rake
+@@ -277,6 +281,12 @@
+     globalid (1.4.0)
+       activesupport (>= 6.1)
+     google-protobuf (4.35.1)
++      bigdecimal
++      rake (~> 13.3)
++    google-protobuf (4.35.1-aarch64-linux-gnu)
++      bigdecimal
++      rake (~> 13.3)
++    google-protobuf (4.35.1-x86_64-linux-gnu)
+       bigdecimal
+       rake (~> 13.3)
+     googleapis-common-protos-types (1.23.0)
+@@ -445,7 +455,6 @@
+       mime-types-data (~> 3.2025, >= 3.2025.0507)
+     mime-types-data (3.2026.0701)
+     mini_mime (1.1.5)
+-    mini_portile2 (2.8.9)
+     minitest (6.0.6)
+       drb (~> 2.0)
+       prism (~> 1.5)
+@@ -467,8 +476,9 @@
+     net-smtp (0.5.1)
+       net-protocol
+     nio4r (2.7.5)
+-    nokogiri (1.19.4)
+-      mini_portile2 (~> 2.8.2)
++    nokogiri (1.19.4-aarch64-linux-gnu)
++      racc (~> 1.4)
++    nokogiri (1.19.4-x86_64-linux-gnu)
+       racc (~> 1.4)
+     omniauth (2.1.4)
+       hashie (>= 3.4.6)
+@@ -592,6 +602,8 @@
+     pastel (0.8.0)
+       tty-color (~> 0.5)
+     pg (1.6.3)
++    pg (1.6.3-aarch64-linux)
++    pg (1.6.3-x86_64-linux)
+     pghero (4.0.1)
+       activerecord (>= 7.2)
+     playwright-ruby-client (1.62.0)
+@@ -929,7 +941,8 @@
+     zeitwerk (2.8.3)
+
+ PLATFORMS
+-  ruby
++  aarch64-linux
++  x86_64-linux
+
+ DEPENDENCIES
+   active_model_serializers (~> 0.10)
+@@ -952,6 +965,7 @@
+   climate_control
+   cocoon (~> 1.2)
+   color_diff (~> 0.1)
++  commonmarker (~> 2.10)
+   concurrent-ruby
+   connection_pool
+   csv (~> 3.2)
+--- a/spec/lib/plain_text_formatter_spec.rb
++++ b/spec/lib/plain_text_formatter_spec.rb
+@@ -3,6 +3,46 @@
+ require 'rails_helper'
+
+ RSpec.describe PlainTextFormatter do
++  it 'keeps attributed line breaks and the existing consecutive-break semantics' do
++    {
++      '<p>one<br style="color:red">two</p>' => "one\ntwo",
++      '<p>one<BR lang="en" style="color:red"/>two</p>' => "one\ntwo",
++      '<p>one<br style="color:red"><br lang="en"><br>two</p>' => "one\ntwo",
++      '<p>one<br lang="x>y">two</p>' => "one\ntwo",
++      '<code>one<br style="color:red">two</code>' => "one\ntwo",
++      "<pre><code>  one<br style=\"color:red\">  two\n</code></pre>" => "  one\n  two",
++      '<p>&lt;br style="color:red"&gt;</p>' => '<br style="color:red">',
++      '<p>before</p><h6>heading</h6><p>after</p>' => "before\nheading\nafter",
++    }.each do |source, expected|
++      expect(described_class.new(source, false).to_s).to eq expected
++    end
++  end
++
++  it 'separates new blocks on both sides without leading or duplicate newlines' do
++    {
++      'before<details><summary>title</summary>body</details>after' => "before\ntitle\nbody\nafter",
++      '<details><summary>title</summary><div>body</div></details>' => "title\nbody",
++      'before<dl><dt>term</dt><dd>definition</dd></dl>after' => "before\nterm\ndefinition\nafter",
++      '<header>top</header><hgroup><h1>title</h1><p>subtitle</p></hgroup><footer>bottom</footer>' => "top\ntitle\nsubtitle\nbottom",
++      'before<hr><hr>after' => "before\nafter",
++      "before\n<div>inside</div>\nafter" => "before\ninside\nafter",
++      '<div style="text-align: center;">center</div>' => 'center',
++      'before<span><div>nested</div>after</span>' => "before\nnested\nafter",
++    }.each do |source, expected|
++      aggregate_failures(source) do
++        expect(described_class.new(source, false).to_s).to eq expected
++      end
++    end
++  end
++
++  it 'keeps inline boundaries and preformatted text without interpreting attribute text' do
++    expect(described_class.new('one<wbr>two<small>small</small><time>time</time>', false).to_s).to eq 'onetwosmalltime'
++    expect(described_class.new('<span title="before</div>after">text</span>', false).to_s).to eq 'text'
++    source = "<div>before</div><pre><code>\n  one\n\n  &lt;div&gt;two&lt;/div&gt;\n</code></pre><div>after</div>"
++    expect(described_class.new(source, false).to_s).to eq "before\n  one\n\n  <div>two</div>\nafter"
++    expect(described_class.new('<code>before<hr>after</code>', false).to_s).to eq 'beforeafter'
++  end
++
+   describe '#to_s' do
+     subject { described_class.new(status.text, status.local?).to_s }
+
+--- a/app/javascript/mastodon/components/status_content.jsx
++++ b/app/javascript/mastodon/components/status_content.jsx
+@@ -20,7 +20,7 @@ import { injectIntl } from './intl';
+ import { HandledLink } from './status/handled_link';
+ import { compareUrls } from '../utils/compare_urls';
+
+-const MAX_HEIGHT = 706; // 22px * 32 (+ 2px padding at the top)
++const MAX_HEIGHT = 440; // About 20 lines of timeline text
+
+ /**
+  *
+@@ -133,7 +133,7 @@ class StatusContent extends PureComponent {
+
+     let element = e.target;
+     while (element) {
+-      if (element.localName === 'button' || element.localName === 'a' || element.localName === 'label') {
++      if (element.localName === 'button' || element.localName === 'a' || element.localName === 'label' || element.localName === 'summary') {
+         return;
+       }
+       element = element.parentNode;
+--- a/app/javascript/mastodon/utils/html.ts
++++ b/app/javascript/mastodon/utils/html.ts
+@@ -4,12 +4,53 @@
+
+ // NB: This function can still return unsafe HTML
+ export const unescapeHTML = (html: string) => {
+-  const wrapper = document.createElement('div');
++  const wrapper = document.createElement('template');
+   wrapper.innerHTML = html
+-    .replace(/<br\s*\/?>/g, '\n')
++    .replace(/<br(?=[\s/>])(?:[^>"']|"[^"]*"|'[^']*')*>/gi, '\n')
+     .replace(/<\/p><p>/g, '\n\n')
+-    .replace(/<[^>]*>/g, '');
+-  return wrapper.textContent;
++    .replace(
++      /<(\/?)(p|h[1-6]|ul|ol|li|blockquote|pre|div|hr|details|summary|dl|dt|dd|header|footer|hgroup)(?=[\s/>])(?:[^>"']|"[^"]*"|'[^']*')*>|<(?:[^>"']|"[^"]*"|'[^']*')*>/gi,
++      (_, closing: string | undefined, tag: string | undefined) => {
++        const name = tag?.toLowerCase();
++        // A pre element would consume its leading newline during HTML parsing.
++        return name ? `<${closing}${name === 'pre' ? 'div' : name}>` : '';
++      },
++    );
++
++  // Only block tags survive stripping; decoded literal tags stay text.
++  const boundaries = new WeakSet<Node>();
++  for (const element of wrapper.content.querySelectorAll('*')) {
++    const before = document.createTextNode('');
++    const after = document.createTextNode('');
++    boundaries.add(before).add(after);
++    element.before(before);
++    element.after(after);
++  }
++
++  const walker = document.createTreeWalker(
++    wrapper.content,
++    NodeFilter.SHOW_TEXT,
++  );
++  let text = '';
++  let pendingBoundary = false;
++  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
++    if (boundaries.has(node)) {
++      pendingBoundary = text.length > 0;
++      continue;
++    }
++    const content = node.textContent ?? '';
++    if (
++      pendingBoundary &&
++      content &&
++      !text.endsWith('\n') &&
++      !content.startsWith('\n')
++    ) {
++      text += '\n';
++    }
++    text += content;
++    if (content) pendingBoundary = false;
++  }
++  return text;
+ };
+
+ interface AllowedTag {
+@@ -25,6 +66,28 @@
+
+ const globalAttributes: Record<string, boolean | string> = htmlConfig.global;
+ const defaultAllowedTags: AllowedTagsType = htmlConfig.tags;
++const allowedStyles = new Set(
++  htmlConfig.styles.flatMap((property) => {
++    // Browsers may expose allowed border shorthands as individual CSSOM properties.
++    if (/^border-(color|style|width)$/.test(property)) {
++      return [
++        property,
++        ...['top', 'right', 'bottom', 'left'].map((side) =>
++          property.replace('border-', `border-${side}-`),
++        ),
++      ];
++    }
++    if (property === 'border-radius') {
++      return [
++        property,
++        ...['top-left', 'top-right', 'bottom-right', 'bottom-left'].map(
++          (corner) => `border-${corner}-radius`,
++        ),
++      ];
++    }
++    return property;
++  }),
++);
+
+ interface QueueItem {
+   node: Node;
+@@ -165,6 +228,24 @@
+             continue;
+           }
+
++          if (name === 'style') {
++            props.style = Object.fromEntries(
++              Array.from(node.style)
++                .filter(
++                  (property) =>
++                    allowedStyles.has(property) &&
++                    !node.style.getPropertyPriority(property),
++                )
++                .map((property) => [
++                  property.replace(/-([a-z])/g, (_, letter: string) =>
++                    letter.toUpperCase(),
++                  ),
++                  node.style.getPropertyValue(property),
++                ]),
++            );
++            continue;
++          }
++
+           // Rename if needed.
+           if (typeof tagAttr === 'string') {
+             name = tagAttr;
+@@ -172,16 +253,8 @@
+             name = globalAttr;
+           }
+
+-          let value: string | boolean | number = attr.value;
+-
+-          // Handle boolean attributes.
+-          if (value === 'true') {
+-            value = true;
+-          } else if (value === 'false') {
+-            value = false;
+-          }
+-
+-          props[name] = value;
++          // Boolean attributes are true whenever present; other values stay strings.
++          props[name] = name === 'reversed' ? true : attr.value;
+         }
+
+         // If onElement is provided, use it to create the element.
+--- a/app/javascript/mastodon/components/hotkeys/index.tsx
++++ b/app/javascript/mastodon/components/hotkeys/index.tsx
+@@ -206,7 +206,7 @@
+         !event.defaultPrevented &&
+         !['input', 'textarea', 'select'].includes(tagName) &&
+         !(
+-          ['a', 'button'].includes(tagName) &&
++          ['a', 'button', 'summary'].includes(tagName) &&
+           normalizeKey(event.key) === 'enter'
+         );
+
+--- a/app/javascript/mastodon/components/status/handled_link.tsx
++++ b/app/javascript/mastodon/components/status/handled_link.tsx
+@@ -41,6 +41,7 @@
+     return (
+       <Link
+         className={classNames('mention hashtag', className)}
++        style={props.style}
+         to={`/tags/${encodeURIComponent(hashtag)}`}
+         rel='tag'
+         data-menu-hashtag={hashtagAccountId}
+@@ -53,6 +54,7 @@
+     return (
+       <Link
+         className={classNames('mention', className)}
++        style={props.style}
+         to={`/@${mention.acct}`}
+         title={`@${mention.acct}`}
+         data-hover-card-account={mention.id}
+@@ -64,6 +66,7 @@
+     return (
+       <Link
+         className={classNames(className)}
++        style={props.style}
+         to={getCollectionPath(collectionId)}
+       >
+         {children}
+@@ -74,7 +77,11 @@
+   // Non-absolute paths treated as internal links. This shouldn't happen, but just in case.
+   if (href.startsWith('/')) {
+     return (
+-      <Link className={classNames('unhandled-link', className)} to={href}>
++      <Link
++        className={classNames('unhandled-link', className)}
++        style={props.style}
++        to={href}
++      >
+         {children}
+       </Link>
+     );
+--- a/app/lib/text_formatter.rb
++++ b/app/lib/text_formatter.rb
+@@ -184,7 +184,7 @@
+     url = ActivityPub::TagManager.instance.url_for(options[:quoted_status]) || ActivityPub::TagManager.instance.uri_for(options[:quoted_status])
+     return html if url.blank? || html.include?(url)
+
+-    <<~HTML.squish
++    <<~HTML.strip
+       <p class="quote-inline">RE: #{TextFormatter.shortened_link(url)}</p>#{html}
+     HTML
+   end
+--- a/app/serializers/activitypub/note_serializer.rb
++++ b/app/serializers/activitypub/note_serializer.rb
+@@ -13,6 +13,7 @@
+              :conversation, :context
+
+   attribute :content
++  attribute :source, if: :markdown_source?
+   attribute :content_map, if: :language?
+   attribute :updated, if: :edited?
+
+@@ -52,6 +53,14 @@
+
+   def content
+     status_content_format(object)
++  end
++
++  def source
++    { content: object.text, mediaType: 'text/markdown' }
++  end
++
++  def markdown_source?
++    object.local? && object.wxw_content_type == 'text/markdown'
+   end
+
+   def content_map
+--- a/app/javascript/styles/mastodon/tokens/theme/_light.scss
++++ b/app/javascript/styles/mastodon/tokens/theme/_light.scss
+@@ -108,9 +108,9 @@
+
+   /* RICH TEXT TOKENS (LEGACY) */
+
+-  --rich-text-container-color: rgb(255 216 231 / 100%);
+-  --rich-text-text-color: rgb(114 47 83 / 100%);
+-  --rich-text-decorations-color: rgb(255 175 212 / 100%);
++  --rich-text-container-color: var(--color-bg-secondary);
++  --rich-text-text-color: var(--color-text-brand);
++  --rich-text-decorations-color: var(--color-bg-brand-softest);
+ }
+
+ @mixin contrast-overrides {
+--- a/app/javascript/styles/mastodon/tokens/theme/_dark.scss
++++ b/app/javascript/styles/mastodon/tokens/theme/_dark.scss
+@@ -112,9 +112,9 @@
+
+   /* RICH TEXT TOKENS (LEGACY) */
+
+-  --rich-text-container-color: rgb(87 24 60 / 100%);
+-  --rich-text-text-color: rgb(255 175 212 / 100%);
+-  --rich-text-decorations-color: rgb(128 58 95 / 100%);
++  --rich-text-container-color: var(--color-bg-secondary);
++  --rich-text-text-color: var(--color-text-brand);
++  --rich-text-decorations-color: var(--color-bg-brand-softest);
+ }
+
+ @mixin contrast-overrides {
+--- a/app/javascript/mastodon/features/notifications_v2/components/embedded_status.tsx
++++ b/app/javascript/mastodon/features/notifications_v2/components/embedded_status.tsx
+@@ -56,7 +56,8 @@
+         if (
+           element.localName === 'button' ||
+           element.localName === 'a' ||
+-          element.localName === 'label'
++          element.localName === 'label' ||
++          element.localName === 'summary'
+         ) {
+           return;
+         }
+--- a/app/javascript/mastodon/components/status/intercept_status_clicks.tsx
++++ b/app/javascript/mastodon/components/status/intercept_status_clicks.tsx
+@@ -13,7 +13,7 @@
+     (e: React.MouseEvent) => {
+       const clickTarget = e.target as Element;
+       const allowedElementsSelector =
+-        '.video-player, .audio-player, .media-gallery, .content-warning';
++        '.video-player, .audio-player, .media-gallery, .content-warning, summary';
+       const allowedElements = wrapperRef.current?.querySelectorAll(
+         allowedElementsSelector,
+       );
+--- a/app/javascript/mastodon/service_worker/web_push_notifications.js
++++ b/app/javascript/mastodon/service_worker/web_push_notifications.js
+@@ -75,8 +75,28 @@
+ const formatMessage = (messageId, locale, values = {}) =>
+   (new IntlMessageFormat(locales[locale][messageId], locale)).format(values);
+
+-const htmlToPlainText = html =>
+-  unescape(html.replace(/<br\s*\/?>/g, '\n').replace(/<\/p><p>/g, '\n\n').replace(/<[^>]*>/g, ''));
++const htmlToPlainText = html => {
++  let text = '';
++  let pendingBoundary = false;
++
++  // ponytail: tokenize sanitized API HTML; arbitrary malformed markup needs a parser.
++  for (const [index, part] of html.replace(/<\/p><p>/g, '\n\n').split(/(<(?:[^>"']|"[^"]*"|'[^']*')*>)/g).entries()) {
++    if (index % 2 === 1) {
++      if (/^<br(?=[\s/>])/i.test(part)) {
++        text += '\n';
++        pendingBoundary = false;
++      } else if (/^<\/?(?:p|h[1-6]|ul|ol|li|blockquote|pre|div|hr|details|summary|dl|dt|dd|header|footer|hgroup)(?=[\s/>])/i.test(part)) {
++        pendingBoundary = text.length > 0;
++      }
++    } else if (part) {
++      if (pendingBoundary && !text.endsWith('\n') && !part.startsWith('\n')) text += '\n';
++      text += part;
++      pendingBoundary = false;
++    }
++  }
++
++  return unescape(text);
++};
+
+ export const handlePush = (event) => {
+   const { access_token, notification_id, preferred_locale, title, body, icon } = event.data.json();

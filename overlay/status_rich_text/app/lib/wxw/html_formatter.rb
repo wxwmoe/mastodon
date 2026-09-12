@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class Wxw::HtmlFormatter < TextFormatter
-  BLOCKS = %w(p div br blockquote pre ul ol li h1 h2 h3 h4 h5 h6).freeze
+  BLOCKS = %w(p div br hr blockquote pre ul ol li dl dt dd details summary header footer hgroup h1 h2 h3 h4 h5 h6).freeze
   PROSE_ELEMENTS = (Sanitize::Config::MASTODON_STRICT[:elements] - %w(a code pre) + %w(div h1 h2 h3 h4 h5 h6)).freeze
 
   def self.for_status(status, options = {})
@@ -39,9 +39,10 @@ class Wxw::HtmlFormatter < TextFormatter
       node.replace(formatter.to_s)
     end
 
-    # Use the unmodified Mastodon allowlist, including attributes and link protocols.
+    # Share the Mastodon allowlist and link protocol rules with remote content.
     html = Sanitize.fragment(fragment.inner_html(preserve_newline: true), Sanitize::Config::MASTODON_STRICT).strip
-    Sanitize.fragment(add_quote_fallback(html), Sanitize::Config::MASTODON_STRICT).html_safe # rubocop:disable Rails/OutputSafety
+    html = Sanitize.fragment(add_quote_fallback(html), Sanitize::Config::MASTODON_STRICT)
+    Wxw::PostFormat.normalize_whitespace(html).html_safe # rubocop:disable Rails/OutputSafety
   end
 
   def entity_text

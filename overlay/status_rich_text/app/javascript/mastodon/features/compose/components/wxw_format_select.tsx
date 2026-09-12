@@ -4,7 +4,9 @@ import { defineMessages, useIntl } from 'react-intl';
 
 import classNames from 'classnames';
 
-import FormatParagraphIcon from '@/material-icons/400-24px/format_paragraph.svg?react';
+import CodeIcon from '@/material-icons/400-24px/code.svg?react';
+import DescriptionIcon from '@/material-icons/400-24px/description.svg?react';
+import MarkdownIcon from '@/material-icons/400-24px/markdown.svg?react';
 import { changeComposeFormat } from 'mastodon/actions/compose';
 import { Icon } from 'mastodon/components/icon';
 import { Popover } from 'mastodon/components/popover';
@@ -33,10 +35,11 @@ export const WxwFormatSelect: React.FC = () => {
   if (disabled && open) setOpen(false);
 
   const items = [
-    { value: 'plain', text: intl.formatMessage(messages.plain) },
-    { value: 'markdown', text: intl.formatMessage(messages.markdown) },
-    { value: 'html', text: intl.formatMessage(messages.html) },
+    { value: 'plain', text: intl.formatMessage(messages.plain), icon: DescriptionIcon },
+    { value: 'markdown', text: intl.formatMessage(messages.markdown), icon: MarkdownIcon },
+    { value: 'html', text: intl.formatMessage(messages.html), icon: CodeIcon },
   ];
+  const selectedItem = items.find((item) => item.value === value);
   const handleClose = useCallback(() => {
     setOpen(false);
     target?.focus({ preventScroll: true });
@@ -112,9 +115,9 @@ export const WxwFormatSelect: React.FC = () => {
         className={classNames('dropdown-button', { active: open })}
         onClick={handleToggle}
       >
-        <Icon id='paragraph' icon={FormatParagraphIcon} />
+        <Icon id={value} icon={selectedItem?.icon ?? DescriptionIcon} />
         <span className='dropdown-button__label'>
-          {items.find((item) => item.value === value)?.text}
+          {value === 'markdown' ? 'MD' : selectedItem?.text}
         </span>
       </button>
 

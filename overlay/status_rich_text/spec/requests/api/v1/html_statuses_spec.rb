@@ -5,9 +5,11 @@ require 'rails_helper'
 RSpec.describe 'HTML statuses' do
   include_context 'with API authentication', oauth_scopes: 'read:statuses write:statuses'
 
-  it 'preserves original tags through posting, editing, history, and redrafting' do
-    original = '<p><strong>Bold</strong> and <em>italic</em></p>'
-    edited = '<blockquote>Changed <code>code</code></blockquote>'
+  it 'preserves static styles and details through posting, federation, editing, history, and redrafting' do
+    original = '<div style="text-align: center;"><h1 style="color: red;">Original</h1></div><p><abbr title="Hypertext Markup Language">HTML</abbr> H<sub>2</sub>O</p>' \
+               '<details><summary>More</summary><p style="padding: 4px;">Original body</p></details>'
+    edited = '<h5 style="font-weight: 700;">Updated</h5><blockquote>Changed x<sup>2</sup> <code>code</code></blockquote>' \
+             '<details><summary>Changed</summary><dl><dt>Term</dt><dd style="background-color: #ffeecc;">Definition</dd></dl></details>'
 
     post '/api/v1/statuses', headers: headers, params: { status: original, content_type: 'text/html' }
 
@@ -17,6 +19,8 @@ RSpec.describe 'HTML statuses' do
     status = user.account.statuses.find(response.parsed_body[:id])
     expect(status.text).to eq original
     expect(status.wxw_content_type).to eq 'text/html'
+    expect(serialized_record_json(status, ActivityPub::NoteSerializer, adapter: ActivityPub::Adapter)['content']).to eq original
+    expect(serialized_record_json(status, ActivityPub::NoteSerializer, adapter: ActivityPub::Adapter)).to_not have_key('source')
 
     get "/api/v1/statuses/#{status.id}/source", headers: headers
 
@@ -28,6 +32,7 @@ RSpec.describe 'HTML statuses' do
     expect(response).to have_http_status(200)
     expect(status.reload.text).to eq edited
     expect(response.parsed_body[:content]).to eq edited
+    expect(serialized_record_json(status, ActivityPub::NoteSerializer, adapter: ActivityPub::Adapter)['content']).to eq edited
     expect(status.edits.ordered.pluck(:text)).to eq [original, edited]
     expect(status.edits.ordered.map(&:wxw_content_type)).to eq ['text/html', 'text/html']
 
@@ -47,7 +52,51 @@ RSpec.describe 'HTML statuses' do
 
     expect(response).to have_http_status(200)
     expect(response.parsed_body[:content]).to eq '<p>**Bold** and *italic*</p>'
-    expect(user.account.statuses.find(response.parsed_body[:id]).text).to eq '**Bold** and *italic*'
+    status = user.account.statuses.find(response.parsed_body[:id])
+    expect(status.text).to eq '**Bold** and *italic*'
+    expect(serialized_record_json(status, ActivityPub::NoteSerializer, adapter: ActivityPub::Adapter)).to_not have_key('source')
+  end
+
+  it 'federates the original Markdown source beside rendered HTML for quotes and polls through edits' do
+    quoted = Fabricate(:status, account: user.account)
+    original = "**中文**\nnext  \n![alt](https://example.org/image.png)"
+    edited = "##### Updated\n\n```ruby\nline 1\nline 2\n```"
+    variants = {
+      'Note' => { quoted_status_id: quoted.id },
+      'Question' => { poll: { options: %w(First Second), expires_in: 3600 } },
+    }
+
+    variants.each do |type, options|
+      post '/api/v1/statuses', headers: headers, params: { status: original, content_type: 'text/markdown' }.merge(options)
+
+      expect(response).to have_http_status(200)
+      status = user.account.statuses.find(response.parsed_body[:id])
+      note = serialized_record_json(status, ActivityPub::NoteSerializer, adapter: ActivityPub::Adapter)
+      expect(note['type']).to eq type
+      expect(note['source']).to eq('content' => original, 'mediaType' => 'text/markdown')
+      expect(note['content']).to eq response.parsed_body[:content]
+      expect(Nokogiri::HTML5.fragment(note['content']).at_css('strong').text).to eq '中文'
+      expect(note['quote']).to eq ActivityPub::TagManager.instance.uri_for(quoted) if type == 'Note'
+      expect(status.text).to eq original
+      expect(response.parsed_body).to_not have_key(:source)
+      activity = serialized_record_json(status, ActivityPub::CreateNoteSerializer, adapter: ActivityPub::Adapter)
+      expect(activity.dig('object', 'source')).to eq note['source']
+      expect(activity.dig('object', 'content')).to eq note['content']
+
+      put "/api/v1/statuses/#{status.id}", headers: headers, params: options.merge(status: edited)
+
+      expect(response).to have_http_status(200)
+      note = serialized_record_json(status.reload, ActivityPub::NoteSerializer, adapter: ActivityPub::Adapter)
+      expect(note['type']).to eq type
+      expect(note['source']).to eq('content' => edited, 'mediaType' => 'text/markdown')
+      expect(note['content']).to eq response.parsed_body[:content]
+      expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre code').text).to eq "line 1\nline 2\n"
+      expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre code')['class']).to eq 'language-ruby'
+      expect(status.text).to eq edited
+      activity = serialized_record_json(status, ActivityPub::UpdateNoteSerializer, adapter: ActivityPub::Adapter)
+      expect(activity.dig('object', 'source')).to eq note['source']
+      expect(activity.dig('object', 'content')).to eq note['content']
+    end
   end
 
   %w(plain markdown html).each do |format|
@@ -175,8 +224,10 @@ RSpec.describe 'HTML statuses' do
   end
 
   it 'preserves Markdown source and snapshots its format through edits and redrafting' do
-    original = '**Original**'
-    edited = '**Updated**'
+    original = "# Original\n\n<abbr title=\"Hypertext Markup Language\">HTML</abbr> H<sub>2</sub>O"
+    edited = "##### Updated\n\nx<sup>2</sup>"
+    original_html = '<h1>Original</h1><p><abbr title="Hypertext Markup Language">HTML</abbr> H<sub>2</sub>O</p>'
+    edited_html = '<h5>Updated</h5><p>x<sup>2</sup></p>'
 
     post '/api/v1/statuses', headers: headers, params: { status: original, content_type: 'text/markdown' }
 
@@ -184,6 +235,8 @@ RSpec.describe 'HTML statuses' do
     status = user.account.statuses.find(response.parsed_body[:id])
     expect(status.text).to eq original
     expect(status.wxw_content_type).to eq 'text/markdown'
+    expect(response.parsed_body[:content]).to eq original_html
+    expect(serialized_record_json(status, ActivityPub::NoteSerializer, adapter: ActivityPub::Adapter)['content']).to eq original_html
 
     get "/api/v1/statuses/#{status.id}/source", headers: headers
 
@@ -196,7 +249,8 @@ RSpec.describe 'HTML statuses' do
     expect(response).to have_http_status(200)
     expect(status.reload.text).to eq edited
     expect(status.wxw_content_type).to eq 'text/markdown'
-    expect(response.parsed_body[:content]).to include '<strong>Updated</strong>'
+    expect(response.parsed_body[:content]).to eq edited_html
+    expect(serialized_record_json(status, ActivityPub::NoteSerializer, adapter: ActivityPub::Adapter)['content']).to eq edited_html
 
     expect do
       put "/api/v1/statuses/#{status.id}", headers: headers, params: { status: edited, content_type: 'text/plain' }
@@ -205,14 +259,14 @@ RSpec.describe 'HTML statuses' do
     expect(response).to have_http_status(200)
     expect(status.reload.text).to eq edited
     expect(status.wxw_content_type).to eq 'text/plain'
-    expect(response.parsed_body[:content]).to eq '<p>**Updated**</p>'
+    expect(response.parsed_body[:content]).to eq TextFormatter.new(edited).to_s
     expect(status.edits.ordered.pluck(:text)).to eq [original, edited, edited]
     expect(status.edits.ordered.map(&:wxw_content_type)).to eq ['text/markdown', 'text/markdown', 'text/plain']
 
     get "/api/v1/statuses/#{status.id}/history", headers: headers
 
     expect(response).to have_http_status(200)
-    expect(response.parsed_body.pluck(:content).map(&:strip)).to eq ['<p><strong>Original</strong></p>', '<p><strong>Updated</strong></p>', '<p>**Updated**</p>']
+    expect(response.parsed_body.pluck(:content)).to eq [original_html, edited_html, TextFormatter.new(edited).to_s]
 
     put "/api/v1/statuses/#{status.id}", headers: headers, params: { status: edited, content_type: 'text/markdown' }
 
@@ -376,10 +430,15 @@ RSpec.describe 'HTML statuses' do
     expect(status.edits.ordered.pluck(:text)).to eq sources
   end
 
-  it 'emits ActivityPub HTML that the original Mastodon sanitizer preserves' do
+  it 'emits ActivityPub HTML that the shared Mastodon sanitizer preserves' do
     source = '<p><b>b</b><strong>strong</strong><i>i</i><em>em</em><u>u</u><s>s</s><del>del</del><br><span>span</span><code>code</code></p>' \
              '<pre>pre</pre><blockquote>quote</blockquote><ul><li>item</li></ul><ol start="2"><li value="3">item</li></ol>' \
-             '<p><ruby>word<rp>(</rp><rt>reading</rt><rp>)</rp></ruby><a href="https://example.org/">link</a></p>'
+             '<p><ruby>word<rp>(</rp><rt>reading</rt><rp>)</rp></ruby><a href="https://example.org/">link</a></p>' \
+             '<h1>one</h1><h2>two</h2><h3>three</h3><h4>four</h4><h5>five</h5><h6>six</h6><p><abbr title="Hypertext Markup Language">HTML</abbr> H<sub>2</sub>O x<sup>2</sup></p>' \
+             '<p><small>small</small><wbr><time datetime="2026-09-12">time</time><mark>mark</mark><kbd>kbd</kbd><ins>ins</ins></p><hr>' \
+             '<hgroup><h2>group</h2><p>subtitle</p></hgroup><header>header</header><footer>footer</footer>' \
+             '<dl><dt>term</dt><dd>definition</dd></dl><details><summary>summary</summary><p>detail</p></details>' \
+             '<div style="text-align: center;">centered</div>'
 
     post '/api/v1/statuses', headers: headers, params: { status: source, content_type: 'text/html' }
 
@@ -391,11 +450,13 @@ RSpec.describe 'HTML statuses' do
     expect(note['content']).to eq response.parsed_body[:content]
     expect(HtmlAwareFormatter.new(note['content'], false).to_s).to eq note['content']
     expect(document.css('*').map(&:name).uniq).to match_array(Sanitize::Config::MASTODON_STRICT[:elements])
+    expect(document.at_css('div')['style']).to eq 'text-align: center;'
+    expect(document.at_css('div').text).to eq 'centered'
     expect(status.reload.text).to eq source
   end
 
-  it 'filters executable markup, inline styles, and unsafe link protocols' do
-    source = '<p style="color:red" onclick="alert(1)"><strong>Safe</strong><script>alert(2)</script><style>p{display:none}</style>' \
+  it 'filters executable markup, unsafe inline styles, and unsafe link protocols' do
+    source = '<p style="position:fixed" onclick="alert(1)"><strong>Safe</strong><script>alert(2)</script><style>p{display:none}</style>' \
              '<img src="x" onerror="alert(3)"><a href="javascript:alert(4)">unsafe link</a></p>'
 
     post '/api/v1/statuses', headers: headers, params: { status: source, content_type: 'text/html' }
@@ -467,8 +528,8 @@ RSpec.describe 'HTML statuses' do
   end
 
   it 'stores scheduled HTML source and sanitizes it when published' do
-    source = '<p style="color:red"><strong>Future</strong><script>hidden</script></p>'
-    sanitized = '<p><strong>Future</strong></p>'
+    source = '<p style="color:RED;position:fixed"><strong>Future</strong><script>hidden</script></p>'
+    sanitized = '<p style="color: red;"><strong>Future</strong></p>'
 
     post '/api/v1/statuses', headers: headers, params: { status: source, content_type: 'text/html', scheduled_at: 1.hour.from_now.iso8601 }
 
@@ -486,7 +547,8 @@ RSpec.describe 'HTML statuses' do
   end
 
   it 'keeps received remote HTML on the original sanitization path' do
-    source = '<p onclick="alert(1)">Remote @unlinked #Unlinked <strong>text</strong><script>hidden</script></p>'
+    source = '<h3>Remote</h3><p onclick="alert(1)">@unlinked #Unlinked <abbr title="Hypertext Markup Language">HTML</abbr> x<sup>2</sup><script>hidden</script></p>' \
+             '<details style="color:RED;position:fixed"><summary>More</summary><p><time datetime="2026-09-12">today</time> body</p></details>'
     status = Fabricate(:status, account: Fabricate(:account, domain: 'remote.example'), text: source)
 
     get "/api/v1/statuses/#{status.id}", headers: headers
@@ -494,6 +556,12 @@ RSpec.describe 'HTML statuses' do
     expect(response).to have_http_status(200)
     expect(status.reload.text).to eq source
     expect(response.parsed_body[:content]).to eq HtmlAwareFormatter.new(source, false).to_s
+    expect(serialized_record_json(status, ActivityPub::NoteSerializer, adapter: ActivityPub::Adapter)).to_not have_key('source')
+    document = Nokogiri::HTML5.fragment(response.parsed_body[:content])
+    expect(document.css('h3, abbr, sup').map(&:text)).to eq %w(Remote HTML 2)
+    expect(document.at_css('details')['style']).to eq 'color: red;'
+    expect(document.at_css('details p').text).to eq 'today body'
+    expect(document.at_css('time')['datetime']).to eq '2026-09-12'
   end
 
   it 'rejects an empty rendered body using the original presence validation' do

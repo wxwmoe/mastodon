@@ -84,9 +84,9 @@
   --color-graph-warning-fill: var(--color-bg-warning-softest);
   --color-graph-disabled-stroke: var(--color-text-disabled);
   --color-graph-disabled-fill: var(--color-bg-disabled);
-  --rich-text-container-color: var(--color-blue-800);
-  --rich-text-text-color: var(--color-blue-100);
-  --rich-text-decorations-color: var(--color-blue-400);
+  --rich-text-container-color: #0d1b2a;
+  --rich-text-text-color: var(--color-text-brand);
+  --rich-text-decorations-color: var(--color-bg-brand-softest);
   :is(.search__input, .autosuggest-textarea__textarea, .spoiler-input__input)::placeholder {
     color: var(--sakura-placeholder);
     opacity: 1;
@@ -159,4 +159,5 @@
   --color-border-brand: var(--color-white);
   --color-border-brand-soft: var(--color-blue-50);
   --color-border-success-soft: var(--color-blue-50);
+  --rich-text-container-color: var(--color-bg-secondary);
 }
