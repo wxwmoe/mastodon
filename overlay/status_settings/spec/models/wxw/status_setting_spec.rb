@@ -43,6 +43,49 @@ RSpec.describe WxwStatusSetting do
     expect(status.reload.wxw_status_setting).to be_nil
   end
 
+  %i(status status_edit).each do |owner_type|
+    %w(example other).each do |enabled_key|
+      it "updates and clears #{enabled_key} on #{owner_type} while preserving disabled settings" do
+        status = Fabricate(:status, account: account)
+        owner = owner_type == :status ? status : Fabricate(:status_edit, status: status)
+        owner.wxw_write_setting(:example, 'stored')
+        owner.wxw_write_setting(:other, 2)
+        owner.save!
+        retained = owner.wxw_status_setting.settings.except(enabled_key)
+        allow(described_class).to receive(:supported_setting_keys).and_return([enabled_key])
+
+        owner.wxw_write_setting(enabled_key, 'updated')
+        owner.save!
+        expect(owner.reload.wxw_status_setting.settings).to eq(retained.merge(enabled_key => 'updated'))
+
+        owner.wxw_write_setting(enabled_key, nil)
+        owner.save!
+        expect(owner.reload.wxw_status_setting.settings).to eq retained
+      end
+    end
+  end
+
+  it 'rejects additions, changes and removal of unsupported settings on an existing row' do
+    status = Fabricate(:status, account: account)
+    record = described_class.create!(status: status, settings: { 'example' => 'stored', 'other' => 2 })
+    allow(described_class).to receive(:supported_setting_keys).and_return(%w(example))
+
+    [
+      { 'unknown' => true },
+      { 'unknown' => nil },
+      { 'other' => 3 },
+      { 'other' => nil },
+    ].each do |changes|
+      record.reload.settings.merge!(changes)
+      expect(record).to_not be_valid
+      expect(record.errors[:settings]).to be_present
+    end
+
+    record.reload.settings.delete('other')
+    expect(record).to_not be_valid
+    expect(record.errors[:settings]).to be_present
+  end
+
   it 'can restore a setting after clearing it and failing parent validation' do
     status = Fabricate(:status, account: account)
     status.wxw_write_setting(:example, 'stored')

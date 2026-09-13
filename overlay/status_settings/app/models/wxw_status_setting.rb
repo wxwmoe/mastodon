@@ -12,8 +12,9 @@ class WxwStatusSetting < ApplicationRecord
   private
 
   def supported_settings
+    keys = self.class.supported_setting_keys
     valid = settings.is_a?(Hash) && settings.present? &&
-            (settings.keys - self.class.supported_setting_keys).empty?
+            settings.except(*keys) == (settings_in_database || {}).except(*keys)
 
     errors.add(:settings, :invalid) unless valid
   end

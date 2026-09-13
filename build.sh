@@ -23,6 +23,7 @@ mv "$source_tmp/src" src
 
 # 编辑源代码
 while read -r patch _; do
+  [[ -n $patch && $patch != \#* ]] || continue
   echo "Applying ${patch} patch..."
   bash "patches/${patch}.sh" < /dev/null
 done << WXW.MOE_MASTODON_PATCHES
