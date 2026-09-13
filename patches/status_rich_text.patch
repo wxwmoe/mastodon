@@ -1673,7 +1673,7 @@
 -  --rich-text-decorations-color: rgb(255 175 212 / 100%);
 +  --rich-text-container-color: var(--color-bg-secondary);
 +  --rich-text-text-color: var(--color-text-brand);
-+  --rich-text-decorations-color: var(--color-bg-brand-softest);
++  --rich-text-decorations-color: var(--color-border-primary);
  }
 
  @mixin contrast-overrides {
@@ -1688,7 +1688,7 @@
 -  --rich-text-decorations-color: rgb(128 58 95 / 100%);
 +  --rich-text-container-color: var(--color-bg-secondary);
 +  --rich-text-text-color: var(--color-text-brand);
-+  --rich-text-decorations-color: var(--color-bg-brand-softest);
++  --rich-text-decorations-color: var(--color-border-primary);
  }
 
  @mixin contrast-overrides {

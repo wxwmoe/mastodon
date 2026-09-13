@@ -18,6 +18,7 @@ html:not([data-color-scheme])[data-contrast='high'] {
   --color-bg-error-base-hover: #f75c2f;
   --color-border: #58b2dc;
   --color-border-primary: #58b2dc;
+  --rich-text-decorations-color: var(--color-border-primary);
   --color-border-success-soft: #58b2dc;
   --color-verified: #7db9de;
   --color-green: #7db9de;

@@ -108,7 +108,7 @@
   --color-graph-disabled-fill: #fedfe1;
   --rich-text-container-color: #fcfaf2;
   --rich-text-text-color: var(--color-fg);
-  --rich-text-decorations-color: var(--color-cw-panel);
+  --rich-text-decorations-color: var(--color-border-primary);
   --color-brand-mastodon: #f4a7b9;
   --color-brand-mastodon-links: #b5495b;
   --color-brand-mastodon-bg: #fffffb;
@@ -256,7 +256,7 @@
   --color-graph-disabled-fill: #fedfe1;
   --rich-text-container-color: #fefafb;
   --rich-text-text-color: var(--color-text-status-links);
-  --rich-text-decorations-color: #fefafb;
+  --rich-text-decorations-color: var(--color-border-brand-soft);
   --color-brand-mastodon: #f4a7b9;
   --color-brand-mastodon-links: #f596aa;
   --color-brand-mastodon-bg: #fff;
