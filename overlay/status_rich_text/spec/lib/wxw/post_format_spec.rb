@@ -161,12 +161,12 @@ RSpec.describe Wxw::PostFormat do
   end
 
   it 'preserves Markdown punctuation in native URLs through rendering and link extraction' do
-    urls = %w(https://example.org/foo_bar_baz https://example.org/a__b__c https://example.org/?q=foo_bar_baz https://example.org/foo*bar*baz https://example.org/?q=foo~~bar~~baz)
+    urls = %w(https://example.org/foo_bar_baz https://example.org/a__b__c https://example.org/?q=foo_bar_baz https://example.org/foo*bar*baz https://example.org/?q=foo~~bar~~baz https://example.org/?a==b==c)
     formatter = Wxw::HtmlFormatter.new("**link** #{urls.join(' ')}", content_type: 'text/markdown')
     document = Nokogiri::HTML5.fragment(formatter.to_s)
 
     expect(document.css('strong').map(&:text)).to eq ['link']
-    expect(document.css('em, del')).to be_empty
+    expect(document.css('em, del, mark')).to be_empty
     expect(document.css('a').map { |link| link['href'] }).to eq urls
     expect(formatter.urls.map(&:to_s)).to eq urls
   end

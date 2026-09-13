@@ -81,6 +81,17 @@ RSpec.describe ActivityPub::NoteSerializer do
     end
   end
 
+  context 'with Markdown highlighting and no other MFM triggers' do
+    let(:source) { '==**Highlighted** [link](https://example.org/)==' }
+
+    it 'adds MFM colors while preserving the original Markdown and HTML markup' do
+      expect(note['_misskey_content']).to start_with '$[bg.color=ffff00 $[fg.color=000000 '
+      expect(note['_misskey_content']).to include '<b><plain>Highlighted</plain></b>', '[<plain>link</plain>](<https://example.org/>)'
+      expect(note['source']).to eq('content' => source, 'mediaType' => 'text/markdown')
+      expect(Nokogiri::HTML5.fragment(note['content']).css('mark strong, mark a').map(&:text)).to eq %w(Highlighted link)
+    end
+  end
+
   context 'with HTML source' do
     let(:source) { '<h1>Heading</h1><pre><code class="language-ruby" lang="en" style="color: red;">puts 1</code></pre>' }
     let(:status) { Fabricate(:status, account: account, text: source, wxw_content_type: 'text/html') }

@@ -8,6 +8,7 @@ class Wxw::PostFormat
     render: { hardbreaks: false, unsafe: true, github_pre_lang: false, escaped_char_spans: false, width: 0 },
     extension: {
       strikethrough: true,
+      highlight: true,
       tagfilter: false,
       table: false,
       autolink: false,
@@ -81,11 +82,11 @@ class Wxw::PostFormat
     def markdown(text)
       prefix = "wxw#{SecureRandom.hex}x"
       prefix = "wxw#{SecureRandom.hex}x" while text.include?(prefix)
-      placeholders = %w(_ * ~).to_h { |character| [character, "#{prefix}#{character.ord}x"] }
+      placeholders = %w(_ * ~ =).to_h { |character| [character, "#{prefix}#{character.ord}x"] }
       # Preserve existing escapes for Markdown to consume.
       source = text.gsub(FetchLinkCardService::URL_PATTERN) do
         before, url = Regexp.last_match.captures
-        before + url.gsub(/\\.|[_*~]/) { |token| placeholders.fetch(token, token) }
+        before + url.gsub(/\\.|[_*~]|=(?!=*\z)/) { |token| placeholders.fetch(token, token) }
       end
       source.gsub!(/(_{1,2})(@#{Account::USERNAME_RE}(?:@[[:word:]]+(?:[.-]+[[:word:]]+)*)?)\1/) do
         delimiter, mention = Regexp.last_match.captures

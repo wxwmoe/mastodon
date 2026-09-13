@@ -69,7 +69,9 @@ class Wxw::MfmFormatter
                else BREAK
                end
     base_template = template
-    template = Wxw::MfmStyles.wrap(template, node['style'])
+    style = node['style']
+    style = "color: black; background-color: yellow; #{style}" if node.name == 'mark'
+    template = Wxw::MfmStyles.wrap(template, style)
     nesting = template.scan(/\$\[|<(?:b|i|s|small)>/).size
     # Leave room for literal text and links within Misskey's 20-level limit.
     template = BREAK if depth + nesting > 16 || (!inline && node.at_css('pre, blockquote, details'))

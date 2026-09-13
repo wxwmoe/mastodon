@@ -61,6 +61,12 @@ RSpec.describe Wxw::MfmFormatter do
     expect(output).to_not include 'style=', 'margin', 'font-size', '<span'
   end
 
+  it 'maps highlights to readable colors while respecting explicit styles and nested formatting' do
+    expect(convert('<mark>highlighted</mark>')).to eq '$[bg.color=ffff00 $[fg.color=000000 <plain>highlighted</plain>]]'
+    expect(convert('<mark style="color: red;">highlighted</mark>')).to eq '$[bg.color=ffff00 $[fg.color=ff0000 <plain>highlighted</plain>]]'
+    expect(convert('<mark style="background-color: #abc;"><b>bold</b><a href="https://example.org/">link</a></mark>')).to eq '$[bg.color=aabbcc $[fg.color=000000 <b><plain>bold</plain></b>[<plain>link</plain>](<https://example.org/>)]]'
+  end
+
   it 'keeps summary visible and blurs the complete details body including code and brackets' do
     html = '<details><summary>Open</summary><p>array[0]</p><pre><code>a&#10;  b</code></pre></details>'
     output = convert(html)
@@ -104,10 +110,13 @@ RSpec.describe Wxw::MfmFormatter do
       '<span style="color: red; color: currentcolor;">plain</span>',
       '<p style="text-align: center; text-align: left;">plain</p>',
       '<span style="color: red;"></span><div style="text-align: center;"></div>',
+      '<mark></mark><p>&lt;mark&gt;literal&lt;/mark&gt;</p>',
+      '<pre><code>&lt;mark&gt;code&lt;/mark&gt;</code></pre>',
       '<code style="color: red;">plain</code><kbd style="color: red;">plain</kbd>',
       '<blockquote style="color: red;">plain</blockquote>',
       '<div style="color: red; text-align: center;"><pre><code>plain</code></pre></div>',
       '<b>' * 16 + '<span style="color: red; text-align: center;">deep</span>' + '</b>' * 16,
+      '<b>' * 16 + '<mark>deep</mark>' + '</b>' * 16,
     ].each do |html|
       expect(convert(html)).to be_nil, html
     end
