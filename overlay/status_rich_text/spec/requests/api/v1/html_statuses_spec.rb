@@ -92,8 +92,8 @@ RSpec.describe 'HTML statuses' do
       expect(note['source']).to eq('content' => edited, 'mediaType' => 'text/markdown')
       expect(note['_misskey_content']).to include('Updated', "```ruby\nline 1\nline 2\n\n```")
       expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre code').text).to eq "line 1\nline 2\n"
-      expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre code').attribute_nodes).to be_empty
-      expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre')['class']).to eq 'language-ruby'
+      expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre code')['class']).to eq 'language-ruby'
+      expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre')['class']).to be_nil
       expect(Nokogiri::HTML5.fragment(response.parsed_body[:content]).at_css('pre code')['class']).to eq 'language-ruby'
       expect(status.text).to eq edited
       activity = serialized_record_json(status, ActivityPub::UpdateNoteSerializer, adapter: ActivityPub::Adapter)

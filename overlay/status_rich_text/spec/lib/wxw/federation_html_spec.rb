@@ -10,26 +10,30 @@ RSpec.describe Wxw::FederationHtml do
       expect(described_class.format(html)).to equal html
     end
 
-    it 'moves block code attributes to pre while preserving code and indentation' do
+    it 'keeps block code attributes on code while preserving indentation' do
       html = "<p>Before</p><pre style=\"padding: 4px; color: blue;\"><code class=\"language-html\" lang=\"en\" style=\"color: red;\">\n  &lt;p&gt;A &amp;amp; B&lt;/p&gt;\n\n</code></pre><p>After</p>".freeze
       document = Nokogiri::HTML5.fragment(described_class.format(html))
       pre = document.at_css('pre')
       code = pre.at_css('code')
 
-      expect(pre['class']).to eq 'language-html'
-      expect(pre['lang']).to eq 'en'
-      expect(pre['style']).to eq 'padding: 4px; color: blue; color: red;'
+      expect(pre['class']).to be_nil
+      expect(pre['lang']).to be_nil
+      expect(pre['style']).to eq 'padding: 4px; color: blue;'
       expect(pre.children.size).to eq 1
-      expect(code.attributes).to be_empty
+      expect(code['class']).to eq 'language-html'
+      expect(code['lang']).to eq 'en'
+      expect(code['style']).to eq 'color: red;'
       expect(code.text).to eq "\n  <p>A &amp; B</p>\n\n"
       expect(document.css('p').map(&:text)).to eq %w(Before After)
     end
 
     it 'removes nested code markup while retaining explicit line breaks and whitespace' do
-      html = "<pre><code lang=\"en\">  <span style=\"color: red;\">first</span><br><b>second</b>\n  &lt;tag&gt;</code></pre>"
+      html = "<pre><code class=\"custom language-html language-ruby\" lang=\"en\" data-example=\"ignored\">  <span style=\"color: red;\">first</span><br><b>second</b>\n  &lt;tag&gt;</code></pre>"
       document = Nokogiri::HTML5.fragment(described_class.format(html))
 
       expect(document.css('pre > code').size).to eq 1
+      expect(document.at_css('code').attributes.keys).to contain_exactly('class', 'lang')
+      expect(document.at_css('code')['class']).to eq 'language-html'
       expect(document.at_css('code').element_children).to be_empty
       expect(document.at_css('code').text).to eq "  first\nsecond\n  <tag>"
     end

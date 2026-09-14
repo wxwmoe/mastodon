@@ -16,9 +16,9 @@ RSpec.describe ActivityPub::NoteSerializer do
     expect(note['contentMap']).to eq('en' => note['content'])
     expect(note['@context'].last).to include('_misskey_content' => 'https://misskey-hub.net/ns#_misskey_content')
     code = Nokogiri::HTML5.fragment(note['content']).at_css('pre code')
-    expect(code.attribute_nodes).to be_empty
+    expect(code['class']).to eq 'language-ruby'
     expect(code.text).to eq "puts '<hello>'\n"
-    expect(code.parent['class']).to eq 'language-ruby'
+    expect(code.parent['class']).to be_nil
     expect(note['content']).to_not include('shiki')
     expect(status.reload.text).to eq source
 
@@ -59,7 +59,7 @@ RSpec.describe ActivityPub::NoteSerializer do
 
     expect(note).to_not have_key('_misskey_content')
     expect(note['source']['content']).to eq source
-    expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre code').attribute_nodes).to be_empty
+    expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre code')['class']).to eq 'language-ruby'
   end
 
   context 'with Markdown formatting and no code language' do
@@ -96,10 +96,14 @@ RSpec.describe ActivityPub::NoteSerializer do
     let(:source) { '<h1>Heading</h1><pre><code class="language-ruby" lang="en" style="color: red;">puts 1</code></pre>' }
     let(:status) { Fabricate(:status, account: account, text: source, wxw_content_type: 'text/html') }
 
-    it 'keeps local highlighting metadata while removing all federated code attributes' do
+    it 'keeps code metadata in both local and federated HTML' do
       expect(note).to_not have_key('source')
       expect(note).to_not have_key('_misskey_content')
-      expect(Nokogiri::HTML5.fragment(note['content']).at_css('pre code').attribute_nodes).to be_empty
+      code = Nokogiri::HTML5.fragment(note['content']).at_css('pre code')
+      expect(code['class']).to eq 'language-ruby'
+      expect(code['lang']).to eq 'en'
+      expect(code['style']).to eq 'color: red;'
+      expect(code.parent['class']).to be_nil
       expect(Nokogiri::HTML5.fragment(web['content']).at_css('pre code')['class']).to eq 'language-ruby'
     end
   end

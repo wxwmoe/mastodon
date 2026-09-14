@@ -7,16 +7,15 @@ class Wxw::FederationHtml
     fragment = Nokogiri::HTML5.fragment(html)
     changed = false
     fragment.css('pre').each do |pre|
-      code = pre.element_children.first
-      if pre.element_children.one? && code.name == 'code'
-        %w(class lang).each { |name| pre[name] = code[name] if code[name] }
-        pre['style'] = [pre['style'], code['style']].compact.join(' ') if code['style']
+      original = pre.element_children.first
+      # Flatten presentation markup without losing code metadata.
+      code = fragment.document.create_element('code', code_text(pre))
+      if pre.element_children.one? && original.name == 'code'
+        %w(class lang style).each { |name| code[name] = original[name] if original[name] }
       end
 
-      # Misskey reads <pre> as raw text and only unwraps an attribute-free <code>.
-      # Flatten nested presentation markup instead of printing it.
-      code = fragment.document.create_element('code', code_text(pre))
       pre.children = code
+      Sanitize::CodeLanguage.sanitize(code)
       changed = true
     end
 
