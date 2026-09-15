@@ -1,0 +1,7 @@
+- unless status.wxw_content_type == 'text/plain'
+  %hr.spacer/
+  %h3= t('wxw_post_format.source')
+  .status__content
+    .status__content__text.status__content__text--visible
+      %pre
+        %code= status.text

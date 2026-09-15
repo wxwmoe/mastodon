@@ -1748,3 +1748,13 @@
 
  export const handlePush = (event) => {
    const { access_token, notification_id, preferred_locale, title, body, icon } = event.data.json();
+--- a/app/views/admin/statuses/show.html.haml
++++ b/app/views/admin/statuses/show.html.haml
+@@ -31,2 +31,3 @@
+         %td= standard_locale_name(@status.language)
++      = render 'admin/statuses/wxw_post_format', status: @status
+       %tr
+@@ -59,1 +60,2 @@
+-= render partial: 'admin/shared/status', object: @status
++= render partial: 'admin/shared/status', object: @status
++= render 'admin/statuses/wxw_source', status: @status

@@ -1089,3 +1089,9 @@
 +          wxw_remote_visibility: nil,
            text: status.text,
            spoiler_text: status.spoiler_text,
+--- a/app/views/admin/statuses/show.html.haml
++++ b/app/views/admin/statuses/show.html.haml
+@@ -34,1 +34,2 @@
+-        %td= t("statuses.visibilities.#{@status.visibility}")
++        %td= t("statuses.visibilities.#{@status.visibility}")
++      = render 'admin/statuses/wxw_remote_visibility', status: @status

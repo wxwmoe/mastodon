@@ -1,5 +1,7 @@
 en:
   wxw_post_format:
+    status_type: Post type
+    source: Source code
     label: Posting format
     hint: Sets the editor's initial format and the format used by API posts that do not specify one.
     formats:
@@ -9,6 +11,8 @@ en:
 
 ja:
   wxw_post_format:
+    status_type: 投稿形式
+    source: ソースコード
     label: 投稿形式
     hint: エディターの初期形式と、形式を指定しない API 投稿に使う形式を設定します。
     formats:
@@ -18,6 +22,8 @@ ja:
 
 zh-CN:
   wxw_post_format:
+    status_type: 嘟文类型
+    source: 源代码
     label: 发布格式
     hint: 设置编辑器的初始格式，以及 API 发布时未指定格式所使用的格式。
     formats:
@@ -27,6 +33,8 @@ zh-CN:
 
 zh-HK:
   wxw_post_format:
+    status_type: 帖文類型
+    source: 原始碼
     label: 發佈格式
     hint: 設定編輯器的初始格式，以及 API 發佈時未指定格式所使用的格式。
     formats:
@@ -36,6 +44,8 @@ zh-HK:
 
 zh-TW:
   wxw_post_format:
+    status_type: 嘟文類型
+    source: 原始碼
     label: 發佈格式
     hint: 設定編輯器的初始格式，以及 API 發佈時未指定格式所使用的格式。
     formats:
