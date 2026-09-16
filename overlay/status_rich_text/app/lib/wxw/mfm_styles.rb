@@ -16,7 +16,7 @@ module Wxw
       return content if content.empty?
 
       properties = Sanitize::RichTextStyles.sanitize(style).split(';').to_h { |declaration| declaration.split(':', 2).map(&:strip) }
-      content = "<b>#{content}</b>" if %w(bold 700 800 900).include?(properties['font-weight'])
+      content = "<b>#{content}</b>" if properties['font-weight'] == 'bold' || properties['font-weight'].to_f >= 700
       content = "<i>#{content}</i>" if %w(italic oblique).include?(properties['font-style'])
       content = "<s>#{content}</s>" if properties['text-decoration-line']&.split&.include?('line-through')
 
@@ -58,13 +58,14 @@ module Wxw
         style = uniform(properties['border-style'])
         width = uniform(properties['border-width'])
         return [] unless %w(solid dashed dotted double).include?(style) && width && width.to_f.positive?
+        return [] unless width.end_with?('px')
 
         args = ["style=#{style}", "width=#{width.delete_suffix('px')}"]
         colors = properties['border-color']&.split&.map { |value| color(value) }&.uniq
         color = colors.first if colors&.one?
         radius = uniform(properties['border-radius'])
         args << "color=#{color}" if color
-        args << "radius=#{radius.delete_suffix('px')}" if radius
+        args << "radius=#{radius.delete_suffix('px')}" if radius && (radius == '0' || radius.end_with?('px'))
         args
       end
     end

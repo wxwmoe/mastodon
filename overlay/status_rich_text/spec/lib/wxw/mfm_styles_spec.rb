@@ -39,6 +39,9 @@ RSpec.describe Wxw::MfmStyles do
 
     expect(described_class.wrap('text', style)).to eq '$[border.style=dashed,width=2,color=aabbcc,radius=4 text]'
     expect(described_class.wrap('text', 'border-style: solid; border-width: 1.5px; border-color: red; border-radius: 0')).to eq '$[border.style=solid,width=1.5,color=ff0000,radius=0 text]'
+    expect(described_class.wrap('text', 'border-style: solid; border-width: 2em')).to eq 'text'
+    expect(described_class.wrap('text', 'border-style: solid; border-width: 2px; border-radius: 50%')).to eq '$[border.style=solid,width=2 text]'
+    expect(described_class.wrap('text', 'font-weight: 950')).to eq '<b>text</b>'
 
     ['border-radius: 4px', 'border-width: 2px', 'border-style: solid', 'border-style: none; border-width: 2px', 'border-style: solid; border-width: 0', 'border-style: solid dashed; border-width: 2px', 'border-style: solid; border-width: 1px 2px'].each do |source|
       expect(described_class.wrap('text', source)).to eq 'text'

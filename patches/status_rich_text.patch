@@ -1012,11 +1012,12 @@
  }
 --- a/app/javascript/styles/mastodon/rich_text.scss
 +++ b/app/javascript/styles/mastodon/rich_text.scss
-@@ -2,30 +2,57 @@
+@@ -2,30 +2,59 @@
  .e-content,
  .edit-indicator__content,
  .reply-indicator__content {
--  code {
++  line-height: 1.5;
++
 +  code,
 +  kbd,
 +  pre {
@@ -1024,27 +1025,28 @@
 +  }
 +
 +  kbd {
-     background: var(--rich-text-container-color);
--    padding: 4px;
++    background: var(--rich-text-container-color);
 +    padding: 0.1em 0.4em;
 +    border: 1px solid var(--rich-text-decorations-color);
 +    border-bottom-width: 2px;
-     border-radius: 4px;
-     color: var(--rich-text-text-color);
-     font-size: 0.85em;
-   }
-
-+  code {
-+    background: var(--rich-text-container-color);
++    border-radius: 4px;
++    color: var(--rich-text-text-color);
++    font-size: 0.85em;
++  }
++
+   code {
+     background: var(--rich-text-container-color);
+-    padding: 4px;
+-    border-radius: 4px;
 +    margin: 0;
 +    padding: 0.2em 0.4em;
 +    border-radius: 6px;
-+    color: var(--rich-text-text-color);
-+    font-size: 0.85em;
+     color: var(--rich-text-text-color);
+     font-size: 0.85em;
 +    line-height: normal;
 +    white-space: break-spaces;
-+  }
-+
+   }
+
    pre {
      background: var(--rich-text-container-color);
 -    padding: 8px;
@@ -1075,7 +1077,7 @@
      unicode-bidi: plaintext;
 
      &:last-child {
-@@ -34,34 +61,20 @@
+@@ -34,34 +63,20 @@
    }
 
    blockquote {
@@ -1097,28 +1099,32 @@
 -      inset-inline-start: 0;
 -      top: 0;
 -    }
-
+-
 -    blockquote {
 -      margin-top: 4px;
 -      border-inline-start: 3px solid var(--rich-text-decorations-color);
 -      padding-inline-start: 16px;
-+    > p:not(:last-child) {
-+      margin-bottom: 16px;
-+    }
-
+-
 -      &::before {
 -        display: none;
 -      }
+-    }
+-
+-    p:last-of-type {
++
++    > p:not(:last-child) {
++      margin-bottom: 16px;
++    }
++
 +    > :first-child {
 +      margin-top: 0;
-     }
-
--    p:last-of-type {
++    }
++
 +    > :last-child {
        margin-bottom: 0;
      }
    }
-@@ -75,6 +88,93 @@
+@@ -75,6 +90,93 @@
      }
    }
 
@@ -1212,7 +1218,7 @@
    b,
    strong {
      font-weight: 700;
-@@ -85,6 +185,20 @@
+@@ -85,6 +187,20 @@
      font-style: italic;
    }
 
@@ -1233,7 +1239,7 @@
    ul,
    ol {
      padding-inline-start: 24px;
-@@ -97,6 +211,10 @@
+@@ -97,6 +213,10 @@
        }
      }
 
@@ -1244,10 +1250,14 @@
      p {
        margin: 0;
      }
-@@ -114,3 +232,20 @@
+@@ -114,3 +234,24 @@
      list-style-type: decimal;
    }
  }
++
++.detailed-status .status__content {
++  overflow: auto;
++}
 +
 +.detailed-status .status__content .status__content__text {
 +  line-height: 1.6;
@@ -1406,16 +1416,57 @@
 
 --- a/app/javascript/mastodon/components/status_content.jsx
 +++ b/app/javascript/mastodon/components/status_content.jsx
-@@ -20,7 +20,7 @@ import { injectIntl } from './intl';
+@@ -19,8 +19,9 @@
+ import { injectIntl } from './intl';
  import { HandledLink } from './status/handled_link';
  import { compareUrls } from '../utils/compare_urls';
-
+-
 -const MAX_HEIGHT = 706; // 22px * 32 (+ 2px padding at the top)
++import { observeStatusContent } from '../utils/wxw_status_layout';
++
 +const MAX_HEIGHT = 440; // About 20 lines of timeline text
 
  /**
   *
-@@ -133,7 +133,7 @@ class StatusContent extends PureComponent {
+@@ -90,25 +91,18 @@
+   };
+
+   _updateStatusLinks () {
+-    const node = this.node;
+-
+-    if (!node) {
+-      return;
+-    }
+-
+-    const { status, onCollapsedToggle } = this.props;
+-    if (status.get('collapsed', null) === null && onCollapsedToggle) {
+-      const { collapsible, onClick } = this.props;
+-      const text = node.querySelector(':scope > .status__content__text');
+-
+-      const collapsed =
+-          collapsible
+-          && onClick
+-          && (node.clientHeight > MAX_HEIGHT || (text !== null && text.scrollWidth > text.clientWidth))
+-          && status.get('spoiler_text').length === 0;
+-
+-      onCollapsedToggle(collapsed);
+-    }
++    this.disconnectLayout?.();
++    const { status, onCollapsedToggle, collapsible, onClick } = this.props;
++    if (!this.node || !onCollapsedToggle || !collapsible || !onClick) return;
++
++    this.disconnectLayout = observeStatusContent(this.node, MAX_HEIGHT, overflow => {
++      const collapsed = overflow && status.get('spoiler_text').length === 0;
++      if (collapsed !== status.get('collapsed', null)) onCollapsedToggle(collapsed);
++    });
++  }
++
++  componentWillUnmount () {
++    this.disconnectLayout?.();
+   }
+
+   componentDidMount () {
+@@ -133,7 +127,7 @@
 
      let element = e.target;
      while (element) {
@@ -1513,23 +1564,27 @@
 
  interface QueueItem {
    node: Node;
-@@ -165,6 +228,24 @@
+@@ -165,6 +228,28 @@
              continue;
            }
 
 +          if (name === 'style') {
++            // Template contents may expose an empty CSS declaration in browsers.
++            const style = document.createElement('span').style;
++            style.cssText = attr.value;
++
 +            props.style = Object.fromEntries(
-+              Array.from(node.style)
++              Array.from(style)
 +                .filter(
 +                  (property) =>
 +                    allowedStyles.has(property) &&
-+                    !node.style.getPropertyPriority(property),
++                    !style.getPropertyPriority(property),
 +                )
 +                .map((property) => [
 +                  property.replace(/-([a-z])/g, (_, letter: string) =>
 +                    letter.toUpperCase(),
 +                  ),
-+                  node.style.getPropertyValue(property),
++                  style.getPropertyValue(property),
 +                ]),
 +            );
 +            continue;
@@ -1538,7 +1593,7 @@
            // Rename if needed.
            if (typeof tagAttr === 'string') {
              name = tagAttr;
-@@ -172,16 +253,8 @@
+@@ -172,16 +257,8 @@
              name = globalAttr;
            }
 
@@ -1758,3 +1813,61 @@
 -= render partial: 'admin/shared/status', object: @status
 += render partial: 'admin/shared/status', object: @status
 += render 'admin/statuses/wxw_source', status: @status
+--- a/app/javascript/mastodon/components/status/content.tsx
++++ b/app/javascript/mastodon/components/status/content.tsx
+@@ -11,6 +11,7 @@
+ import { languages as preloadedLanguages } from '@/mastodon/initial_state';
+ import type { StatusTranslation } from '@/mastodon/models/status';
+ import { useAppDispatch, useAppSelector } from '@/mastodon/store';
++import { observeStatusContent } from '@/mastodon/utils/wxw_status_layout';
+ import ChevronRightIcon from '@/material-icons/400-24px/chevron_right.svg?react';
+
+ import { EmojiHTML } from '../emoji/html';
+@@ -19,7 +20,7 @@
+
+ import { useElementHandledLink } from './handled_link';
+
+-const MAX_HEIGHT = 706; // 22px * 32 (+ 2px padding at the top)
++const MAX_HEIGHT = 440; // About 20 lines of timeline text
+
+ export const StatusContent: React.FC<{
+   statusId: string;
+@@ -40,20 +41,16 @@
+   const dispatch = useAppDispatch();
+   const handleCollapse = useCallback(
+     (node: HTMLDivElement | null) => {
+-      if (!node || status?.collapsed !== null || !collapsible) {
+-        return;
+-      }
+-
+-      const text = node.querySelector(':scope > .status__content__text');
+-
+-      const collapsed =
+-        (node.clientHeight > MAX_HEIGHT ||
+-          (text !== null && text.scrollWidth > text.clientWidth)) &&
+-        !status.spoiler_text;
+-
+-      dispatch(toggleStatusCollapse(status.id, collapsed));
++      if (!node || !status || !collapsible || !onClick) return;
++
++      return observeStatusContent(node, MAX_HEIGHT, (overflow) => {
++        const collapsed = overflow && !status.spoiler_text;
++        if (collapsed !== status.collapsed) {
++          dispatch(toggleStatusCollapse(status.id, collapsed));
++        }
++      });
+     },
+-    [collapsible, status, dispatch],
++    [collapsible, onClick, status, dispatch],
+   );
+
+   // Trigger the click event if clicking outside a link, button, or label inside a status.
+@@ -63,7 +60,7 @@
+       if (
+         !onClick ||
+         !(target instanceof Element) ||
+-        target.closest(':is(a, button, label)')
++        target.closest(':is(a, button, label, summary)')
+       ) {
+         return;
+       }

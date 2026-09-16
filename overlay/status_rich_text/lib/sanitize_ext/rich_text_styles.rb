@@ -26,14 +26,7 @@ class Sanitize
         tokens = declaration[:children].reject { |token| %i(whitespace comment).include?(token[:node]) }
         next unless valid_value?(name, tokens)
 
-        value = tokens.map do |token|
-          case token[:node]
-          when :hash then "##{token[:value].downcase}"
-          when :dimension then "#{token[:value]}#{token[:unit].downcase}"
-          else token[:value].to_s.downcase
-          end
-        end.join(' ')
-        "#{name}: #{value};"
+        "#{name}: #{serialize(tokens)};"
       end.join(' ')
     end
 
@@ -50,11 +43,11 @@ class Sanitize
         when 'font-family', 'font-style', 'text-align', 'border-style'
           tokens.size <= (name == 'border-style' ? 4 : 1) && tokens.all? { |token| keyword?(token, KEYWORDS.fetch(name)) }
         when 'font-weight'
-          tokens.one? && (keyword?(first, %w(normal bold)) || (first[:node] == :number && (100..900).cover?(first[:value]) && (first[:value] % 100).zero?))
+          tokens.one? && (keyword?(first, %w(normal bold)) || (numeric?(first, :number) && (1..1000).cover?(first[:value])))
         when 'font-size'
-          tokens.one? && length?(first, px: 12..32, rem: 0.75..2)
+          tokens.one? && length?(first)
         when 'line-height'
-          tokens.one? && (keyword?(first, ['normal']) || (first[:node] == :number && (1..3).cover?(first[:value])))
+          tokens.one? && (keyword?(first, ['normal']) || (numeric?(first, :number) && first[:value] >= 0) || length?(first))
         when 'text-decoration-line'
           return true if tokens.one? && keyword?(first, ['none'])
 
@@ -62,7 +55,7 @@ class Sanitize
             tokens.all? { |token| keyword?(token, %w(underline overline line-through)) } &&
             tokens.map { |token| token[:value].downcase }.uniq.size == tokens.size
         when 'border-width', 'border-radius'
-          tokens.size <= 4 && tokens.all? { |token| length?(token, px: 0..(name == 'border-width' ? 4 : 16)) }
+          tokens.size <= 4 && tokens.all? { |token| length?(token, percentage: name == 'border-radius') }
         else
           maximum = if %w(margin padding).include?(name)
                       4
@@ -71,7 +64,7 @@ class Sanitize
                     else
                       1
                     end
-          tokens.size <= maximum && tokens.all? { |token| length?(token, px: 0..32, rem: 0..2) || (name.start_with?('margin') && keyword?(token, ['auto'])) }
+          tokens.size <= maximum && tokens.all? { |token| length?(token) || (name.start_with?('margin') && keyword?(token, ['auto'])) }
         end
       end
 
@@ -80,18 +73,70 @@ class Sanitize
       end
 
       def color?(token)
-        keyword?(token, COLORS) || (token[:node] == :hash && /\A(?:[a-f0-9]{3,4}|[a-f0-9]{6}|[a-f0-9]{8})\z/i.match?(token[:value]))
+        keyword?(token, COLORS) ||
+          (token[:node] == :hash && /\A(?:[a-f0-9]{3,4}|[a-f0-9]{6}|[a-f0-9]{8})\z/i.match?(token[:value])) ||
+          color_function?(token)
       end
 
-      def length?(token, px:, rem: nil)
-        return token[:value].zero? && px.cover?(0) if token[:node] == :number
-        return false unless token[:node] == :dimension
+      def color_function?(token)
+        return false unless token[:node] == :function && %w(rgb rgba hsl hsla).include?(token[:name].downcase)
+        return false unless token[:tokens].last[:node] == :')'
 
-        range = case token[:unit].downcase
-                when 'px' then px
-                when 'rem' then rem
-                end
-        range&.cover?(token[:value]) || false
+        args = token[:value].reject { |child| %i(whitespace comment).include?(child[:node]) }
+        legacy = args.any? { |child| child[:node] == :comma }
+        if legacy
+          return false unless [5, 7].include?(args.size)
+          return false unless args.each_with_index.all? { |child, index| index.even? || child[:node] == :comma }
+
+          components = args.each_slice(2).map(&:first)
+        else
+          return false unless args.size == 3 || (args.size == 5 && args[3][:node] == :delim && args[3][:value] == '/')
+          return false if token[:value].each_cons(2).any? { |left, right| numeric?(left, :number, :percentage, :dimension) && numeric?(right, :number, :percentage, :dimension) }
+
+          components = args.first(3)
+          components << args.last if args.size == 5
+        end
+
+        channels = components.first(3)
+        return false if components.size == 4 && !numeric?(components.last, :number, :percentage)
+
+        if token[:name].downcase.start_with?('rgb')
+          channels.all? { |channel| numeric?(channel, :number, :percentage) } &&
+            (!legacy || channels.map { |channel| channel[:node] }.uniq.one?)
+        else
+          hue = channels.first
+          (numeric?(hue, :number) || (numeric?(hue, :dimension) && %w(deg grad rad turn).include?(hue[:unit].downcase))) &&
+            channels.drop(1).all? { |channel| numeric?(channel, *(legacy ? [:percentage] : %i(number percentage))) }
+        end
+      end
+
+      def length?(token, percentage: true)
+        return false unless numeric?(token, :number, :dimension, :percentage) && token[:value] >= 0
+
+        case token[:node]
+        when :number then token[:value].zero?
+        when :percentage then percentage
+        when :dimension then %w(px em rem).include?(token[:unit].downcase)
+        end
+      end
+
+      def numeric?(token, *types)
+        # Crass clamps overflowing exponents, so validate the original number too.
+        types.include?(token[:node]) && token[:repr].to_f.finite?
+      end
+
+      def serialize(tokens)
+        tokens.filter_map do |token|
+          case token[:node]
+          when :whitespace, :comment then nil
+          when :hash then "##{token[:value].downcase}"
+          when :dimension then "#{token[:value]}#{token[:unit].downcase}"
+          when :percentage then "#{token[:value]}%"
+          when :function then "#{token[:name].downcase}(#{serialize(token[:value])})"
+          when :comma then ','
+          else token[:value].to_s.downcase
+          end
+        end.join(' ').gsub(' ,', ',')
       end
     end
   end

@@ -447,7 +447,7 @@ RSpec.describe 'HTML statuses' do
              '<p><small>small</small><wbr><time datetime="2026-09-12">time</time><mark>mark</mark><kbd>kbd</kbd><ins>ins</ins></p><hr>' \
              '<hgroup><h2>group</h2><p>subtitle</p></hgroup><header>header</header><footer>footer</footer>' \
              '<dl><dt>term</dt><dd>definition</dd></dl><details><summary>summary</summary><p>detail</p></details>' \
-             '<div style="text-align: center;">centered</div>'
+             '<div style="text-align: center; font-size: 100px; padding: 64px 2em; border-radius: 50%; color: rgba(255, 0, 0, 0.5); background-color: hsl(240 100% 50% / 25%);">centered</div>'
 
     post '/api/v1/statuses', headers: headers, params: { status: source, content_type: 'text/html' }
 
@@ -459,7 +459,7 @@ RSpec.describe 'HTML statuses' do
     expect(note['content']).to eq response.parsed_body[:content].sub('<pre>pre</pre>', '<pre><code>pre</code></pre>')
     expect(HtmlAwareFormatter.new(note['content'], false).to_s).to eq note['content']
     expect(document.css('*').map(&:name).uniq).to match_array(Sanitize::Config::MASTODON_STRICT[:elements])
-    expect(document.at_css('div')['style']).to eq 'text-align: center;'
+    expect(document.at_css('div')['style']).to eq 'text-align: center; font-size: 100px; padding: 64px 2em; border-radius: 50%; color: rgba(255, 0, 0, 0.5); background-color: hsl(240 100% 50% / 25%);'
     expect(document.at_css('div').text).to eq 'centered'
     expect(status.reload.text).to eq source
   end
