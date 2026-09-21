@@ -7,6 +7,7 @@ This repository maintains the patches and overlays for the Mastodon fork used on
 - `build.sh`: pins the upstream version, recreates `src/`, applies the ordered module list, then builds Docker images. `--check` stops before image builds.
 - `patches/<name>.sh`: module entry point; validates prerequisites, patches upstream files, and installs overlays.
 - `patches/<name>.patch`: optional unified diff for upstream integration.
+- `patches/<name>.md`: optional module usage documentation; link it as `模块说明` in the README module table's dependencies column. Keep module-specific usage out of the README.
 - `overlay/<name>/`: added implementation, assets, migrations, and tests. Feature overlays generally mirror the upstream tree; each installer defines its copy destinations.
 
 ## Integration

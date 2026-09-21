@@ -5,7 +5,7 @@ Mastodon patches used on wxw.moe.
 ## 特性
 
 - 模块化构建，按需启用补丁
-- 停用无需回滚迁移，`wxw_*` 扩展表仅闲置，不影响原版镜像运行
+- 停用前核对模块说明中的回退要求；`wxw_*` 扩展表可保留，无需回滚迁移
 
 ## 模块说明
 
@@ -26,11 +26,11 @@ Mastodon patches used on wxw.moe.
 | [status_highlight](patches/status_highlight.sh) | 富文本嘟文代码高亮 | [Shiki][7] |
 | [status_rich_text](patches/status_rich_text.sh) | 支持富文本嘟文的编辑和联邦互操作 | `status_settings`；[Commonmarker][8]；数据库前置迁移 |
 | [status_remote_visibility](patches/status_remote_visibility.sh) | 增加外站可见性和联邦互操作 | `status_settings`；数据库前置迁移 |
-| [streaming_media_hosts](patches/streaming_media_hosts.sh) | 按请求来源 Host 替换 Streaming 消息中的媒体文件地址，用于镜像站 | 可选 `STREAMING_MEDIA_HOSTS` 变量 |
+| [streaming_media_hosts](patches/streaming_media_hosts.sh) | 按请求来源 Host 替换 Streaming 消息中的媒体文件地址，用于镜像站 | [模块说明](patches/streaming_media_hosts.md) |
 | [registration_reason_dedup](patches/registration_reason_dedup.sh) | 拒绝与待审核申请完全相同的注册理由 | — |
 | [navigation_entry](patches/navigation_entry.sh) | 替换当前热门为本地时间线，并使用喵爪图标 | `install_themes` 提供的 `paw.svg` |
 | [rate_limit_tiers](patches/rate_limit_tiers.sh) | 按用户注册年限逐年放宽请求速率，方便用户管理历史嘟文 | — |
-| [chinese_search](patches/chinese_search.sh) | 全文搜索的中文分词和繁简转换 | Elasticsearch [IK][10]、[STConvert][11]；重建全文搜索索引 |
+| [chinese_search](patches/chinese_search.sh) | 全文搜索的中文分词和繁简转换 | Elasticsearch [IK][10]、[STConvert][11]；[模块说明](patches/chinese_search.md) |
 | [set_version_metadata](patches/set_version_metadata.sh) | 设置源码仓库地址，修改版本后缀为 `~wxw` | — |
 
 ### 模块选择
@@ -102,22 +102,9 @@ services:
   streaming:
     image: wxwmoe/mastodon-streaming
     pull_policy: never
-    environment:
-      STREAMING_MEDIA_HOSTS: >-
-        {"source":["s3.example.com"],"hosts":{"wss.example.net":"s3.example.net"}}
 ```
 
-`STREAMING_MEDIA_HOSTS` 可选，无需映射时删除此变量：
-
-`source` 为需要替换的原地址，`hosts` 为 WebSocket 请求域名到目标地址的映射
-
-使用 `chinese_search` 时，在 Elasticsearch 安装对应版本的 [IK][10]、[STConvert][11]
-
-分词配置变更后，需要用目标镜像重建索引：
-
-```bash
-docker compose run --rm web bin/tootctl search deploy
-```
+各模块的额外配置见[模块说明](#模块说明)表中的说明链接。
 
 ### 迁移与切换
 
@@ -208,7 +195,7 @@ docker compose up -d
 | 路径 | 内容 |
 | --- | --- |
 | [build.sh](build.sh) | 镜像构建入口 |
-| [patches/](patches/) | 模块安装脚本和集成补丁 |
+| [patches/](patches/) | 模块安装脚本、集成补丁和详细说明 |
 | [overlay/](overlay/) | 模块依赖的各类相关文件 |
 | `src/` | 生成的最终源码，不纳入版本控制 |
 
