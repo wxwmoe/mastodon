@@ -33,6 +33,7 @@ status_regexp_timeout                             # 修复正则超时
 status_reply_autosuggest                          # 修复回复建议
 status_poll_limit                                 # 修改投票上限
 media_limits                                      # 修改媒体上限
+media_cache_storage                               # 外站独立缓存
 install_themes                                    # 安装站点主题
 custom_emoji_preview                              # 安装表情预览
 custom_emoji_packs                                # 安装表情选单

@@ -1,0 +1,206 @@
+--- a/config/application.rb
++++ b/config/application.rb
+@@ -26,6 +26,7 @@
+ require_relative '../lib/sanitize_ext/sanitize_config'
+ require_relative '../lib/paperclip/url_generator_extensions'
+ require_relative '../lib/paperclip/attachment_extensions'
++require_relative '../lib/wxw/media_cache_storage'
+
+ require_relative '../lib/paperclip/gif_transcoder'
+ require_relative '../lib/paperclip/transcoder'
+--- a/lib/paperclip/attachment_extensions.rb
++++ b/lib/paperclip/attachment_extensions.rb
+@@ -84,7 +84,7 @@
+       return super if @queued_for_delete.empty? && @queued_for_write.empty? && !dirty?
+
+       Stoplight(
+-        'object-storage',
++        Wxw::MediaCacheStorage.circuit_key(self),
+         cool_off_time: STOPLIGHT_COOL_OFF_TIME,
+         threshold: STOPLIGHT_THRESHOLD,
+         tracked_errors: [Seahorse::Client::NetworkingError]
+--- a/app/models/concerns/cacheable.rb
++++ b/app/models/concerns/cacheable.rb
+@@ -11,11 +11,11 @@
+     end
+
+     def with_includes
+-      includes(@cache_associated)
++      includes(Wxw::MediaCacheStorage.cache_associations(self, @cache_associated))
+     end
+
+     def preload_cacheable_associations(records)
+-      ActiveRecord::Associations::Preloader.new(records: records, associations: @cache_associated).call
++      ActiveRecord::Associations::Preloader.new(records: records, associations: Wxw::MediaCacheStorage.cache_associations(self, @cache_associated)).call
+     end
+
+     def cache_ids
+--- a/app/lib/attachment_batch.rb
++++ b/app/lib/attachment_batch.rb
+@@ -61,7 +61,7 @@
+           case @storage_mode
+           when :s3
+             logger.debug { "Adding #{attachment.path(style)} to batch for deletion" }
+-            keys << attachment.style_name_as_path(style)
++            keys.concat(attachment.wxw_locations(style))
+           when :filesystem
+             logger.debug { "Deleting #{attachment.path(style)}" }
+             path = attachment.path(style)
+@@ -103,50 +103,7 @@
+
+     return unless storage_mode == :s3
+
+-    # We can batch deletes over S3, but there is a limit of how many
+-    # objects can be processed at once, so we have to potentially
+-    # separate them into multiple calls.
+-
+-    keys.each_slice(LIMIT) do |keys_slice|
+-      logger.debug { "Deleting #{keys_slice.size} objects" }
+-      retries = 0 # Reset for each slice
+-      begin
+-        with_overridden_timeout(bucket.client, 120) do
+-          bucket.delete_objects(delete: {
+-            objects: keys_slice.map { |key| { key: key } },
+-            quiet: true,
+-          })
+-        end
+-      rescue => e
+-        retries += 1
+-        if retries < MAX_RETRY
+-          logger.debug "Retry #{retries}/#{MAX_RETRY} after #{e.message}"
+-          sleep 2**retries
+-          retry
+-        else
+-          logger.error "Batch deletion from S3 failed after #{e.message}"
+-          raise e
+-        end
+-      end
+-    end
+-  end
+-
+-  def bucket
+-    @bucket ||= records.first.public_send(@attachment_names.first).s3_bucket
+-  end
+-
+-  # Currently, the aws-sdk-s3 gem does not offer a way to cleanly override the timeout
+-  # per-request. So we change the client's config instead. As this client will likely
+-  # be re-used for other jobs, restore its original configuration in an `ensure` block.
+-  def with_overridden_timeout(s3_client, longer_read_timeout)
+-    original_timeout = s3_client.config.http_read_timeout
+-    s3_client.config.http_read_timeout = [original_timeout, longer_read_timeout].max
+-
+-    begin
+-      yield
+-    ensure
+-      s3_client.config.http_read_timeout = original_timeout
+-    end
++    Wxw::MediaCacheStorage.delete_locations(keys)
+   end
+
+   def nullified_attributes
+--- a/app/services/update_media_attachments_permissions_service.rb
++++ b/app/services/update_media_attachments_permissions_service.rb
+@@ -5,9 +5,6 @@
+     # Only s3 and filesystem storage systems support modifying permissions
+     return unless %i(s3 filesystem).include?(Paperclip::Attachment.default_options[:storage])
+
+-    # Prevent useless S3 calls if ACLs are disabled
+-    return if Paperclip::Attachment.default_options[:storage] == :s3 && ENV['S3_PERMISSION'] == ''
+-
+     attachment_names = MediaAttachment.attachment_definitions.keys
+
+     media_attachments_scope.find_each do |media_attachment|
+@@ -20,15 +17,7 @@
+         styles.each do |style|
+           case Paperclip::Attachment.default_options[:storage]
+           when :s3
+-            acl = direction == :public ? Paperclip::Attachment.default_options[:s3_permissions] : 'private'
+-
+-            begin
+-              attachment.s3_object(style).acl.put(acl: acl)
+-            rescue Aws::S3::Errors::NoSuchKey
+-              Rails.logger.warn "Tried to change acl on non-existent key #{attachment.s3_object(style).key}"
+-            rescue Aws::S3::Errors::NotImplemented => e
+-              Rails.logger.error "Error trying to change ACL on #{attachment.s3_object(style).key}: #{e.message}"
+-            end
++            Wxw::MediaCacheStorage.update_permissions(attachment, style, direction)
+           when :filesystem
+             mask = direction == :public ? 0o666 : 0o600
+
+--- a/app/lib/content_security_policy.rb
++++ b/app/lib/content_security_policy.rb
+@@ -10,7 +10,7 @@
+   end
+
+   def media_hosts
+-    [assets_host, cdn_host_value, paperclip_root_url].concat(extra_media_hosts).compact
++    [assets_host, cdn_host_value, paperclip_root_url, Wxw::MediaCacheStorage.media_host].concat(extra_media_hosts).compact
+   end
+
+   def sso_host
+--- a/lib/mastodon/cli/media.rb
++++ b/lib/mastodon/cli/media.rb
+@@ -1,10 +1,12 @@
+ # frozen_string_literal: true
+
+ require_relative 'base'
++require_relative '../../wxw/media_cache_storage/cli'
+
+ module Mastodon::CLI
+   class Media < Base
+     include ActionView::Helpers::NumberHelper
++    include Wxw::MediaCacheStorage::CLI
+
+     class UnrecognizedOrphanType < StandardError; end
+
+@@ -87,6 +89,22 @@
+       end
+     end
+
++    option :to, type: :string, required: true
++    option :type, type: :string, enum: %w(attachments accounts emojis previews)
++    option :start_after, type: :string
++    option :concurrency, type: :numeric, default: 5
++    option :retries, type: :numeric, default: 2
++    option :source_permission, type: :string, enum: %w(public-read private)
++    option :dry_run, type: :boolean, default: false
++    option :verbose, type: :boolean, default: false
++    desc 'migrate-storage', 'Move remote attachments between main and cache S3'
++    def migrate_storage
++      wxw_migrate_storage
++    end
++
++    option :storage, type: :string, default: 'all'
++    option :remove_migrated, type: :boolean, default: false
++    option :days, type: :numeric, default: 7
+     option :start_after
+     option :prefix
+     option :fix_permissions, type: :boolean, default: false
+@@ -99,6 +117,8 @@
+       Please mind that some storage providers charge for the necessary API requests to list objects.
+     LONG_DESC
+     def remove_orphans
++      return wxw_remove_s3_orphans if Paperclip::Attachment.default_options[:storage] == :s3
++
+       progress        = create_progress_bar(nil)
+       reclaimed_bytes = 0
+       removed         = 0
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -1468,6 +1468,16 @@
+     t.index ["user_id", "nickname"], name: "index_webauthn_credentials_on_user_id_and_nickname", unique: true
+   end
+
++  create_table "wxw_media_caches", force: :cascade do |t|
++    t.string "record_type", null: false
++    t.bigint "record_id", null: false
++    t.string "attachment_name", null: false
++    t.bigint "generation", default: 0, null: false
++    t.datetime "created_at", null: false
++    t.datetime "updated_at", null: false
++    t.index ["record_type", "record_id", "attachment_name"], name: "index_wxw_media_caches_on_attachment", unique: true
++  end
++
+   create_table "webhooks", force: :cascade do |t|
+     t.datetime "created_at", null: false
+     t.boolean "enabled", default: true, null: false

@@ -19,6 +19,7 @@ Mastodon patches used on wxw.moe.
 | [status_reply_autosuggest](patches/status_reply_autosuggest.sh) | 停用编辑框空格后的提及、标签联想 | — |
 | [status_poll_limit](patches/status_poll_limit.sh) | 投票选项上限：4 → 16 | — |
 | [media_limits](patches/media_limits.sh) | 提升限制至 16 个附件、图片 99 MiB；外站接收的头像/封面 16 MiB、表情 2 MiB | — |
+| [media_cache_storage](patches/media_cache_storage.sh) | 联邦缓存使用独立的 S3 存储 | 数据库前置迁移；[模块说明](patches/media_cache_storage.md) |
 | [install_themes](patches/install_themes.sh) | 安装 Bird UI、Tangerine Neue 和桜主题及爪印图标 | [Mastodon Bird UI][4]、[Tangerine Neue][5] |
 | [custom_emoji_preview](patches/custom_emoji_preview.sh) | 表情焦点、触摸放大，标签选择器加大 | — |
 | [custom_emoji_packs](patches/custom_emoji_packs.sh) | 表情包选单、表情收藏 | 数据库前置迁移 |
@@ -181,6 +182,7 @@ docker compose up -d
 | 富文本与高亮 | 本地富文本嘟文按源码显示；官方镜像编辑不更新扩展格式标记，新编辑历史缺少格式，重新启用时可能解析错误，需核对正文与格式 |
 | 外站可见性 | **外站限制失效，仅按嘟文的本站可见性处理**；读取、转发、引用及投递范围可能扩大，切换前核对嘟文可见性 |
 | 表情包与收藏 | 表情保留；表情包分组、排序、收藏和预览停用 |
+| 外站独立缓存 | 原版不读取 cache 位置记录，停用前需按[模块说明](patches/media_cache_storage.md)完成回退 |
 | 字数、投票与媒体 | 恢复官方限制；超限内容的展示、编辑可能受限 |
 | 定时发布 | 超限等校验失败可能导致定时稿丢失，切换前检查、转换或导出待发布任务 |
 | 超限附件编辑 | 在原版网页编辑超过 4 个附件的嘟文，会将附件顺序写为前 4 个，编辑后附件保留但重新启用模块不会恢复展示 |
