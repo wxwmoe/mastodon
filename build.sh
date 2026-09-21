@@ -60,5 +60,5 @@ docker build "${build_args[@]}" -t wxwmoe/mastodon -t wxwmoe/mastodon:v${MASTODO
 
 # 编译 Mastodon Streaming 镜像
 echo "Building Mastodon Streaming ${MASTODON_VERSION} Docker image..."
-printf 'FROM ghcr.io/mastodon/mastodon-streaming:v%s\nCOPY index.js /opt/mastodon/streaming/index.js\n' "${MASTODON_VERSION}" > src/streaming/Dockerfile
+printf 'FROM ghcr.io/mastodon/mastodon-streaming:v%s\nCOPY *.js /opt/mastodon/streaming/\n' "${MASTODON_VERSION}" > src/streaming/Dockerfile
 docker build -t wxwmoe/mastodon-streaming -t wxwmoe/mastodon-streaming:v${MASTODON_VERSION} src/streaming

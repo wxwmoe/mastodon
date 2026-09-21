@@ -1,10 +1,23 @@
 #!/bin/bash
 set -e
 
-grep -Fqx "initializeLogLevel(process.env, environment);" src/streaming/index.js
-grep -Fqx "      output(event, encodedPayload);" src/streaming/index.js
-sed -i -e '/^initializeLogLevel(process.env, environment);$/a\const streamingMediaHosts = process.env.STREAMING_MEDIA_HOSTS?.trim() ? JSON.parse(process.env.STREAMING_MEDIA_HOSTS) : null;\nconst rewriteMediaHost = (payload, req) => {\n  const host = streamingMediaHosts?.hosts?.[req.headers.host?.replace(/:[0-9]+$/, "").toLowerCase()];\n  return host \&\& Array.isArray(streamingMediaHosts.source) ? streamingMediaHosts.source.filter(Boolean).reduce((rewritten, source) => rewritten.replaceAll(source, host), payload) : payload;\n};' -e 's|^      output(event, encodedPayload);$|      output(event, rewriteMediaHost(encodedPayload, req));|' src/streaming/index.js
-grep -Fqx "const streamingMediaHosts = process.env.STREAMING_MEDIA_HOSTS?.trim() ? JSON.parse(process.env.STREAMING_MEDIA_HOSTS) : null;" src/streaming/index.js
-grep -Fqx "  const host = streamingMediaHosts?.hosts?.[req.headers.host?.replace(/:[0-9]+$/, \"\").toLowerCase()];" src/streaming/index.js
-grep -Fqx "  return host && Array.isArray(streamingMediaHosts.source) ? streamingMediaHosts.source.filter(Boolean).reduce((rewritten, source) => rewritten.replaceAll(source, host), payload) : payload;" src/streaming/index.js
-grep -Fqx "      output(event, rewriteMediaHost(encodedPayload, req));" src/streaming/index.js
+file="src/streaming/index.js"
+helper="streaming/wxw_media_hosts.js"
+import="import { createMediaHostRewriter } from './wxw_media_hosts.js';"
+
+test -f "overlay/streaming_media_hosts/$helper"
+test ! -e "src/$helper"
+test "$(grep -Fxc "import { isTruthy, normalizeHashtag, firstParam } from './utils.js';" "$file")" -eq 1
+test "$(grep -Fxc "initializeLogLevel(process.env, environment);" "$file")" -eq 1
+test "$(grep -Fxc "      output(event, encodedPayload);" "$file")" -eq 1
+test "$(grep -Fxc "$import" "$file")" -eq 0
+
+sed -i \
+  -e "/^import { isTruthy, normalizeHashtag, firstParam } from '.\/utils.js';$/a\\$import" \
+  -e '/^initializeLogLevel(process.env, environment);$/a\const rewriteMediaHost = createMediaHostRewriter(process.env.STREAMING_MEDIA_HOSTS);' \
+  -e 's|^      output(event, encodedPayload);$|      output(event, rewriteMediaHost(encodedPayload, req.headers.host));|' \
+  "$file"
+cp "overlay/streaming_media_hosts/$helper" "src/$helper"
+
+grep -Fqx "$import" "$file"
+grep -Fqx "      output(event, rewriteMediaHost(encodedPayload, req.headers.host));" "$file"
