@@ -7,6 +7,12 @@ RSpec.describe Wxw::EmojiPack do
   let(:category) { Fabricate(:custom_emoji_category) }
   let(:public_pack) { described_class.create!(name: 'Site', custom_emoji_category: category, default_enabled: true) }
 
+  it 'uses the module tables for every emoji model' do
+    models = [described_class, Wxw::EmojiSection, Wxw::EmojiFavorite, Wxw::EmojiTranslation]
+
+    expect(models.map(&:table_name)).to eq(%w(wxw_emoji_packs wxw_emoji_sections wxw_emoji_favorites wxw_emoji_translations))
+  end
+
   describe 'personal selection' do
     it 'keeps unset preferences unset and sorts newly created favorites alphabetically before defaults' do
       public_pack

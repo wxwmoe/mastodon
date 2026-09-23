@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class Wxw::EmojiFavorite < ApplicationRecord
+  self.table_name = 'wxw_emoji_favorites'
+
   belongs_to :pack, class_name: 'Wxw::EmojiPack', inverse_of: :favorites, touch: true
   belongs_to :custom_emoji
   belongs_to :user

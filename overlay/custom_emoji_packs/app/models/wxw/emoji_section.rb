@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class Wxw::EmojiSection < ApplicationRecord
+  self.table_name = 'wxw_emoji_sections'
+
   include Wxw::Named
 
   has_many :packs,

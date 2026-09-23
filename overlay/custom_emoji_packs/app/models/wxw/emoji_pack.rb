@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class Wxw::EmojiPack < ApplicationRecord
+  self.table_name = 'wxw_emoji_packs'
+
   include Wxw::Named
 
   PICKS_KEY = 'wxw_emoji.picks'
