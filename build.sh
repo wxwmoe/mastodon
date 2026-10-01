@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-MASTODON_VERSION="4.7.2"
+MASTODON_VERSION="4.7.3"
 
 # 预校验
 if [[ $# -gt 1 || ( $# -eq 1 && $1 != --check && $1 != --no-cache ) ]]; then
