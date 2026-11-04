@@ -654,31 +654,33 @@
 
      if anonymous?
 -      account.statuses.distributable_visibility
-+      wxw_visibility_scope(account.statuses, %i(public unlisted))
++      wxw_statuses_scope.distributable_visibility
      elsif author?
 -      exclude_direct? ? account.statuses.where(visibility: %i(public unlisted private)) : account.statuses.all # NOTE: #merge! does not work without the #all
-+      exclude_direct? ? wxw_visibility_scope(account.statuses, %i(public unlisted private)) : account.statuses.all # NOTE: #merge! does not work without the #all
++      exclude_direct? ? wxw_statuses_scope.list_eligible_visibility : account.statuses.all # NOTE: #merge! does not work without the #all
      elsif blocked?
        Status.none
      else
-@@ -46,13 +48,13 @@
+@@ -46,15 +48,15 @@
    end
 
    def filtered_scope
 -    scope = account.statuses
 +    scope = wxw_statuses_scope
 
-     if exclude_direct?
--      scope = scope.where(visibility: follower? ? %i(public unlisted private) : %i(public unlisted))
-+      scope = wxw_visibility_scope(scope, follower? ? %i(public unlisted private) : %i(public unlisted))
+     if exclude_direct? && follower?
+       scope = scope.list_eligible_visibility
+     elsif exclude_direct?
+-      scope = account.statuses.left_outer_joins(:mentions)
+-      scope.merge!(scope.distributable_visibility.or(scope.where(visibility: :private).where(mentions: { account_id: current_account.id })).group(Status.arel_table[:id]))
++      scope = scope.left_outer_joins(:mentions)
++      scope.merge!(scope.distributable_visibility.or(scope.private_visibility.where(mentions: { account_id: current_account.id })).group(Status.arel_table[:id]))
      else
 -      scope = account.statuses.left_outer_joins(:mentions)
--      scope.merge!(scope.where(visibility: follower? ? %i(public unlisted private) : %i(public unlisted)).or(scope.where(mentions: { account_id: current_account.id })).group(Status.arel_table[:id]))
 +      scope = scope.left_outer_joins(:mentions)
-+      scope.merge!(wxw_visibility_scope(scope, follower? ? %i(public unlisted private) : %i(public unlisted)).or(scope.where(mentions: { account_id: current_account.id })).group(Status.arel_table[:id]))
+       scope.merge!(visibility_scope(scope).or(scope.where(mentions: { account_id: current_account.id })).group(Status.arel_table[:id]))
      end
 
-     scope.merge!(filtered_reblogs_scope) if reblogs_may_occur?
 --- a/app/lib/activitypub/activity/announce.rb
 +++ b/app/lib/activitypub/activity/announce.rb
 @@ -71,6 +71,8 @@
