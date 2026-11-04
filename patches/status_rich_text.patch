@@ -1428,9 +1428,20 @@
 
  /**
   *
-@@ -90,25 +91,18 @@
+@@ -80,7 +81,6 @@
+     onTranslate: PropTypes.func,
+     onClick: PropTypes.func,
+     collapsible: PropTypes.bool,
+-    onCollapsedToggle: PropTypes.func,
+     languages: ImmutablePropTypes.map,
+     intl: PropTypes.object,
+     // from react-router
+@@ -89,34 +89,28 @@
+     history: PropTypes.object.isRequired
    };
 
++  state = { overflows: false };
++
    _updateStatusLinks () {
 -    const node = this.node;
 -
@@ -1452,12 +1463,11 @@
 -      onCollapsedToggle(collapsed);
 -    }
 +    this.disconnectLayout?.();
-+    const { status, onCollapsedToggle, collapsible, onClick } = this.props;
-+    if (!this.node || !onCollapsedToggle || !collapsible || !onClick) return;
++    const { collapsible, onClick } = this.props;
++    if (!this.node || !collapsible || !onClick) return;
 +
-+    this.disconnectLayout = observeStatusContent(this.node, MAX_HEIGHT, overflow => {
-+      const collapsed = overflow && status.get('spoiler_text').length === 0;
-+      if (collapsed !== status.get('collapsed', null)) onCollapsedToggle(collapsed);
++    this.disconnectLayout = observeStatusContent(this.node, MAX_HEIGHT, overflows => {
++      this.setState(state => state.overflows === overflows ? null : { overflows });
 +    });
 +  }
 +
@@ -1466,6 +1476,16 @@
    }
 
    componentDidMount () {
+     this._updateStatusLinks();
+   }
+
+-  componentDidUpdate () {
+-    this._updateStatusLinks();
++  componentDidUpdate (prevProps) {
++    if (prevProps !== this.props) this._updateStatusLinks();
+   }
+
+   handleMouseDown = (e) => {
 @@ -133,7 +127,7 @@
 
      let element = e.target;
@@ -1475,6 +1495,16 @@
          return;
        }
        element = element.parentNode;
+@@ -185,7 +179,8 @@
+   render () {
+     const { status, intl, statusContent } = this.props;
+
+-    const renderReadMore = this.props.onClick && status.get('collapsed');
++    const renderReadMore = this.props.onClick && this.props.collapsible &&
++      this.state.overflows && !status.get('spoiler_text');
+     const contentLocale = intl.locale.replace(/[_-].*/, '');
+     const targetLanguages = this.props.languages?.[status.get('language') || 'und'];
+     const renderTranslate = this.props.onTranslate && this.props.identity.signedIn && ['public', 'unlisted'].includes(status.get('visibility')) && status.get('search_index').trim().length > 0 && targetLanguages?.includes(contentLocale);
 --- a/app/javascript/mastodon/utils/html.ts
 +++ b/app/javascript/mastodon/utils/html.ts
 @@ -4,12 +4,53 @@
@@ -1815,15 +1845,27 @@
 += render 'admin/statuses/wxw_source', status: @status
 --- a/app/javascript/mastodon/components/status/content.tsx
 +++ b/app/javascript/mastodon/components/status/content.tsx
-@@ -11,6 +11,7 @@
+@@ -1,16 +1,16 @@
+ import type React from 'react';
+-import { useCallback } from 'react';
++import { useCallback, useState } from 'react';
+
+ import { FormattedMessage, useIntl } from 'react-intl';
+
+ import classnames from 'classnames';
+
+-import { toggleStatusCollapse } from '@/mastodon/actions/statuses';
+ import { useStatus } from '@/mastodon/hooks/useStatus';
+ import { useIdentity } from '@/mastodon/identity_context';
  import { languages as preloadedLanguages } from '@/mastodon/initial_state';
  import type { StatusTranslation } from '@/mastodon/models/status';
- import { useAppDispatch, useAppSelector } from '@/mastodon/store';
+-import { useAppDispatch, useAppSelector } from '@/mastodon/store';
++import { useAppSelector } from '@/mastodon/store';
 +import { observeStatusContent } from '@/mastodon/utils/wxw_status_layout';
  import ChevronRightIcon from '@/material-icons/400-24px/chevron_right.svg?react';
 
  import { EmojiHTML } from '../emoji/html';
-@@ -19,7 +20,7 @@
+@@ -19,7 +19,7 @@
 
  import { useElementHandledLink } from './handled_link';
 
@@ -1832,8 +1874,12 @@
 
  export const StatusContent: React.FC<{
    statusId: string;
-@@ -40,20 +41,16 @@
-   const dispatch = useAppDispatch();
+@@ -37,23 +37,14 @@
+   const intl = useIntl();
+
+   // Determines if a long post should show the read more button.
+-  const dispatch = useAppDispatch();
++  const [overflows, setOverflows] = useState(false);
    const handleCollapse = useCallback(
      (node: HTMLDivElement | null) => {
 -      if (!node || status?.collapsed !== null || !collapsible) {
@@ -1850,19 +1896,14 @@
 -      dispatch(toggleStatusCollapse(status.id, collapsed));
 +      if (!node || !status || !collapsible || !onClick) return;
 +
-+      return observeStatusContent(node, MAX_HEIGHT, (overflow) => {
-+        const collapsed = overflow && !status.spoiler_text;
-+        if (collapsed !== status.collapsed) {
-+          dispatch(toggleStatusCollapse(status.id, collapsed));
-+        }
-+      });
++      return observeStatusContent(node, MAX_HEIGHT, setOverflows);
      },
 -    [collapsible, status, dispatch],
-+    [collapsible, onClick, status, dispatch],
++    [collapsible, onClick, status],
    );
 
    // Trigger the click event if clicking outside a link, button, or label inside a status.
-@@ -63,7 +60,7 @@
+@@ -63,7 +54,7 @@
        if (
          !onClick ||
          !(target instanceof Element) ||
@@ -1871,3 +1912,13 @@
        ) {
          return;
        }
+@@ -93,7 +84,8 @@
+
+   const language = status.translation?.language ?? status.language;
+
+-  const renderReadMore = !!onClick && status.collapsed;
++  const renderReadMore =
++    !!onClick && collapsible && overflows && !status.spoiler_text;
+   const readMoreButton = renderReadMore && (
+     <button
+       className='status__content__read-more-button'
