@@ -1,0 +1,11 @@
+--- a/app/views/layouts/application.html.haml
++++ b/app/views/layouts/application.html.haml
+@@ -18,7 +18,7 @@
+       %link{ rel: 'apple-touch-icon', sizes: "#{size}x#{size}", href: app_icon_path(size.to_i) || frontend_asset_path("icons/apple-touch-icon-#{size}x#{size}.png") }/
+ 
+     - if use_mask_icon?
+-      %link{ rel: 'mask-icon', href: frontend_asset_path('images/logo-symbol-icon.svg'), color: '#6364FF' }/
++      %link{ rel: 'mask-icon', href: frontend_asset_path('images/logo-symbol-icon.svg'), color: Wxw::ThemeColors::MASK_ICON }/
+     %link{ rel: 'manifest', href: manifest_path(format: :json) }/
+     = javascript_inline_tag 'theme-selection.js'
+     = theme_color_tags color_scheme

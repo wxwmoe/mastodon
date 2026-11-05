@@ -1,0 +1,5 @@
+{
+  "media_gallery.audio": "音訊",
+  "media_gallery.show_more": "查看其餘 {count} 個附件",
+  "upload_form.federation_limit": "其他伺服器可能只會顯示前 4 個附件。"
+}

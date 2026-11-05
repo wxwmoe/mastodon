@@ -1,0 +1,8 @@
+{
+  "compose.format": "投稿形式",
+  "compose.format.html": "HTML",
+  "compose.format.markdown": "Markdown",
+  "compose.format.plain": "プレーンテキスト",
+  "compose_form.html_placeholder": "HTML で投稿を入力してください。",
+  "compose_form.markdown_placeholder": "Markdown で投稿を入力してください。"
+}

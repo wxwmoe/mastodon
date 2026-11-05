@@ -1,0 +1,34 @@
+.announcements__slide {
+  display: flex;
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+}
+
+.reactions-bar__item__emoji {
+  overflow: hidden;
+}
+
+.announcements__root {
+  flex-direction: column-reverse;
+}
+
+.announcements {
+  width: 100%;
+}
+
+.announcements__mastodon {
+  align-self: flex-start;
+}
+
+html.has-modal:has(> body.layout-multiple-columns),
+html.has-modal > body.layout-multiple-columns {
+  scrollbar-gutter: auto;
+}
+
+.media-modal__closer > .zoomable-image {
+  overflow: hidden;
+}

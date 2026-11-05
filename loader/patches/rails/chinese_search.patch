@@ -1,0 +1,63 @@
+--- a/app/chewy/accounts_index.rb
++++ b/app/chewy/accounts_index.rb
+@@ -44,7 +44,7 @@
+ 
+       # "FOO bar" becomes "foo bar"
+       verbatim: {
+-        tokenizer: 'standard',
++        tokenizer: Wxw::ChineseSearch::TOKENIZER,
+         filter: %w(lowercase asciifolding cjk_width),
+       },
+ 
+--- a/app/chewy/public_statuses_index.rb
++++ b/app/chewy/public_statuses_index.rb
+@@ -21,6 +21,7 @@
+       },
+     },
+ 
++    char_filter: Wxw::ChineseSearch::CHAR_FILTER,
+     analyzer: {
+       verbatim: {
+         tokenizer: 'uax_url_email',
+@@ -28,7 +29,7 @@
+       },
+ 
+       content: {
+-        tokenizer: 'standard',
++        **Wxw::ChineseSearch::CONTENT,
+         filter: %w(
+           lowercase
+           asciifolding
+--- a/app/chewy/statuses_index.rb
++++ b/app/chewy/statuses_index.rb
+@@ -21,6 +21,7 @@
+       },
+     },
+ 
++    char_filter: Wxw::ChineseSearch::CHAR_FILTER,
+     analyzer: {
+       verbatim: {
+         tokenizer: 'uax_url_email',
+@@ -28,7 +29,7 @@
+       },
+ 
+       content: {
+-        tokenizer: 'standard',
++        **Wxw::ChineseSearch::CONTENT,
+         filter: %w(
+           lowercase
+           asciifolding
+--- a/app/chewy/tags_index.rb
++++ b/app/chewy/tags_index.rb
+@@ -4,9 +4,10 @@
+   include DatetimeClampingConcern
+ 
+   settings index: index_preset(refresh_interval: '30s'), analysis: {
++    char_filter: Wxw::ChineseSearch::CHAR_FILTER,
+     analyzer: {
+       content: {
+-        tokenizer: 'keyword',
++        **Wxw::ChineseSearch::TAG,
+         filter: %w(
+           word_delimiter_graph
+           lowercase

@@ -1,0 +1,10 @@
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -1683,4 +1683,7 @@
+             WHERE (login_activities.success = true)) t0
+     GROUP BY user_id, ip;
+   SQL
++
++  require_relative 'wxw_schema'
++  WxwSchema.apply(self)
+ end

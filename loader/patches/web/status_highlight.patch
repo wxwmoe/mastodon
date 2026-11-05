@@ -1,0 +1,18 @@
+--- a/app/javascript/mastodon/components/emoji/html.tsx
++++ b/app/javascript/mastodon/components/emoji/html.tsx
+@@ -1,5 +1,6 @@
+ import { useMemo } from 'react';
+
++import { withCodeHighlight } from '@/mastodon/components/wxw_code_highlight';
+ import type { CustomEmojiMapArg } from '@/mastodon/features/emoji/types';
+ import type {
+   OnAttributeHandler,
+@@ -25,7 +26,7 @@ export const EmojiHTML = polymorphicForwardRef<'div', EmojiHTMLProps>(
+       () =>
+         htmlStringToComponents(htmlString, {
+           onText: textToEmojis,
+-          onElement,
++          onElement: withCodeHighlight(onElement),
+           onAttribute,
+         }),
+       [htmlString, onAttribute, onElement],

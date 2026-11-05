@@ -1,0 +1,8 @@
+{
+  "compose.format": "嘟文格式",
+  "compose.format.html": "HTML",
+  "compose.format.markdown": "Markdown",
+  "compose.format.plain": "純文字",
+  "compose_form.html_placeholder": "使用 HTML 撰寫嘟文。",
+  "compose_form.markdown_placeholder": "使用 Markdown 撰寫嘟文。"
+}

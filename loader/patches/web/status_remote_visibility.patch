@@ -1,0 +1,384 @@
+--- a/app/javascript/entrypoints/public.tsx
++++ b/app/javascript/entrypoints/public.tsx
+@@ -24,6 +24,11 @@
+ import { getNestedProperty } from '@/mastodon/utils/objects';
+ import { isDarkMode } from '@/mastodon/utils/theme';
+ import { formatTime } from '@/mastodon/utils/time';
++
++import {
++  getPostingDefaultsQuoteVisibility,
++  postingDefaultsVisibilitySelector,
++} from '../wxw_remote_visibility/posting_defaults';
+
+ import 'cocoon-js-vanilla';
+
+@@ -430,9 +435,10 @@
+   );
+   if (!select) return;
+
+-  setInputHint(select, privacySelect.value);
+-
+-  if (privacySelect.value === 'private') {
++  const visibility = getPostingDefaultsQuoteVisibility(privacySelect);
++  setInputHint(select, visibility === 'direct' ? 'private' : visibility);
++
++  if (visibility === 'private' || visibility === 'direct') {
+     select.value = 'nobody';
+     setInputDisabled(select, true);
+   } else {
+@@ -440,7 +446,7 @@
+   }
+ };
+
+-on('change', '#user_settings_attributes_default_privacy', ({ target }) => {
++on('change', postingDefaultsVisibilitySelector, ({ target }) => {
+   updateDefaultQuotePrivacyFromPrivacy(target);
+ });
+
+--- a/app/javascript/mastodon/actions/compose.js
++++ b/app/javascript/mastodon/actions/compose.js
+@@ -7,5 +7,6 @@
+ import { browserHistory } from 'mastodon/components/router';
+ import { countableText } from 'mastodon/features/compose/util/counter';
++import { wxwComposeVisibilityParams } from 'mastodon/features/compose/util/wxw_remote_visibility';
+ import { tagHistory } from 'mastodon/settings';
+ import { emojiMartSearch } from '@/mastodon/features/emoji/picker';
+
+@@ -262,7 +263,7 @@
+         poll: getState().getIn(['compose', 'poll'], null),
+         language: getState().getIn(['compose', 'language']),
+         quoted_status_id: getState().getIn(['compose', 'quoted_status_id']),
+-        quote_approval_policy: visibility === 'private' || visibility === 'direct' ? 'nobody' : getState().getIn(['compose', 'quote_policy']),
++        ...wxwComposeVisibilityParams(getState().getIn(['compose'])),
+       },
+       headers: {
+         'Idempotency-Key': getState().getIn(['compose', 'idempotencyKey']),
+--- a/app/javascript/mastodon/actions/compose_typed.ts
++++ b/app/javascript/mastodon/actions/compose_typed.ts
+@@ -26,6 +26,8 @@
+ } from './compose';
+ import { importFetchedStatuses } from './importer';
+ import { openModal } from './modal';
++
++export { changeComposeRemoteVisibility } from '@/mastodon/features/compose/util/wxw_remote_visibility';
+
+ export const PRIVATE_QUOTE_MODAL_ID = 'quote/private_notify';
+
+--- a/app/javascript/mastodon/actions/statuses.js
++++ b/app/javascript/mastodon/actions/statuses.js
+@@ -136,2 +136,3 @@
+     dispatch(fetchStatusSourceSuccess());
++    status = status.set('wxw_remote_visibility', response.data.wxw_remote_visibility);
+     ensureComposeIsVisible(getState);
+--- a/app/javascript/mastodon/api_types/statuses.ts
++++ b/app/javascript/mastodon/api_types/statuses.ts
+@@ -90,6 +90,7 @@
+   sensitive: boolean;
+   spoiler_text?: string;
+   visibility: StatusVisibility;
++  wxw_remote_visibility?: StatusVisibility;
+   language: string;
+   uri: string;
+   url: string;
+--- a/app/javascript/mastodon/features/compose/components/visibility_button.tsx
++++ b/app/javascript/mastodon/features/compose/components/visibility_button.tsx
+@@ -7,6 +7,7 @@
+
+ import {
+   changeComposeVisibility,
++  changeComposeRemoteVisibility,
+   setComposeQuotePolicy,
+ } from '@/mastodon/actions/compose_typed';
+ import { openModal } from '@/mastodon/actions/modal';
+@@ -22,6 +23,7 @@
+ import type { VisibilityModalCallback } from '../../ui/components/visibility_modal';
+
+ import { messages as privacyMessages } from './privacy_dropdown';
++import { useWxwVisibilitySummary } from './wxw_remote_visibility';
+
+ const messages = defineMessages({
+   anyone_quote: {
+@@ -83,15 +85,15 @@
+     (state) => state.compose.get('privacy') as StatusVisibility,
+   );
+
++  const wxwVisibility = useWxwVisibilitySummary(visibility);
++
+   const { icon, iconComponent } = useMemo(() => {
+     const option = visibilityOptions[visibility];
+     return { icon: option.icon, iconComponent: option.iconComponent };
+   }, [visibility]);
+   const text = useMemo(() => {
+-    const visibilityText = intl.formatMessage(
+-      visibilityOptions[visibility].text,
+-    );
+-    if (visibility === 'private' || visibility === 'direct') {
++    const visibilityText = wxwVisibility.text;
++    if (wxwVisibility.restricted) {
+       return visibilityText;
+     }
+     if (quotePolicy === 'nobody') {
+@@ -107,15 +109,16 @@
+     return intl.formatMessage(messages.anyone_quote, {
+       visibility: visibilityText,
+     });
+-  }, [quotePolicy, visibility, intl]);
++  }, [quotePolicy, wxwVisibility, intl]);
+
+   const dispatch = useAppDispatch();
+
+   const handleChange: VisibilityModalCallback = useCallback(
+-    (newVisibility, newQuotePolicy) => {
++    (newVisibility, newQuotePolicy, newRemoteVisibility) => {
+       if (newVisibility !== visibility) {
+         dispatch(changeComposeVisibility(newVisibility));
+       }
++      dispatch(changeComposeRemoteVisibility(newRemoteVisibility));
+       if (newQuotePolicy !== quotePolicy) {
+         dispatch(setComposeQuotePolicy(newQuotePolicy));
+       }
+--- a/app/javascript/mastodon/features/ui/components/visibility_modal.tsx
++++ b/app/javascript/mastodon/features/ui/components/visibility_modal.tsx
+@@ -15,6 +15,11 @@
+ import { IconButton } from '@/mastodon/components/icon_button';
+ import { NavigationFocusTarget } from '@/mastodon/components/navigation_focus_target';
+ import { messages as privacyMessages } from '@/mastodon/features/compose/components/privacy_dropdown';
++import {
++  useWxwRemoteVisibility,
++  WxwRemoteVisibilityField,
++} from '@/mastodon/features/compose/components/wxw_remote_visibility';
++import { wxwQuoteRestricted } from '@/mastodon/features/compose/util/wxw_remote_visibility';
+ import { createAppSelector, useAppSelector } from '@/mastodon/store';
+ import AlternateEmailIcon from '@/material-icons/400-24px/alternate_email.svg?react';
+ import CloseIcon from '@/material-icons/400-24px/close.svg?react';
+@@ -47,6 +52,7 @@
+ export type VisibilityModalCallback = (
+   visibility: StatusVisibility,
+   quotePolicy: ApiQuotePolicy,
++  remoteVisibility: StatusVisibility | null,
+ ) => void;
+
+ interface VisibilityModalProps extends BaseConfirmationModalProps {
+@@ -73,7 +79,7 @@
+     const visibility = status.get('visibility') as StatusVisibility;
+
+     // If the status is private or direct, it cannot be quoted by anyone.
+-    if (visibility === 'private' || visibility === 'direct') {
++    if (wxwQuoteRestricted(visibility, status.get('wxw_remote_visibility'))) {
+       return 'nobody';
+     }
+
+@@ -124,11 +130,14 @@
+     );
+
+     const [visibility, setVisibility] = useState(currentVisibility);
++    const remoteVisibility = useWxwRemoteVisibility(visibility, statusId);
+     const [quotePolicy, setQuotePolicy] = useState(currentQuotePolicy);
+
+     const disableVisibility = !!statusId;
+-    const disableQuotePolicy =
+-      visibility === 'private' || visibility === 'direct';
++    const disableQuotePolicy = wxwQuoteRestricted(
++      visibility,
++      remoteVisibility.override,
++    );
+     const disablePublicVisibilities = useAppSelector(
+       selectDisablePublicVisibilities,
+     );
+@@ -187,20 +196,35 @@
+       [intl],
+     );
+
+-    const handleVisibilityChange = useCallback((value: string) => {
+-      if (isStatusVisibility(value)) {
+-        setVisibility(value);
+-      }
+-    }, []);
++    const handleVisibilityChange = useCallback(
++      (value: string) => {
++        if (isStatusVisibility(value)) {
++          setVisibility(value);
++          remoteVisibility.follow(value);
++        }
++      },
++      [remoteVisibility],
++    );
+     const handleQuotePolicyChange = useCallback((value: string) => {
+       if (isQuotePolicy(value)) {
+         setQuotePolicy(value);
+       }
+     }, []);
+     const handleSave = useCallback(() => {
+-      onChange(visibility, quotePolicy);
++      onChange(
++        visibility,
++        disableQuotePolicy ? 'nobody' : quotePolicy,
++        remoteVisibility.override,
++      );
+       onClose();
+-    }, [onChange, onClose, visibility, quotePolicy]);
++    }, [
++      onChange,
++      onClose,
++      visibility,
++      quotePolicy,
++      disableQuotePolicy,
++      remoteVisibility.override,
++    ]);
+
+     const uniqueId = useId();
+     const visibilityLabelId = `${uniqueId}-visibility-label`;
+@@ -291,6 +315,11 @@
+               )}
+             </div>
+
++            <WxwRemoteVisibilityField
++              selection={remoteVisibility}
++              disabled={disableVisibility}
++            />
++
+             <div
+               className={classNames('visibility-dropdown', {
+                 disabled: disableQuotePolicy,
+@@ -315,7 +344,7 @@
+               />
+               <QuotePolicyHelper
+                 policy={quotePolicy}
+-                visibility={visibility}
++                visibility={remoteVisibility.quoteVisibility}
+                 className='visibility-dropdown__helper'
+                 id={quoteDescriptionId}
+               />
+--- a/app/javascript/mastodon/initial_state.ts
++++ b/app/javascript/mastodon/initial_state.ts
+@@ -68,6 +68,7 @@
+ interface InitialStateCompose {
+   text: string;
+   default_privacy?: string;
++  wxw_default_remote_privacy?: string | null;
+   default_sensitive?: boolean;
+   default_language?: string;
+   default_quote_policy?: string;
+--- a/app/javascript/mastodon/models/status.ts
++++ b/app/javascript/mastodon/models/status.ts
+@@ -85,6 +85,7 @@
+   reblogs_count: number;
+   replies_count: number;
+   visibility: StatusVisibility;
++  wxw_remote_visibility?: StatusVisibility;
+ }
+ export type ExpandedStatusShape = Omit<StatusShape, 'account' | 'reblog'> & {
+   account: AccountShapeFull;
+--- a/app/javascript/mastodon/reducers/compose.js
++++ b/app/javascript/mastodon/reducers/compose.js
+@@ -2,6 +2,7 @@
+
+ import {
+   changeComposeVisibility,
++  changeComposeRemoteVisibility,
+   changeUploadCompose,
+   quoteCompose,
+   quoteComposeCancel,
+@@ -11,6 +12,7 @@
+   setDragUploadEnabled,
+ } from '@/mastodon/actions/compose_typed';
+ import { timelineDelete } from 'mastodon/actions/timelines_typed';
++import { wxwNormalizeRemoteVisibility, wxwNormalizeComposeRemoteVisibility, wxwSetComposeRemoteVisibility } from 'mastodon/features/compose/util/wxw_remote_visibility';
+
+ import {
+   COMPOSE_MOUNT,
+@@ -68,4 +70,5 @@
+   spoiler_text: '',
+   privacy: null,
++  wxw_remote_visibility: null,
+   id: null,
+   text: '',
+@@ -89,6 +92,7 @@
+   suggestion_token: null,
+   suggestions: ImmutableList(),
+   default_privacy: 'public',
++  wxw_default_remote_privacy: null,
+   default_sensitive: false,
+   default_language: 'en',
+   resetFileKey: Math.floor((Math.random() * 0x10000)),
+@@ -129,6 +133,7 @@
+     map.set('is_changing_upload', false);
+     map.set('in_reply_to', null);
+     map.set('privacy', state.get('default_privacy'));
++    map.set('wxw_remote_visibility', wxwNormalizeRemoteVisibility(state.get('default_privacy'), state.get('wxw_default_remote_privacy')));
+     map.set('sensitive', state.get('default_sensitive'));
+     map.set('language', state.get('default_language'));
+     map.update('media_attachments', list => list.clear());
+@@ -331,7 +336,10 @@
+   if (changeComposeVisibility.match(action)) {
+     return state
+       .set('privacy', action.payload)
++      .update(wxwNormalizeComposeRemoteVisibility)
+       .set('idempotencyKey', uuid());
++  } else if (changeComposeRemoteVisibility.match(action)) {
++    return wxwSetComposeRemoteVisibility(state, action.payload);
+   } else if (changeUploadCompose.fulfilled.match(action)) {
+     return state
+       .set('is_changing_upload', false)
+@@ -358,7 +366,8 @@
+           return 'private';
+         }
+         return visibility;
+-      });
++      })
++      .update(wxwNormalizeComposeRemoteVisibility);
+   } else if (quoteComposeCancel.match(action)) {
+     return state.set('quoted_status_id', null);
+   } else if (setComposeQuotePolicy.match(action)) {
+@@ -435,2 +444,4 @@
+       map.set('privacy', privacyPreference(action.status.get('visibility'), state.get('default_privacy')));
++      const remoteVisibility = privacyPreference(action.status.get('wxw_remote_visibility') || action.status.get('visibility'), state.get('wxw_default_remote_privacy') || state.get('default_privacy'));
++      map.set('wxw_remote_visibility', wxwNormalizeRemoteVisibility(map.get('privacy'), remoteVisibility));
+       map.set('focusDate', new Date());
+@@ -511,6 +522,7 @@
+     return state.withMutations(map => {
+       map.update('text', text => [text.trim(), `@${action.account.get('acct')} `].filter((str) => str.length !== 0).join(' '));
+       map.set('privacy', 'direct');
++      map.update(wxwNormalizeComposeRemoteVisibility);
+       map.set('focusDate', new Date());
+       map.set('caretPosition', null);
+       map.set('idempotencyKey', uuid());
+@@ -544,4 +556,5 @@
+       map.set('in_reply_to', action.status.get('in_reply_to_id'));
+       map.set('privacy', action.status.get('visibility'));
++      map.set('wxw_remote_visibility', wxwNormalizeRemoteVisibility(action.status.get('visibility'), action.status.get('wxw_remote_visibility')));
+       map.set('media_attachments', action.status.get('media_attachments').map((media) => media.set('unattached', true)));
+       map.set('focusDate', new Date());
+@@ -583,4 +596,5 @@
+       map.set('in_reply_to', action.status.get('in_reply_to_id'));
+       map.set('privacy', action.status.get('visibility'));
++      map.set('wxw_remote_visibility', wxwNormalizeRemoteVisibility(action.status.get('visibility'), action.status.get('wxw_remote_visibility')));
+       map.set('media_attachments', action.status.get('media_attachments'));
+       map.set('focusDate', new Date());
+--- a/app/views/settings/preferences/posting_defaults/show.html.haml
++++ b/app/views/settings/preferences/posting_defaults/show.html.haml
+@@ -4,8 +4,7 @@
+ - content_for :heading_actions do
+   = button_tag t('generic.save_changes'), class: 'button', form: 'edit_preferences'
+
+-- if ['unlisted', 'private'].include?(current_user.setting_default_privacy)
+-  - initial_quote_hint = I18n.t("simple_form.hints.defaults.setting_default_quote_policy_#{current_user.setting_default_privacy}")
++- initial_quote_hint = wxw_default_quote_hint
+
+ = simple_form_for current_user, url: settings_preferences_posting_defaults_path, html: { id: :edit_preferences } do |f|
+   = render 'shared/error_messages', object: current_user
+@@ -23,6 +22,8 @@
+                  label: I18n.t('simple_form.labels.defaults.setting_default_privacy'),
+                  required: false,
+                  wrapper: :with_label
++
++    = render 'settings/preferences/posting_defaults/wxw_remote_visibility', form: ff
+
+     .fields-group
+       = ff.input :default_quote_policy,
+--- a/app/views/admin/statuses/show.html.haml
++++ b/app/views/admin/statuses/show.html.haml
+@@ -34,1 +34,2 @@
+-        %td= t("statuses.visibilities.#{@status.visibility}")
++        %td= t("statuses.visibilities.#{@status.visibility}")
++      = render 'admin/statuses/wxw_remote_visibility', status: @status

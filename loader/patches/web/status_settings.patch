@@ -1,0 +1,7 @@
+--- a/app/views/admin/statuses/show.html.haml
++++ b/app/views/admin/statuses/show.html.haml
+@@ -35,3 +35,4 @@
++      = render 'admin/statuses/wxw_quote_policy', status: @status
+       - if @status.trend
+         %tr
+           %th= t('admin.statuses.trending')

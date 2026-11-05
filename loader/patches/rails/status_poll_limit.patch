@@ -1,0 +1,11 @@
+--- a/app/validators/poll_options_validator.rb
++++ b/app/validators/poll_options_validator.rb
+@@ -1,7 +1,7 @@
+ # frozen_string_literal: true
+ 
+ class PollOptionsValidator < ActiveModel::Validator
+-  MAX_OPTIONS      = 4
++  MAX_OPTIONS      = Wxw::StatusPollLimit::MAXIMUM
+   MAX_OPTION_CHARS = 50
+ 
+   def validate(poll)

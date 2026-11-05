@@ -1,0 +1,88 @@
+--- a/app/controllers/admin/custom_emojis_controller.rb
++++ b/app/controllers/admin/custom_emojis_controller.rb
+@@ -43,6 +43,8 @@ module Admin
+       flash[:alert] = I18n.t('admin.custom_emojis.no_emoji_selected')
+     rescue Mastodon::NotPermittedError
+       flash[:alert] = I18n.t('admin.custom_emojis.not_permitted')
++    rescue ActiveRecord::RecordInvalid => e
++      flash[:alert] = e.message
+     ensure
+       redirect_to admin_custom_emojis_path(filter_params)
+     end
+--- a/app/models/concerns/account/avatar.rb
++++ b/app/models/concerns/account/avatar.rb
+@@ -23,8 +23,8 @@ module Account::Avatar
+     # Avatar upload
+     has_attached_file :avatar, styles: ->(f) { avatar_styles(f) }, convert_options: { all: '+profile "!icc,*" +set date:modify +set date:create +set date:timestamp' }, processors: [:lazy_thumbnail]
+     validates_attachment_content_type :avatar, content_type: AVATAR_IMAGE_MIME_TYPES
+-    validates_attachment_size :avatar, less_than: AVATAR_LIMIT
+-    remotable_attachment :avatar, AVATAR_LIMIT, suppress_errors: false
++    validates_attachment_size :avatar, less_than: ->(account) { Wxw::MediaLimits.account_image_size(account, AVATAR_LIMIT) }
++    remotable_attachment :avatar, Wxw::MediaLimits::REMOTE_ACCOUNT_IMAGE_SIZE, suppress_errors: false
+ 
+     validates :avatar_description, length: { maximum: MAX_DESCRIPTION_LENGTH }, if: -> { local? && will_save_change_to_avatar_description? }
+   end
+--- a/app/models/concerns/account/header.rb
++++ b/app/models/concerns/account/header.rb
+@@ -23,8 +23,8 @@ module Account::Header
+     # Header upload
+     has_attached_file :header, styles: ->(f) { header_styles(f) }, convert_options: { all: '+profile "!icc,*" +set date:modify +set date:create +set date:timestamp' }, processors: [:lazy_thumbnail]
+     validates_attachment_content_type :header, content_type: HEADER_IMAGE_MIME_TYPES
+-    validates_attachment_size :header, less_than: HEADER_LIMIT
+-    remotable_attachment :header, HEADER_LIMIT, suppress_errors: false
++    validates_attachment_size :header, less_than: ->(account) { Wxw::MediaLimits.account_image_size(account, HEADER_LIMIT) }
++    remotable_attachment :header, Wxw::MediaLimits::REMOTE_ACCOUNT_IMAGE_SIZE, suppress_errors: false
+ 
+     validates :header_description, length: { maximum: MAX_DESCRIPTION_LENGTH }, if: -> { local? && will_save_change_to_header_description? }
+   end
+--- a/app/models/custom_emoji.rb
++++ b/app/models/custom_emoji.rb
+@@ -46,7 +46,7 @@ class CustomEmoji < ApplicationRecord
+ 
+   normalizes :domain, with: ->(domain) { domain.downcase.strip }
+ 
+-  validates_attachment :image, content_type: { content_type: IMAGE_MIME_TYPES }, presence: true, size: { less_than: LIMIT }
++  validates_attachment :image, content_type: { content_type: IMAGE_MIME_TYPES }, presence: true, size: { less_than: ->(emoji) { Wxw::MediaLimits.emoji_size(emoji) } }
+   validates :shortcode, uniqueness: { scope: :domain }, format: { with: SHORTCODE_ONLY_RE }, length: { minimum: MINIMUM_SHORTCODE_SIZE, maximum: MAX_FEDERATED_SHORTCODE_SIZE }
+   validates :shortcode, length: { maximum: MAX_SHORTCODE_SIZE }, if: :local?
+ 
+@@ -57,7 +57,7 @@ class CustomEmoji < ApplicationRecord
+   scope :by_domain_and_subdomains, ->(domain) { where(domain: domain).or(where(arel_table[:domain].matches("%.#{domain}"))) }
+   scope :listed, -> { local.enabled.where(visible_in_picker: true) }
+ 
+-  remotable_attachment :image, LIMIT
++  remotable_attachment :image, Wxw::MediaLimits::REMOTE_EMOJI_SIZE
+ 
+   after_commit :remove_entity_cache
+ 
+--- a/app/models/status.rb
++++ b/app/models/status.rb
+@@ -59,7 +59,7 @@ class Status < ApplicationRecord
+     quote: { status: { account: [:account_stat, user: :role] } },
+   ].freeze
+ 
+-  MEDIA_ATTACHMENTS_LIMIT = 4
++  MEDIA_ATTACHMENTS_LIMIT = 16
+ 
+   rate_limit by: :account, family: :statuses
+ 
+--- a/app/models/media_attachment.rb
++++ b/app/models/media_attachment.rb
+@@ -43,7 +43,7 @@ class MediaAttachment < ApplicationRecord
+   MAX_DESCRIPTION_LENGTH = 10_000
+   MAX_DESCRIPTION_HARD_LENGTH_LIMIT = 10_000
+ 
+-  IMAGE_LIMIT = 16.megabytes
++  IMAGE_LIMIT = 99.megabytes
+   VIDEO_LIMIT = 99.megabytes
+ 
+   MAX_VIDEO_MATRIX_LIMIT = 8_294_400 # 3840x2160px
+@@ -74,7 +74,7 @@ class MediaAttachment < ApplicationRecord
+ 
+   IMAGE_STYLES = {
+     original: {
+-      pixels: 8_294_400, # 3840x2160px
++      pixels: 9_999_999, # 3840x2160px
+       file_geometry_parser: FastGeometryParser,
+     }.freeze,
+ 

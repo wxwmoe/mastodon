@@ -1,3 +1,5 @@
 /src/
+/.wxw-source-state
+/.wxw-build-*/
 .DS_Store
 Thumbs.db

@@ -1,0 +1,49 @@
+--- a/app/javascript/mastodon/components/autosuggest/utils.test.ts
++++ b/app/javascript/mastodon/components/autosuggest/utils.test.ts
+@@ -16,7 +16,7 @@ describe('textAtCursorMatchesToken', () => {
+     ],
+     [
+       ['#hash tag', 8, ['#']],
+-      [1, '#hash tag'],
++      [null, null],
+     ],
+     [
+       [':+1', 2, [':']],
+@@ -36,7 +36,7 @@ describe('textAtCursorMatchesToken', () => {
+     ],
+     [
+       ['@alice reply', 12, ['@']],
+-      [1, '@alice reply'],
++      [null, null],
+     ],
+     [
+       ['@alice 这是我输入的回复内容', 17, ['@']],
+@@ -60,7 +60,7 @@ describe('textAtCursorMatchesToken', () => {
+     ],
+     [
+       ['@алиса пример', 13, ['@']],
+-      [1, '@алиса пример'],
++      [null, null],
+     ],
+   ] as const)(
+     'textAtCursorMatchesToken(%s) is %o',
+--- a/app/javascript/mastodon/components/autosuggest/utils.ts
++++ b/app/javascript/mastodon/components/autosuggest/utils.ts
+@@ -1,4 +1,4 @@
+-import { WORD } from '../../utils/hashtags';
++import { tokenRegex } from './wxw_token_regex';
+ 
+ export const textAtCursorMatchesToken = (
+   str: string,
+@@ -7,10 +7,7 @@
+ ) => {
+   let word: string;
+ 
+-  const regex = new RegExp(
+-    `[${searchTokens.join('')}${WORD}+-]+(\\s[\\p{Script=Latin}\\p{Script=Cyrillic}\\p{M}]+)?$`,
+-    'iu',
+-  );
++  const regex = tokenRegex(searchTokens);
+   const left = str.slice(0, caretPosition).search(regex);
+   const right = str.slice(caretPosition).search(/\s/);
+ 

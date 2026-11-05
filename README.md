@@ -4,35 +4,32 @@ Mastodon patches used on wxw.moe.
 
 ## 特性
 
-- 模块化构建，按需启用补丁
+- 模块化构建，按需启用功能模块
 - 停用前核对模块说明中的回退要求；`wxw_*` 扩展表可保留，无需回滚迁移
 
 ## 模块说明
 
-按构建顺序排列
-
 | 模块 | 作用 | 依赖 |
 | --- | --- | --- |
-| [replace_icons](patches/replace_icons.sh) | 定制实例图标与 Logo 素材 | — |
-| [status_limit](patches/status_limit.sh) | 嘟文上限：500 → 20,000 字符 | — |
-| [status_regexp_timeout](patches/status_regexp_timeout.sh) | Ruby 正则超时 1 → 3 秒，并兜底超时 | — |
-| [status_reply_autosuggest](patches/status_reply_autosuggest.sh) | 停用编辑框空格后的提及、标签联想 | — |
-| [status_poll_limit](patches/status_poll_limit.sh) | 投票选项上限：4 → 16 | — |
-| [media_limits](patches/media_limits.sh) | 提升限制至 16 个附件、图片 99 MiB；外站接收的头像/封面 16 MiB、表情 2 MiB | — |
-| [media_cache_storage](patches/media_cache_storage.sh) | 联邦缓存使用独立的 S3 存储 | 数据库前置迁移；[模块说明](patches/media_cache_storage.md) |
-| [install_themes](patches/install_themes.sh) | 安装 Bird UI、Tangerine Neue 和桜主题及爪印图标 | [Mastodon Bird UI][4]、[Tangerine Neue][5] |
-| [custom_emoji_preview](patches/custom_emoji_preview.sh) | 表情焦点、触摸放大，标签选择器加大 | — |
-| [custom_emoji_packs](patches/custom_emoji_packs.sh) | 表情包选单、表情收藏 | 数据库前置迁移 |
-| [status_settings](patches/status_settings.sh) | 嘟文标记扩展，存放各类额外参数 | 数据库前置迁移 |
-| [status_highlight](patches/status_highlight.sh) | 富文本嘟文代码高亮 | [Shiki][7] |
-| [status_rich_text](patches/status_rich_text.sh) | 支持富文本嘟文的编辑和联邦互操作 | `status_settings`；[Commonmarker][8]；数据库前置迁移 |
-| [status_remote_visibility](patches/status_remote_visibility.sh) | 增加外站可见性和联邦互操作 | `status_settings`；数据库前置迁移 |
-| [streaming_media_hosts](patches/streaming_media_hosts.sh) | 按请求来源 Host 替换 Streaming 消息中的媒体文件地址，用于镜像站 | [模块说明](patches/streaming_media_hosts.md) |
-| [registration_reason_dedup](patches/registration_reason_dedup.sh) | 拒绝与待审核申请完全相同的注册理由 | — |
-| [navigation_entry](patches/navigation_entry.sh) | 替换当前热门为本地时间线，并使用喵爪图标 | `install_themes` 提供的 `paw.svg` |
-| [rate_limit_tiers](patches/rate_limit_tiers.sh) | 按用户注册年限逐年放宽请求速率，方便用户管理历史嘟文 | — |
-| [chinese_search](patches/chinese_search.sh) | 全文搜索的中文分词和繁简转换 | Elasticsearch [IK][10]、[STConvert][11]；[模块说明](patches/chinese_search.md) |
-| [set_version_metadata](patches/set_version_metadata.sh) | 设置源码仓库地址，修改版本后缀为 `~wxw` | — |
+| [replace_icons](modules/replace_icons/module.conf) | 定制实例图标与 Logo 素材 | — |
+| [status_limit](modules/status_limit/module.conf) | 嘟文上限：500 → 20,000 字符 | — |
+| [status_regexp_timeout](modules/status_regexp_timeout/module.conf) | Ruby 正则超时 1 → 3 秒，并兜底超时 | — |
+| [status_reply_autosuggest](modules/status_reply_autosuggest/module.conf) | 停用编辑框空格后的提及、标签联想 | — |
+| [status_poll_limit](modules/status_poll_limit/module.conf) | 投票选项上限：4 → 16 | — |
+| [media_limits](modules/media_limits/module.conf) | 提升限制至 16 个附件、图片 99 MiB；外站接收的头像/封面 16 MiB、表情 2 MiB | — |
+| [media_cache_storage](modules/media_cache_storage/module.conf) | 联邦缓存使用独立的 S3 存储 | 数据库前置迁移；[模块说明](modules/media_cache_storage/README.md) |
+| [install_themes](modules/install_themes/module.conf) | 安装 Bird UI、Tangerine Neue 和桜主题 | [Mastodon Bird UI][4]、[Tangerine Neue][5] |
+| [custom_emoji_preview](modules/custom_emoji_preview/module.conf) | 表情焦点、触摸放大，标签选择器加大 | — |
+| [custom_emoji_packs](modules/custom_emoji_packs/module.conf) | 表情包选单、表情收藏 | 数据库前置迁移 |
+| [status_settings](modules/status_settings/module.conf) | 嘟文标记扩展，存放各类额外参数 | 数据库前置迁移 |
+| [status_highlight](modules/status_highlight/module.conf) | 富文本嘟文代码高亮 | [Shiki][7] |
+| [status_rich_text](modules/status_rich_text/module.conf) | 支持富文本嘟文的编辑和联邦互操作 | `status_settings`；[Commonmarker][8]；数据库前置迁移 |
+| [status_remote_visibility](modules/status_remote_visibility/module.conf) | 增加外站可见性和联邦互操作 | `status_settings`；数据库前置迁移 |
+| [streaming_media_hosts](modules/streaming_media_hosts/module.conf) | 按请求来源 Host 替换 Streaming 消息中的媒体文件地址，用于镜像站 | [模块说明](modules/streaming_media_hosts/README.md) |
+| [registration_reason_dedup](modules/registration_reason_dedup/module.conf) | 拒绝与待审核申请完全相同的注册理由 | — |
+| [navigation_entry](modules/navigation_entry/module.conf) | 替换当前热门为本地时间线，并使用喵爪图标 | — |
+| [rate_limit_tiers](modules/rate_limit_tiers/module.conf) | 按用户注册年限逐年放宽请求速率，方便用户管理历史嘟文 | — |
+| [chinese_search](modules/chinese_search/module.conf) | 全文搜索的中文分词和繁简转换 | Elasticsearch [IK][10]、[STConvert][11]；[模块说明](modules/chinese_search/README.md) |
 
 ### 模块选择
 
@@ -56,7 +53,7 @@ Debian 13 示例：
 
 ```bash
 apt update
-apt install -y git wget ca-certificates patch docker.io docker-cli docker-buildx docker-compose
+apt install -y git curl ca-certificates python3 util-linux patch docker.io docker-cli docker-buildx docker-compose
 systemctl enable --now docker
 ```
 
@@ -69,8 +66,8 @@ cd mastodon && bash build.sh
 
 | 命令 | 行为 |
 | --- | --- |
-| `bash build.sh` | 下载源码、应用补丁，并构建镜像 |
-| `bash build.sh --check` | 不构建镜像，用于源码检查 |
+| `bash build.sh` | 生成源码并构建镜像 |
+| `bash build.sh --check` | 不构建镜像，用于源码审查 |
 | `bash build.sh --no-cache` | 禁用编译缓存的完整构建 |
 
 构建镜像标签随 `MASTODON_VERSION` 变化，同时生成 `latest` 标签：
@@ -182,7 +179,7 @@ docker compose up -d
 | 富文本与高亮 | 本地富文本嘟文按源码显示；官方镜像编辑不更新扩展格式标记，新编辑历史缺少格式，重新启用时可能解析错误，需核对正文与格式 |
 | 外站可见性 | **外站限制失效，仅按嘟文的本站可见性处理**；读取、转发、引用及投递范围可能扩大，切换前核对嘟文可见性 |
 | 表情包与收藏 | 表情保留；表情包分组、排序、收藏和预览停用 |
-| 外站独立缓存 | 原版不读取 cache 位置记录，停用前需按[模块说明](patches/media_cache_storage.md)完成回退 |
+| 外站独立缓存 | 原版不读取 cache 位置记录，停用前需按[模块说明](modules/media_cache_storage/README.md)完成回退 |
 | 字数、投票与媒体 | 恢复官方限制；超限内容的展示、编辑可能受限 |
 | 定时发布 | 超限等校验失败可能导致定时稿丢失，切换前检查、转换或导出待发布任务 |
 | 超限附件编辑 | 在原版网页编辑超过 4 个附件的嘟文，会将附件顺序写为前 4 个，编辑后附件保留但重新启用模块不会恢复展示 |
@@ -197,8 +194,8 @@ docker compose up -d
 | 路径 | 内容 |
 | --- | --- |
 | [build.sh](build.sh) | 镜像构建入口 |
-| [patches/](patches/) | 模块安装脚本、集成补丁和详细说明 |
-| [overlay/](overlay/) | 模块依赖的各类相关文件 |
+| [loader/](loader/) | 模块选择校验、上游指纹、接入补丁及源码装配 |
+| [modules/](modules/) | 模块声明、独立实现、测试、素材和使用说明 |
 | `src/` | 生成的最终源码，不纳入版本控制 |
 
 ## 版权声明

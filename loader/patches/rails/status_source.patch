@@ -1,0 +1,10 @@
+--- a/app/serializers/rest/status_source_serializer.rb
++++ b/app/serializers/rest/status_source_serializer.rb
+@@ -2,6 +2,7 @@
+ 
+ class REST::StatusSourceSerializer < ActiveModel::Serializer
+   attributes :id, :text, :spoiler_text
++  include Wxw::StatusSourceExtensions
+ 
+   def id
+     object.id.to_s

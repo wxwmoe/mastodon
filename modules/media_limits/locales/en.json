@@ -1,0 +1,5 @@
+{
+  "media_gallery.audio": "Audio",
+  "media_gallery.show_more": "Show {count} more attachments",
+  "upload_form.federation_limit": "Other servers may only show the first 4 attachments."
+}

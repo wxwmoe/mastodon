@@ -1,0 +1,4 @@
+{
+  "privacy.wxw_remote_visibility": "{visibility}, other servers: {remoteVisibility, select, public {Public} unlisted {Quiet public} private {Followers} direct {Private mention} other {{remoteVisibility}}}",
+  "visibility_modal.wxw_remote_visibility_label": "Other server visibility"
+}

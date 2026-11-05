@@ -1,0 +1,5 @@
+{
+  "media_gallery.audio": "音声",
+  "media_gallery.show_more": "残り {count} 件の添付ファイルを表示",
+  "upload_form.federation_limit": "他のサーバーでは、最初の4件の添付ファイルのみ表示される場合があります。"
+}

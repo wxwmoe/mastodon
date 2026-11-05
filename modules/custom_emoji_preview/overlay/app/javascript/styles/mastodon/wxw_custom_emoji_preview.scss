@@ -1,0 +1,45 @@
+/* custom emoji preview */
+.app-body .status__content img.custom-emoji:hover {
+  transition: none !important;
+  transform: none !important;
+}
+
+.custom-emoji-preview {
+  position: fixed;
+  z-index: 2147483647;
+  display: block;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  margin: 0 !important;
+  padding: 0;
+  border: 0;
+  object-fit: contain;
+  opacity: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.custom-emoji-preview[hidden] {
+  display: none !important;
+}
+
+.emoji-mart-category .emoji-mart-emoji-custom img {
+  width: 33px !important;
+  height: 33px !important;
+  transform-origin: center;
+}
+
+.emoji-mart-category .emoji-mart-emoji-custom img:hover {
+  position: relative;
+  z-index: 3;
+  transform: scale(1.9) !important;
+}
+
+.emoji-mart-category-label span {
+  background: none !important;
+}
+
+/* variable column width */
+div.column {
+  flex-grow: 1 !important;
+}

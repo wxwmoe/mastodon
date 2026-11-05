@@ -1,0 +1,10 @@
+--- a/app/models/user_settings.rb
++++ b/app/models/user_settings.rb
+@@ -6,6 +6,7 @@
+ 
+   include UserSettings::DSL
+   include UserSettings::Glue
++  include Wxw::UserSettingsExtensions
+ 
+   setting :always_send_emails, default: false
+   setting :aggregate_reblogs, default: true

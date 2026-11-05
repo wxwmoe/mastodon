@@ -1,0 +1,20 @@
+--- a/app/javascript/entrypoints/admin.tsx
++++ b/app/javascript/entrypoints/admin.tsx
+@@ -4,6 +4,7 @@
+ import { on } from 'delegated-events';
+ 
+ import ready from '../mastodon/ready';
++import '../wxw_custom_emojis';
+ 
+ const setAnnouncementEndsAttributes = (target: HTMLInputElement) => {
+   const valid = target.value && target.validity.valid;
+--- a/app/javascript/styles/application.scss
++++ b/app/javascript/styles/application.scss
+@@ -21,6 +21,7 @@
+ @use 'mastodon/about';
+ @use 'mastodon/tables';
+ @use 'mastodon/admin';
++@use 'mastodon/wxw_custom_emojis';
+ @use 'mastodon/dashboard';
+ @use 'mastodon/rtl';
+ @use 'mastodon/rich_text';

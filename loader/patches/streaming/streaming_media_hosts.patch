@@ -1,0 +1,27 @@
+--- a/streaming/index.js
++++ b/streaming/index.js
+@@ -18,6 +18,7 @@ import { logger, httpLogger, initializeLogLevel, attachWebsocketHttpLogger, crea
+ import { setupMetrics } from './metrics.js';
+ import * as Redis from './redis.js';
+ import { isTruthy, normalizeHashtag, firstParam } from './utils.js';
++import { createMediaHostRewriter } from './wxw_media_hosts.js';
+ 
+ const environment = process.env.NODE_ENV || 'development';
+ const PERMISSION_VIEW_FEEDS = 0x0000000000100000;
+@@ -36,6 +37,7 @@ dotenv.config({
+ });
+ 
+ initializeLogLevel(process.env, environment);
++const rewriteMediaHost = createMediaHostRewriter(process.env.STREAMING_MEDIA_HOSTS);
+ 
+ /**
+  * Declares the result type for accountFromToken / accountFromRequest.
+@@ -677,7 +679,7 @@ const startServer = async () => {
+ 
+       log.debug({ event, payload }, `Transmitting ${event} to ${req.accountId}`);
+ 
+-      output(event, encodedPayload);
++      output(event, rewriteMediaHost(encodedPayload, req.headers.host));
+     };
+ 
+     // The listener used to process each message off the redis subscription,

@@ -1,0 +1,11 @@
+--- a/app/validators/status_length_validator.rb
++++ b/app/validators/status_length_validator.rb
+@@ -1,7 +1,7 @@
+ # frozen_string_literal: true
+ 
+ class StatusLengthValidator < ActiveModel::Validator
+-  MAX_CHARS = 500
++  MAX_CHARS = Wxw::StatusLimit::MAXIMUM
+   URL_PLACEHOLDER_CHARS = 23
+   URL_PLACEHOLDER = 'x' * 23
+ 

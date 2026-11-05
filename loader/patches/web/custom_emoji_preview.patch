@@ -1,0 +1,10 @@
+--- a/app/javascript/mastodon/common.ts
++++ b/app/javascript/mastodon/common.ts
+@@ -1,5 +1,7 @@
++import { setupCustomEmojiPreview } from './utils/custom_emoji_preview';
+ import { setupLinkListeners } from './utils/links';
+ 
+ export function start() {
++  setupCustomEmojiPreview();
+   setupLinkListeners();
+ }

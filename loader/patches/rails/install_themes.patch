@@ -1,0 +1,25 @@
+--- a/app/helpers/theme_helper.rb
++++ b/app/helpers/theme_helper.rb
+@@ -22,16 +22,18 @@
+   end
+ 
+   def theme_color_tags(color_scheme)
++    theme_colors = Wxw::ThemeColors.for(current_theme)
++
+     case color_scheme
+     when 'auto'
+       ''.html_safe.tap do |tags|
+-        tags << tag.meta(name: 'theme-color', content: Themes::THEME_COLORS[:dark], media: '(prefers-color-scheme: dark)')
+-        tags << tag.meta(name: 'theme-color', content: Themes::THEME_COLORS[:light], media: '(prefers-color-scheme: light)')
++        tags << tag.meta(name: 'theme-color', content: theme_colors[:dark], media: '(prefers-color-scheme: dark)')
++        tags << tag.meta(name: 'theme-color', content: theme_colors[:light], media: '(prefers-color-scheme: light)')
+       end
+     when 'light'
+-      tag.meta name: 'theme-color', content: Themes::THEME_COLORS[:light]
++      tag.meta name: 'theme-color', content: theme_colors[:light]
+     when 'dark'
+-      tag.meta name: 'theme-color', content: Themes::THEME_COLORS[:dark]
++      tag.meta name: 'theme-color', content: theme_colors[:dark]
+     end
+   end
+ 

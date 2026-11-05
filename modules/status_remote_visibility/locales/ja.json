@@ -1,0 +1,4 @@
+{
+  "privacy.wxw_remote_visibility": "{visibility}、他のサーバー: {remoteVisibility, select, public {公開} unlisted {ひかえめな公開} private {フォロワー} direct {非公開の返信} other {{remoteVisibility}}}",
+  "visibility_modal.wxw_remote_visibility_label": "他のサーバーでの公開範囲"
+}

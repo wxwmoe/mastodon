@@ -1,0 +1,14 @@
+--- a/app/javascript/styles/mastodon/components.scss
++++ b/app/javascript/styles/mastodon/components.scss
+@@ -1,4 +1,5 @@
+ @use 'sass:color';
++@use 'sass:meta';
+ @use 'variables' as *;
+ @use 'mixins' as *;
+ 
+@@ -11098,3 +11099,5 @@
+     gap: 4px;
+   }
+ }
++
++@include meta.load-css('wxw_components');

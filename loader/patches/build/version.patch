@@ -1,0 +1,29 @@
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -29,7 +29,8 @@ FROM ${BASE_REGISTRY}/ruby:${RUBY_VERSION}-slim-${DEBIAN_VERSION} AS ruby
+ # Overwrite existence of 'alpha.X' in version.rb [--build-arg MASTODON_VERSION_PRERELEASE="nightly.2023-11-09"]
+ ARG MASTODON_VERSION_PRERELEASE=""
+ # Append build metadata or fork information to version.rb [--build-arg MASTODON_VERSION_METADATA="pr-123456"]
+-ARG MASTODON_VERSION_METADATA=""
++ARG MASTODON_VERSION_METADATA="wxw"
++ENV GITHUB_REPOSITORY="wxwmoe/mastodon"
+ # Will be available as Mastodon::Version.source_commit
+ ARG SOURCE_COMMIT=""
+ 
+--- a/lib/mastodon/version.rb
++++ b/lib/mastodon/version.rb
+@@ -35,12 +35,12 @@ module Mastodon
+     def to_s
+       components = [to_a.join('.')]
+       components << "-#{prerelease}" if prerelease.present?
+-      components << "+#{build_metadata}" if build_metadata.present?
++      components << "~#{build_metadata}" if build_metadata.present?
+       components.join
+     end
+ 
+     def gem_version
+-      @gem_version ||= Gem::Version.new(to_s.split('+')[0])
++      @gem_version ||= Gem::Version.new(to_s.split('~')[0])
+     end
+ 
+     def api_versions

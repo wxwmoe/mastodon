@@ -1,0 +1,4 @@
+{
+  "privacy.wxw_remote_visibility": "{visibility}，外站{remoteVisibility, select, public {公開} unlisted {不公開} private {僅跟隨} direct {僅提及} other {{remoteVisibility}}}",
+  "visibility_modal.wxw_remote_visibility_label": "外站可見性"
+}

@@ -1,0 +1,8 @@
+{
+  "compose.format": "Post format",
+  "compose.format.html": "HTML",
+  "compose.format.markdown": "Markdown",
+  "compose.format.plain": "Plain text",
+  "compose_form.html_placeholder": "Write your post in HTML.",
+  "compose_form.markdown_placeholder": "Write your post in Markdown."
+}

@@ -1,0 +1,5 @@
+{
+  "media_gallery.audio": "音频",
+  "media_gallery.show_more": "查看其余 {count} 个附件",
+  "upload_form.federation_limit": "其他服务器可能只显示前 4 个附件。"
+}
